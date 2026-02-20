@@ -1,0 +1,92 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: lmnas-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-lmnas}
+      POSTGRES_USER: ${POSTGRES_USER:-lmnas}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lmnas}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  strapi:
+    image: node:20-alpine
+    container_name: lmnas-strapi
+    working_dir: /app
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: ${STRAPI_PORT:-1337}
+      APP_KEYS: appKey1,appKey2,appKey3,appKey4
+      API_TOKEN_SALT: apiTokenSalt
+      ADMIN_JWT_SECRET: adminJwtSecret
+      TRANSFER_TOKEN_SALT: transferTokenSalt
+      JWT_SECRET: jwtSecret
+      DATABASE_CLIENT: postgres
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: ${POSTGRES_DB:-lmnas}
+      DATABASE_USERNAME: ${POSTGRES_USER:-lmnas}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-lmnas}
+      DATABASE_SSL: "false"
+    ports:
+      - "${STRAPI_PORT:-1337}:1337"
+    volumes:
+      - ./services/strapi:/app
+      - strapi_node_modules:/app/node_modules
+    command: sh -c "mkdir -p /app/public/uploads && npm install --no-audit --no-fund --no-progress --loglevel=error && npm run develop"
+
+  n8n:
+    image: n8nio/n8n:1.76.1
+    container_name: lmnas-n8n
+    restart: unless-stopped
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+    environment:
+      N8N_PORT: 5678
+      N8N_HOST: 0.0.0.0
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./services/n8n/workflows:/workflows
+
+  lens-api:
+    image: node:20-alpine
+    container_name: lmnas-lens-mock
+    working_dir: /app
+    restart: unless-stopped
+    environment:
+      LENS_MOCK_PORT: ${LENS_MOCK_PORT:-4010}
+    ports:
+      - "${LENS_MOCK_PORT:-4010}:${LENS_MOCK_PORT:-4010}"
+    volumes:
+      - ./services/mocks/lens-api:/app
+      - lens_node_modules:/app/node_modules
+    command: sh -c "npm install --no-audit --no-fund --no-progress --loglevel=error && npm run dev"
+
+  rudder:
+    image: node:20-alpine
+    container_name: lmnas-rudder-mock
+    working_dir: /app
+    restart: unless-stopped
+    environment:
+      RUDDER_MOCK_PORT: ${RUDDER_MOCK_PORT:-4011}
+    ports:
+      - "${RUDDER_MOCK_PORT:-4011}:${RUDDER_MOCK_PORT:-4011}"
+    volumes:
+      - ./services/mocks/rudder:/app
+      - rudder_node_modules:/app/node_modules
+    command: sh -c "npm install --no-audit --no-fund --no-progress --loglevel=error && npm run dev"
+
+volumes:
+  postgres_data:
+  n8n_data:
+  strapi_node_modules:
+  lens_node_modules:
+  rudder_node_modules:

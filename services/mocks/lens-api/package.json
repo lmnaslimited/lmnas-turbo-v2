@@ -1,0 +1,15 @@
+{
+  "name": "@lmnas/lens-api-mock",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "lint": "eslint .",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "echo 'no typecheck for js mock'"
+  },
+  "dependencies": {
+    "express": "^4.21.1"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
+    "paths": {
+      "@lmnas/blocks": ["packages/blocks/index.ts"],
+      "@lmnas/block-registry": ["packages/block-registry/src/index.ts"],
+      "@lmnas/contracts": ["packages/contracts/src/index.ts"],
+      "@lmnas/renderer": ["packages/renderer/src/index.tsx"],
+      "@lmnas/seo-engine": ["packages/seo-engine/src/index.ts"],
+      "@lmnas/integrations": ["packages/integrations/src/index.ts"],
+      "@lmnas/testkit": ["packages/testkit/src/index.ts"]
+    },
+    "jsx": "react-jsx"
+  }
+}

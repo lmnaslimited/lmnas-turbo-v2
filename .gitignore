@@ -1,0 +1,12 @@
+node_modules
+.pnpm-store
+.next
+dist
+coverage
+.turbo
+.env
+.env.local
+.strapi
+services/strapi/.tmp
+services/strapi/build
+services/strapi/.cache

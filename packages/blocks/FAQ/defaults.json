@@ -1,0 +1,13 @@
+{
+  "title": "Common Questions",
+  "items": [
+    {
+      "question": "What is LMNAs Turbo v2?",
+      "answer": "A block-first web platform scaffold."
+    },
+    {
+      "question": "How do I preview drafts?",
+      "answer": "Use /preview?slug=home&token=local-preview-token"
+    }
+  ]
+}

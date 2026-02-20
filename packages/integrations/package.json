@@ -1,0 +1,21 @@
+{
+  "name": "@lmnas/integrations",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lmnas/contracts": "workspace:*",
+    "@lmnas/testkit": "workspace:*"
+  },
+  "devDependencies": {
+    "msw": "^2.7.3"
+  }
+}
