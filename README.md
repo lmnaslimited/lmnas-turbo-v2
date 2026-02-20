@@ -59,3 +59,9 @@ Use a future generator command such as `pnpm gen:block <name>` (placeholder) to 
 ## Troubleshooting
 - If `pnpm install` returns `ERR_PNPM_FETCH_403`, your environment cannot access `registry.npmjs.org` (proxy/policy). Configure a permitted registry/proxy and rerun `pnpm preflight`.
 - If `docker compose` is unavailable, install Docker CLI + Compose plugin before running stack commands.
+
+
+### Dev command behavior
+- `pnpm dev` starts only frontend apps (`site`, `docs`, `blogs`).
+- Local service containers (Strapi, n8n, lens-api, rudder) should be started with `docker compose up -d`.
+- If you need every workspace `dev` task (including local mock node servers), run `pnpm dev:full`.

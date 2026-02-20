@@ -6,11 +6,12 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "turbo run dev --parallel",
+    "dev": "turbo run dev --parallel --filter=@lmnas/site --filter=@lmnas/docs --filter=@lmnas/blogs",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
-    "preflight": "node scripts/doctor.mjs"
+    "preflight": "node scripts/doctor.mjs",
+    "dev:full": "turbo run dev --parallel"
   },
   "devDependencies": {
     "@types/node": "^20.16.5",
