@@ -1,0 +1,8 @@
+{
+  "collectionName": "components_blocks_faq_items",
+  "info": { "displayName": "FAQ Item" },
+  "attributes": {
+    "question": { "type": "string", "required": true },
+    "answer": { "type": "text", "required": true }
+  }
+}

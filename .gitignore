@@ -1,0 +1,10 @@
+node_modules
+.pnpm-store
+.next
+dist
+coverage
+.env
+.DS_Store
+services/strapi/.cache
+services/strapi/build
+services/strapi/node_modules

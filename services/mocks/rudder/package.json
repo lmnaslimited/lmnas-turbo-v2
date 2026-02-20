@@ -1,0 +1,11 @@
+{
+  "name": "@lmnas/rudder-mock",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}
