@@ -1,0 +1,8 @@
+{
+  "collectionName": "components_blocks_heroes",
+  "info": { "displayName": "Hero" },
+  "attributes": {
+    "title": { "type": "string", "required": true },
+    "subtitle": { "type": "text" }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "@lmnas/renderer",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "lint": "echo lint renderer",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@lmnas/block-registry": "workspace:*",
+    "@lmnas/contracts": "workspace:*",
+    "react": "18.3.1"
+  }
+}

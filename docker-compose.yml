@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-strapi}
+      POSTGRES_USER: ${POSTGRES_USER:-strapi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-strapi}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  strapi:
+    image: node:20
+    working_dir: /srv/app
+    command: sh -c "npm install && npm run develop"
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: ${POSTGRES_DB:-strapi}
+      DATABASE_USERNAME: ${POSTGRES_USER:-strapi}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-strapi}
+      ADMIN_JWT_SECRET: ${STRAPI_ADMIN_JWT_SECRET}
+      API_TOKEN_SALT: ${STRAPI_API_TOKEN_SALT}
+      APP_KEYS: ${STRAPI_APP_KEYS}
+      JWT_SECRET: ${STRAPI_JWT_SECRET}
+    ports:
+      - "1337:1337"
+    volumes:
+      - ./services/strapi:/srv/app
+    depends_on:
+      - postgres
+
+  n8n:
+    image: n8nio/n8n:latest
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+
+  lens-api:
+    image: node:20-alpine
+    working_dir: /srv/mock
+    command: sh -c "npm install && node server.js"
+    ports:
+      - "${LENS_API_PORT:-4010}:4010"
+    volumes:
+      - ./services/mocks/lens-api:/srv/mock
+
+  rudder:
+    image: node:20-alpine
+    working_dir: /srv/mock
+    command: sh -c "npm install && node server.js"
+    ports:
+      - "${RUDDER_PORT:-4011}:4011"
+    volumes:
+      - ./services/mocks/rudder:/srv/mock
+
+volumes:
+  pgdata:

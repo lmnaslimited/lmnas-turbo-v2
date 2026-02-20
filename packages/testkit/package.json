@@ -1,0 +1,15 @@
+{
+  "name": "@lmnas/testkit",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "lint": "echo lint testkit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "msw": "^2.4.8"
+  }
+}
