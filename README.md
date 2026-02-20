@@ -1,10 +1,11 @@
 # LMNAS Turbo v2 Platform
 
 ## Local boot
-1. `pnpm install`
-2. `cp .env.example .env`
-3. `docker compose up -d`
-4. `pnpm dev`
+1. `pnpm preflight` (optional preflight check)
+2. `pnpm install`
+3. `cp .env.example .env`
+4. `docker compose up -d`
+5. `pnpm dev`
 
 URLs:
 - Site: http://localhost:3000
@@ -53,3 +54,8 @@ Use a future generator command such as `pnpm gen:block <name>` (placeholder) to 
 ## Preview flow
 - Strapi Preview URL should point to `/preview?slug=<slug>&token=<optional>`.
 - Route exists at `apps/site/app/preview/page.tsx` and renders preview validation errors inline.
+
+
+## Troubleshooting
+- If `pnpm install` returns `ERR_PNPM_FETCH_403`, your environment cannot access `registry.npmjs.org` (proxy/policy). Configure a permitted registry/proxy and rerun `pnpm preflight`.
+- If `docker compose` is unavailable, install Docker CLI + Compose plugin before running stack commands.

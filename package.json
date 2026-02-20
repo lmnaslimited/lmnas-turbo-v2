@@ -8,7 +8,8 @@
     "dev": "turbo run dev --parallel",
     "build": "turbo run build",
     "lint": "turbo run lint",
-    "test": "turbo run test"
+    "test": "turbo run test",
+    "preflight": "node scripts/doctor.mjs"
   },
   "devDependencies": {
     "@types/node": "^20.16.5",
