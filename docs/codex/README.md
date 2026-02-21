@@ -17,6 +17,25 @@ Current baseline:
 - `Scaffold_Prompt_v1.1.md`: Phase 0 stabilization scaffold prompt
 - `Scaffold_Prompt_v1.md`: deterministic scaffold prompt
 
+## Phase 0 Stabilization (Constitution v2.1)
+Phase 0 is the mandatory baseline for production-safe platform scaffolding.
+
+Phase 0 includes:
+- conversionConfig enforcement in contracts + integrations
+- CMS-driven dynamic page routing and layout registry usage
+- CMS navigation model and rendering for header/footer
+- GraphQL typed integration layer for pages/navigation/blogs
+- dual-access blogs strategy with canonical to `lmnas.com/blogs/...`
+- Rudder cross-app consistency and cookie-domain strategy
+- `/api/health` and required validation tests
+
+Phase 0 explicitly does not include:
+- Router engine
+- Identity model
+- Personalization
+
+Phase 0 must pass completely before Phase 1 work begins.
+
 ## When to Use Spec vs Prompt
 Use the spec when:
 - reviewing architecture boundaries
