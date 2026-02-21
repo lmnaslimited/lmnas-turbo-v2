@@ -1,12 +1,12 @@
-# Codex Scaffold Spec v1.1
+# Codex Scaffold Spec v1.1-final (Phase 0 Baseline Upgrade)
 
 ## Document Metadata
-- Name: `Codex Scaffold Spec v1.1`
+- Name: `Codex Scaffold Spec v1.1-final (Phase 0 Baseline Upgrade)`
 - Platform baseline: `LMNAs Platform Operating Constitution v2.1`
 - Scope: Turborepo local-first, CMS-driven web platform scaffold with explicit Phase 0 stabilization gate.
 
 ## Purpose
-Defines full scaffold requirements for the Constitution v2.1 Phase 0 baseline.
+Defines full scaffold requirements to baseline the current Turborepo scaffold to Constitution v2.1 Phase 0 requirements.
 
 ## Non-negotiable Outcomes
 After scaffold, developer must run:
@@ -67,6 +67,11 @@ If any Phase 0 requirement fails, scaffold is incomplete.
 - `apps/site/app/[...slug]/page.tsx` resolves joined slug path.
   - Example: `/products/cpq` -> `products/cpq`
   - Example: `/solutions/tender-intelligence` -> `solutions/tender-intelligence`
+- `apps/site/app/preview/page.tsx` resolves `/preview?slug=...&token=...` for draft/unpublished preview.
+- `apps/site/app/blogs/page.tsx` resolves `/blogs`.
+- `apps/site/app/blogs/[slug]/page.tsx` resolves `/blogs/[slug]`.
+- `apps/blogs/app/page.tsx` resolves `/`.
+- `apps/blogs/app/[slug]/page.tsx` resolves `/[slug]`.
 - Route rendering must consume validated CMS page contracts.
 
 ## Content Model Requirements

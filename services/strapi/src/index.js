@@ -35,11 +35,6 @@ module.exports = {
             canonical: "http://localhost:3000",
             robots: "index,follow"
           },
-          conversionConfig: {
-            primary: "book",
-            product: "platform",
-            industry: "healthcare"
-          },
           publishedAt: new Date().toISOString()
         }
       });

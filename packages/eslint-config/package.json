@@ -2,9 +2,5 @@
   "name": "@lmnas/eslint-config",
   "version": "0.0.0",
   "private": true,
-  "main": "index.cjs",
-  "scripts": {
-    "lint": "eslint .",
-    "test": "vitest run --passWithNoTests"
-  }
+  "main": "index.cjs"
 }

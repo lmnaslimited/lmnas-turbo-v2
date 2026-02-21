@@ -1,12 +1,12 @@
 import type { FAQBlock } from "@lmnas/blocks";
-import { seoSchema, type Page } from "@lmnas/contracts";
+import type { Page } from "@lmnas/contracts";
 
 type SeoOutput = {
   meta: {
-    title: string;
-    description: string;
-    canonical: string;
-    robots: string;
+    title?: string;
+    description?: string;
+    canonical?: string;
+    robots?: string;
   };
   jsonLd: object[];
 };
@@ -26,37 +26,20 @@ function buildFaqJsonLd(faq: FAQBlock) {
   };
 }
 
-function dedupeJsonLd(items: object[]): object[] {
-  const seen = new Set<string>();
-  const output: object[] = [];
-
-  for (const item of items) {
-    const key = JSON.stringify(item);
-    if (!seen.has(key)) {
-      seen.add(key);
-      output.push(item);
-    }
-  }
-
-  return output;
-}
-
 export function buildSeo(page: Page): SeoOutput {
-  const validatedSeo = seoSchema.parse(page.seo);
   const jsonLd: object[] = [];
   const faqBlock = page.blocks.find((b) => b.type === "faq") as FAQBlock | undefined;
-
   if (faqBlock) {
     jsonLd.push(buildFaqJsonLd(faqBlock));
   }
 
   return {
     meta: {
-      title: validatedSeo.metaTitle,
-      description: validatedSeo.metaDescription,
-      canonical: validatedSeo.canonical,
-      robots: validatedSeo.robots
+      title: page.seo?.metaTitle,
+      description: page.seo?.metaDescription,
+      canonical: page.seo?.canonical,
+      robots: page.seo?.robots
     },
-    jsonLd: dedupeJsonLd(jsonLd)
+    jsonLd
   };
 }

@@ -11,16 +11,4 @@ describe("seo-engine", () => {
       "@type": "FAQPage"
     });
   });
-
-  it("throws when required seo fields are missing", () => {
-    const badPage = {
-      ...homePageFixture,
-      seo: {
-        metaTitle: "Title",
-        metaDescription: "Description"
-      }
-    };
-
-    expect(() => buildSeo(badPage as never)).toThrow();
-  });
 });

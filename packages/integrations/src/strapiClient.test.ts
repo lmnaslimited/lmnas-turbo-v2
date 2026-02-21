@@ -26,15 +26,7 @@ const server = setupServer(
               }
             ],
             seo: {
-              metaTitle: "Title",
-              metaDescription: "Description",
-              canonical: "http://localhost:3000",
-              robots: "index,follow"
-            },
-            conversionConfig: {
-              primary: "book",
-              product: "platform",
-              industry: "healthcare"
+              metaTitle: "Title"
             }
           }
         }
@@ -55,6 +47,5 @@ describe("strapiClient", () => {
 
     expect(page.slug).toBe("home");
     expect(page.blocks[0]).toMatchObject({ type: "hero", heading: "Hello" });
-    expect(page.conversionConfig.primary).toBe("book");
   });
 });

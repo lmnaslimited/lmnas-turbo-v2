@@ -31,10 +31,5 @@ export const homePageFixture: Page = {
     metaDescription: "LMNAs platform home page",
     canonical: "http://localhost:3000",
     robots: "index,follow"
-  },
-  conversionConfig: {
-    primary: "book",
-    product: "platform",
-    industry: "healthcare"
   }
 };

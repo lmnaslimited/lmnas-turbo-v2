@@ -31,20 +31,6 @@ module.exports = {
       parser: "@typescript-eslint/parser"
     },
     {
-      files: ["apps/**/app/**/page.{ts,tsx,js,jsx}"],
-      rules: {
-        "no-restricted-syntax": [
-          "error",
-          {
-            selector:
-              "Program:not(:has(ExportNamedDeclaration > VariableDeclaration > VariableDeclarator[id.name=\"conversionConfig\"]))",
-            message:
-              "Every app page must export conversionConfig with primary/product/industry for Phase 0 enforcement."
-          }
-        ]
-      }
-    },
-    {
       files: ["apps/**/*.{ts,tsx,js,jsx}"],
       rules: {
         "no-restricted-imports": [

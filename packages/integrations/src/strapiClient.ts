@@ -33,7 +33,7 @@ export async function getPageBySlug(slug: string, options: Options = {}): Promis
   const strapiUrl = process.env.STRAPI_URL || "http://localhost:1337";
   const token = process.env.STRAPI_API_TOKEN;
   const state = options.preview ? "preview" : "live";
-  const url = `${strapiUrl}/api/pages?filters[slug][$eq]=${encodeURIComponent(slug)}&publicationState=${state}&populate[blocks][populate]=*&populate[seo]=*&populate[conversionConfig]=*`;
+  const url = `${strapiUrl}/api/pages?filters[slug][$eq]=${encodeURIComponent(slug)}&publicationState=${state}&populate[blocks][populate]=*&populate[seo]=*`;
 
   try {
     const response = await fetch(url, {
@@ -57,8 +57,7 @@ export async function getPageBySlug(slug: string, options: Options = {}): Promis
       id: first.id,
       slug: first.attributes.slug,
       blocks: first.attributes.blocks.map((block) => normalizeStrapiBlock(block as Record<string, unknown>)),
-      seo: first.attributes.seo,
-      conversionConfig: first.attributes.conversionConfig
+      seo: first.attributes.seo
     };
 
     return pageSchema.parse(normalizedPage);
