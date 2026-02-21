@@ -2,6 +2,26 @@
 
 Local-first monorepo platform scaffold for `lmnas.com` with block-based rendering, Strapi v5 CMS, n8n, and local mocks.
 
+## Architecture & Governance
+
+The authoritative architecture document for this repository is `docs/architecture/LMNAs_Platform_Operating_Constitution_v2_1.md`.
+All architectural decisions must align with this Constitution.
+If there is a conflict between implementation and documentation, the Constitution prevails.
+Codex prompts and scaffold specs must comply with this document.
+
+### Architecture Hierarchy
+
+1. Platform Operating Constitution (highest authority)
+2. Platform Spec
+3. Codex Scaffold Prompt
+4. Implementation
+
+### Phase 0 Baseline Status
+
+The repository is currently aligned to the Phase 0 baseline.
+Router engine, Identity model, and Personalization are intentionally out of scope.
+Any introduction of these requires explicit spec updates.
+
 ## Quick Start
 
 1. `pnpm install`
