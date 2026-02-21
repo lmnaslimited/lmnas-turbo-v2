@@ -1,5 +1,6 @@
 import React from "react";
 import { getPageBySlug } from "@lmnas/integrations";
+import { LayoutRegistry } from "@lmnas/layouts";
 import { PageRenderer } from "@lmnas/renderer";
 
 type PreviewParamValue = string | string[] | undefined;
@@ -69,11 +70,14 @@ export default async function PreviewPage({
   }
 
   const page = await getPageBySlug(slug, { preview: true });
+  const Layout = LayoutRegistry[page.layoutKey];
 
   return (
-    <main>
-      <h1 style={{ marginTop: 0 }}>Preview: {slug}</h1>
-      <PageRenderer blocks={page.blocks} preview />
-    </main>
+    <Layout title={`preview:${page.layoutKey}`}>
+      <main>
+        <h1 style={{ marginTop: 0 }}>Preview: {slug}</h1>
+        <PageRenderer blocks={page.blocks} preview />
+      </main>
+    </Layout>
   );
 }

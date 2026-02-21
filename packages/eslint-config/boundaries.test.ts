@@ -5,14 +5,14 @@ import path from "node:path";
 const cwd = path.resolve(__dirname, "../..");
 
 describe("eslint boundary rules", () => {
-  it("fails app pages without conversionConfig", async () => {
+  it("fails direct REST fetches for pages/navigation/blogs from apps", async () => {
     const eslint = new ESLint({ cwd, overrideConfigFile: path.join(cwd, ".eslintrc.cjs") });
-    const [result] = await eslint.lintText('export default function Page(){ return null; }', {
-      filePath: path.join(cwd, "apps/site/app/missing/page.tsx")
+    const [result] = await eslint.lintText('fetch("/api/pages"); export default function Page(){ return null; }', {
+      filePath: path.join(cwd, "apps/site/app/bad-rest/page.tsx")
     });
 
     expect(result.errorCount).toBeGreaterThan(0);
-    expect(result.messages.some((m) => m.message.includes("conversionConfig"))).toBe(true);
+    expect(result.messages.some((m) => m.message.includes("GraphQL clients"))).toBe(true);
   });
 
   it("fails direct axios imports from apps", async () => {
