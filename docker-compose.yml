@@ -41,7 +41,7 @@ services:
     volumes:
       - ./services/strapi:/app
       - strapi_node_modules:/app/node_modules
-    command: sh -c "mkdir -p /app/public/uploads && rm -rf /app/node_modules/* && npm install --package-lock=false --no-audit --no-fund --no-progress --loglevel=error && npm run develop"
+    command: sh -c "mkdir -p /app/public/uploads && rm -rf /app/node_modules/* && npm install --package-lock=false --no-audit --no-fund --no-progress --loglevel=error && exec ./node_modules/.bin/strapi develop"
 
   n8n:
     image: n8nio/n8n:1.76.1
