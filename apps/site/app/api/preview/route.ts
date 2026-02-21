@@ -17,10 +17,15 @@ function normalizePreviewTarget(rawTarget: string | null): string {
   return normalizedPath === "/home" ? "/" : normalizedPath;
 }
 
+function resolveExpectedPreviewSecret(): string | undefined {
+  return process.env.PREVIEW_SECRET ?? process.env.STRAPI_PREVIEW_TOKEN ?? "local-preview-token";
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const expectedSecret = process.env.STRAPI_PREVIEW_TOKEN;
+  const expectedSecret = resolveExpectedPreviewSecret();
   const providedSecret = url.searchParams.get("secret") ?? url.searchParams.get("token");
+  const status = url.searchParams.get("status");
 
   if (!expectedSecret || !providedSecret || providedSecret !== expectedSecret) {
     return new NextResponse("Invalid preview token.", { status: 401 });
@@ -34,7 +39,11 @@ export async function GET(request: Request) {
 
   const redirectTarget = normalizePreviewTarget(rawTarget);
   const preview = await draftMode();
-  preview.enable();
+  if (status === "published") {
+    preview.disable();
+  } else {
+    preview.enable();
+  }
 
   return NextResponse.redirect(new URL(redirectTarget, url.origin));
 }

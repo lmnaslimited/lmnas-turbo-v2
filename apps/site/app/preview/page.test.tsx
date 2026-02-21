@@ -43,6 +43,7 @@ import PreviewPage from "./page";
 describe("preview route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.PREVIEW_SECRET = "local-preview-token";
     process.env.STRAPI_PREVIEW_TOKEN = "local-preview-token";
   });
 

@@ -55,6 +55,10 @@ function resolvePreviewSlug(params: Record<string, PreviewParamValue>): string {
   return "home";
 }
 
+function resolveExpectedPreviewSecret(): string | undefined {
+  return process.env.PREVIEW_SECRET ?? process.env.STRAPI_PREVIEW_TOKEN ?? "local-preview-token";
+}
+
 export default async function PreviewPage({
   searchParams
 }: {
@@ -62,7 +66,7 @@ export default async function PreviewPage({
 }) {
   const params = await searchParams;
   const slug = resolvePreviewSlug(params);
-  const expected = process.env.STRAPI_PREVIEW_TOKEN;
+  const expected = resolveExpectedPreviewSecret();
   const providedToken = takeFirst(params.token) ?? takeFirst(params.secret);
   const tokenOk = Boolean(expected && providedToken && providedToken === expected);
 
@@ -78,7 +82,7 @@ export default async function PreviewPage({
       notFound();
     }
     if (error instanceof StrapiUnreachableError) {
-      throw new Error("strapi_unreachable");
+      return <main>strapi_unreachable</main>;
     }
     throw error;
   }
