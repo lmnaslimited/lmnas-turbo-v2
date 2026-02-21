@@ -64,7 +64,7 @@ describe("site home route", () => {
     draftModeMock.mockResolvedValue({ isEnabled: true });
     await HomePage();
 
-    expect(getPageBySlugMock).toHaveBeenCalledWith("home", { preview: false });
+    expect(getPageBySlugMock).toHaveBeenCalledWith("home", { preview: true });
   });
 
   it("does not import page mock fixtures in site page routes", () => {

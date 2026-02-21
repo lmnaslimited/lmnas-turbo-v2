@@ -62,6 +62,6 @@ describe("site slug route", () => {
     draftModeMock.mockResolvedValue({ isEnabled: true });
     await SlugPage({ params: Promise.resolve({ slug: ["products", "cpq"] }) });
 
-    expect(getPageBySlugMock).toHaveBeenCalledWith("products/cpq", { preview: false });
+    expect(getPageBySlugMock).toHaveBeenCalledWith("products/cpq", { preview: true });
   });
 });

@@ -10,8 +10,8 @@ module.exports = ({ env }) => {
     return `/${normalizedSlug}`;
   };
 
-  const buildDraftPreviewUrl = (slug) =>
-    `${siteUrl}/preview?slug=${encodeURIComponent(slug)}&token=${encodeURIComponent(previewSecret)}`;
+  const buildPreviewSessionUrl = (path, status) =>
+    `${siteUrl}/api/preview?url=${encodeURIComponent(path)}&secret=${encodeURIComponent(previewSecret)}&status=${encodeURIComponent(status)}`;
 
   return {
     auth: {
@@ -56,19 +56,12 @@ module.exports = ({ env }) => {
 
           if (uid === "api::page.page") {
             const path = buildSitePathForPage(document.slug);
-            if (resolvedStatus === "published") {
-              return `${siteUrl}${path}`;
-            }
-            const slug = path === "/" ? "home" : path.replace(/^\/+/, "");
-            return buildDraftPreviewUrl(slug);
+            return buildPreviewSessionUrl(path, resolvedStatus);
           }
 
           if (uid === "api::blog-post.blog-post") {
             const path = `/blogs/${document.slug}`;
-            if (resolvedStatus === "published") {
-              return `${siteUrl}${path}`;
-            }
-            return buildPreviewUrl(path);
+            return buildPreviewSessionUrl(path, resolvedStatus);
           }
 
           return null;

@@ -1,4 +1,5 @@
 import React from "react";
+import { draftMode } from "next/headers";
 import { notFound } from "next/navigation";
 import { track } from "@lmnas/analytics";
 import { getPageBySlug, PageNotFoundError, StrapiUnreachableError } from "@lmnas/integrations";
@@ -8,11 +9,12 @@ import { buildSeo } from "@lmnas/seo-engine";
 import { resolveCmsSlug } from "../../lib/slug";
 
 export default async function SlugPage({ params }: { params: Promise<{ slug?: string[] }> }) {
+  const { isEnabled: isPreview } = await draftMode();
   const { slug: slugParts } = await params;
   const slug = resolveCmsSlug(slugParts);
   let page;
   try {
-    page = await getPageBySlug(slug, { preview: false });
+    page = await getPageBySlug(slug, { preview: isPreview });
   } catch (error) {
     if (error instanceof PageNotFoundError) {
       notFound();
@@ -32,7 +34,7 @@ export default async function SlugPage({ params }: { params: Promise<{ slug?: st
       <main>
         <h1 style={{ marginTop: 0 }}>{page.slug}</h1>
         <p>Meta title: {seo.meta.title ?? "n/a"}</p>
-        <PageRenderer blocks={page.blocks} preview={false} />
+        <PageRenderer blocks={page.blocks} preview={isPreview} />
       </main>
     </Layout>
   );

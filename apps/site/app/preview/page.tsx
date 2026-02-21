@@ -1,8 +1,5 @@
 import React from "react";
-import { notFound } from "next/navigation";
-import { getPageBySlug, PageNotFoundError, StrapiUnreachableError } from "@lmnas/integrations";
-import { LayoutRegistry } from "@lmnas/layouts";
-import { PageRenderer } from "@lmnas/renderer";
+import { redirect } from "next/navigation";
 
 type PreviewParamValue = string | string[] | undefined;
 
@@ -69,31 +66,16 @@ export default async function PreviewPage({
   const expected = resolveExpectedPreviewSecret();
   const providedToken = takeFirst(params.token) ?? takeFirst(params.secret);
   const tokenOk = Boolean(expected && providedToken && providedToken === expected);
+  const status = takeFirst(params.status)?.toLowerCase() === "published" ? "published" : "draft";
 
   if (!tokenOk) {
     return <main>401 Invalid preview token.</main>;
   }
 
-  let page;
-  try {
-    page = await getPageBySlug(slug, { preview: true });
-  } catch (error) {
-    if (error instanceof PageNotFoundError) {
-      notFound();
-    }
-    if (error instanceof StrapiUnreachableError) {
-      return <main>strapi_unreachable</main>;
-    }
-    throw error;
-  }
-  const Layout = LayoutRegistry[page.layoutKey];
-
-  return (
-    <Layout title={`preview:${page.layoutKey}`}>
-      <main>
-        <h1 style={{ marginTop: 0 }}>Preview: {slug}</h1>
-        <PageRenderer blocks={page.blocks} preview />
-      </main>
-    </Layout>
-  );
+  const token = providedToken as string;
+  const previewUrl = new URL("/api/preview", "http://localhost");
+  previewUrl.searchParams.set("slug", slug);
+  previewUrl.searchParams.set("secret", token);
+  previewUrl.searchParams.set("status", status);
+  redirect(`${previewUrl.pathname}?${previewUrl.searchParams.toString()}`);
 }

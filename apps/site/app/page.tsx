@@ -1,4 +1,5 @@
 import React from "react";
+import { draftMode } from "next/headers";
 import { notFound } from "next/navigation";
 import { track } from "@lmnas/analytics";
 import { getPageBySlug, PageNotFoundError, StrapiUnreachableError } from "@lmnas/integrations";
@@ -7,9 +8,10 @@ import { PageRenderer } from "@lmnas/renderer";
 import { buildSeo } from "@lmnas/seo-engine";
 
 export default async function HomePage() {
+  const { isEnabled: isPreview } = await draftMode();
   let page;
   try {
-    page = await getPageBySlug("home", { preview: false });
+    page = await getPageBySlug("home", { preview: isPreview });
   } catch (error) {
     if (error instanceof PageNotFoundError) {
       notFound();
@@ -28,7 +30,7 @@ export default async function HomePage() {
       <main>
         <h1 style={{ marginTop: 0 }}>Hello Platform</h1>
         <p>Meta title: {seo.meta.title ?? "n/a"}</p>
-        <PageRenderer blocks={page.blocks} preview={false} />
+        <PageRenderer blocks={page.blocks} preview={isPreview} />
       </main>
     </Layout>
   );
