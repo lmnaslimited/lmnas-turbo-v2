@@ -14,43 +14,39 @@ const server = setupServer(
     if (query.includes("GetPageBySlug")) {
       return HttpResponse.json({
         data: {
-          pages: {
-            data: [
-              {
-                id: 7,
-                attributes: {
-                  slug: "home",
-                  pageType: "home",
-                  layoutKey: "homeLayout",
-                  conversionConfig: {
-                    primary: "book",
-                    product: "platform",
-                    industry: "healthcare"
-                  },
-                  blocks: [
-                    {
-                      __typename: "ComponentBlocksHero",
-                      heading: "Hello",
-                      subheading: "Sub",
-                      ctaLabel: "Go",
-                      ctaHref: "/go"
-                    },
-                    {
-                      __typename: "ComponentBlocksFaq",
-                      title: "FAQ",
-                      items: [{ question: "Q", answer: "A" }]
-                    }
-                  ],
-                  seo: {
-                    metaTitle: "Title",
-                    metaDescription: "Description",
-                    canonical: "https://lmnas.com",
-                    robots: "index,follow"
-                  }
+          pages: [
+            {
+              documentId: "page-home",
+              slug: "home",
+              pageType: "home",
+              layoutKey: "homeLayout",
+              conversionConfig: {
+                primary: "book",
+                product: "platform",
+                industry: "healthcare"
+              },
+              blocks: [
+                {
+                  __typename: "ComponentBlocksHero",
+                  heading: "Hello",
+                  subheading: "Sub",
+                  ctaLabel: "Go",
+                  ctaHref: "/go"
+                },
+                {
+                  __typename: "ComponentBlocksFaq",
+                  title: "FAQ",
+                  items: [{ question: "Q", answer: "A" }]
                 }
+              ],
+              seo: {
+                metaTitle: "Title",
+                metaDescription: "Description",
+                canonical: "https://lmnas.com",
+                robots: "index,follow"
               }
-            ]
-          }
+            }
+          ]
         }
       });
     }
@@ -58,17 +54,13 @@ const server = setupServer(
     if (query.includes("GetNavigationByKey")) {
       return HttpResponse.json({
         data: {
-          navigations: {
-            data: [
-              {
-                id: 2,
-                attributes: {
-                  key: "main",
-                  items: [{ label: "Products", children: [{ label: "CPQ", href: "/products/cpq" }] }]
-                }
-              }
-            ]
-          }
+          navigations: [
+            {
+              documentId: "nav-main",
+              key: "main",
+              items: [{ label: "Products", children: [{ label: "CPQ", href: "/products/cpq" }] }]
+            }
+          ]
         }
       });
     }
@@ -76,26 +68,22 @@ const server = setupServer(
     if (query.includes("GetBlogPosts")) {
       return HttpResponse.json({
         data: {
-          blogPosts: {
-            data: [
-              {
-                id: 3,
-                attributes: {
-                  slug: "first-post",
-                  title: "First Post",
-                  excerpt: "Ex",
-                  body: "Body",
-                  publishedAt: "2026-01-01T00:00:00.000Z",
-                  seo: {
-                    metaTitle: "First Post",
-                    metaDescription: "Ex",
-                    canonical: "https://lmnas.com/blogs/first-post",
-                    robots: "index,follow"
-                  }
-                }
+          blogPosts: [
+            {
+              documentId: "blog-first-post",
+              slug: "first-post",
+              title: "First Post",
+              excerpt: "Ex",
+              body: "Body",
+              publishedAt: "2026-01-01T00:00:00.000Z",
+              seo: {
+                metaTitle: "First Post",
+                metaDescription: "Ex",
+                canonical: "https://lmnas.com/blogs/first-post",
+                robots: "index,follow"
               }
-            ]
-          }
+            }
+          ]
         }
       });
     }
@@ -103,26 +91,22 @@ const server = setupServer(
     if (query.includes("GetBlogPostBySlug")) {
       return HttpResponse.json({
         data: {
-          blogPosts: {
-            data: [
-              {
-                id: 4,
-                attributes: {
-                  slug: "phase-0-baseline",
-                  title: "Phase 0",
-                  excerpt: "Summary",
-                  body: "Body",
-                  publishedAt: "2026-01-02T00:00:00.000Z",
-                  seo: {
-                    metaTitle: "Phase 0",
-                    metaDescription: "Summary",
-                    canonical: "https://lmnas.com/blogs/phase-0-baseline",
-                    robots: "index,follow"
-                  }
-                }
+          blogPosts: [
+            {
+              documentId: "blog-phase-0-baseline",
+              slug: "phase-0-baseline",
+              title: "Phase 0",
+              excerpt: "Summary",
+              body: "Body",
+              publishedAt: "2026-01-02T00:00:00.000Z",
+              seo: {
+                metaTitle: "Phase 0",
+                metaDescription: "Summary",
+                canonical: "https://lmnas.com/blogs/phase-0-baseline",
+                robots: "index,follow"
               }
-            ]
-          }
+            }
+          ]
         }
       });
     }
@@ -169,34 +153,32 @@ describe("strapiClient", () => {
         }
 
         const state = body.variables?.state;
-        const metaTitle = state === "PREVIEW" ? "Home Draft" : "Home Published";
+        const status = body.variables?.status;
+        const isPreview = state === "PREVIEW" || status === "DRAFT";
+        const metaTitle = isPreview ? "Home Draft" : "Home Published";
 
         return HttpResponse.json({
           data: {
-            pages: {
-              data: [
-                {
-                  id: 7,
-                  attributes: {
-                    slug: "home",
-                    pageType: "home",
-                    layoutKey: "homeLayout",
-                    conversionConfig: {
-                      primary: "book",
-                      product: "platform",
-                      industry: "healthcare"
-                    },
-                    blocks: [],
-                    seo: {
-                      metaTitle,
-                      metaDescription: "Description",
-                      canonical: "https://lmnas.com",
-                      robots: "index,follow"
-                    }
-                  }
+            pages: [
+              {
+                documentId: "page-home",
+                slug: "home",
+                pageType: "home",
+                layoutKey: "homeLayout",
+                conversionConfig: {
+                  primary: "book",
+                  product: "platform",
+                  industry: "healthcare"
+                },
+                blocks: [],
+                seo: {
+                  metaTitle,
+                  metaDescription: "Description",
+                  canonical: "https://lmnas.com",
+                  robots: "index,follow"
                 }
-              ]
-            }
+              }
+            ]
           }
         });
       })
@@ -236,9 +218,7 @@ describe("strapiClient", () => {
         if ((body.query ?? "").includes("GetPageBySlug")) {
           return HttpResponse.json({
             data: {
-              pages: {
-                data: []
-              }
+              pages: []
             }
           });
         }
@@ -255,5 +235,64 @@ describe("strapiClient", () => {
     );
 
     await expect(getPageBySlug("home")).rejects.toThrow("strapi_unreachable");
+  });
+
+  it("falls back to v4 GraphQL schema when v5 query shape is unavailable", async () => {
+    server.use(
+      http.post("http://localhost:1337/graphql", async ({ request }) => {
+        const body = (await request.json()) as { query?: string };
+        const query = body.query ?? "";
+
+        if (query.includes("GetPageBySlugV5")) {
+          return HttpResponse.json(
+            {
+              errors: [
+                {
+                  message: "Unknown argument \"status\" on field \"Query.pages\".",
+                  extensions: { code: "GRAPHQL_VALIDATION_FAILED" }
+                }
+              ]
+            },
+            { status: 400 }
+          );
+        }
+
+        if (query.includes("GetPageBySlugV4")) {
+          return HttpResponse.json({
+            data: {
+              pages: {
+                data: [
+                  {
+                    id: 1,
+                    attributes: {
+                      slug: "home",
+                      pageType: "home",
+                      layoutKey: "homeLayout",
+                      conversionConfig: {
+                        primary: "book",
+                        product: "platform",
+                        industry: "healthcare"
+                      },
+                      blocks: [],
+                      seo: {
+                        metaTitle: "Home",
+                        metaDescription: "Home",
+                        canonical: "https://lmnas.com",
+                        robots: "index,follow"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          });
+        }
+
+        return HttpResponse.json({ data: {} });
+      })
+    );
+
+    const page = await getPageBySlug("home");
+    expect(page.slug).toBe("home");
   });
 });
