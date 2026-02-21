@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { pageSchema } from "./index";
+import { blogPostSchema, navigationSchema, pageSchema } from "./index";
 
 const validPage = {
   slug: "home",
+  pageType: "home",
+  layoutKey: "homeLayout",
   blocks: [
     {
       type: "hero",
@@ -45,5 +47,29 @@ describe("contracts", () => {
 
     const parsed = pageSchema.safeParse(missingSeo);
     expect(parsed.success).toBe(false);
+  });
+
+  it("accepts navigation with grouped depth <=2", () => {
+    const parsed = navigationSchema.safeParse({
+      key: "main",
+      items: [{ label: "Products", children: [{ label: "CPQ", href: "/products/cpq" }] }]
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("accepts blog posts with seo metadata", () => {
+    const parsed = blogPostSchema.safeParse({
+      slug: "phase-0-baseline",
+      title: "Phase 0 Baseline",
+      excerpt: "Summary",
+      body: "Body",
+      seo: {
+        metaTitle: "Phase 0 Baseline",
+        metaDescription: "Summary",
+        canonical: "https://lmnas.com/blogs/phase-0-baseline",
+        robots: "index,follow"
+      }
+    });
+    expect(parsed.success).toBe(true);
   });
 });

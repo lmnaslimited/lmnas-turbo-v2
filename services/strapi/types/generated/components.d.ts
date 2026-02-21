@@ -6,10 +6,10 @@ export interface SharedSeo extends Schema.Component {
     displayName: 'seo';
   };
   attributes: {
-    metaTitle: Attribute.String;
-    metaDescription: Attribute.Text;
-    canonical: Attribute.String;
-    robots: Attribute.String;
+    metaTitle: Attribute.String & Attribute.Required;
+    metaDescription: Attribute.Text & Attribute.Required;
+    canonical: Attribute.String & Attribute.Required;
+    robots: Attribute.String & Attribute.Required;
   };
 }
 

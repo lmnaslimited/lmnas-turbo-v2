@@ -14,6 +14,8 @@
       "@lmnas/blocks": ["packages/blocks/index.ts"],
       "@lmnas/block-registry": ["packages/block-registry/src/index.ts"],
       "@lmnas/contracts": ["packages/contracts/src/index.ts"],
+      "@lmnas/analytics": ["packages/analytics/src/index.ts"],
+      "@lmnas/layouts": ["packages/layouts/src/index.ts"],
       "@lmnas/renderer": ["packages/renderer/src/index.tsx"],
       "@lmnas/seo-engine": ["packages/seo-engine/src/index.ts"],
       "@lmnas/integrations": ["packages/integrations/src/index.ts"],

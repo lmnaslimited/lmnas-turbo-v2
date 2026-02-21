@@ -7,6 +7,7 @@
     "start": "strapi start"
   },
   "dependencies": {
+    "@strapi/plugin-graphql": "4.25.12",
     "@strapi/plugin-users-permissions": "4.25.12",
     "@strapi/strapi": "4.25.12",
     "codemirror": "^6.0.1",

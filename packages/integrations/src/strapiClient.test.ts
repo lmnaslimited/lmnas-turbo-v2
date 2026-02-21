@@ -1,38 +1,131 @@
 import { beforeAll, afterAll, afterEach, describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import { getPageBySlug } from "./strapiClient";
+import { getBlogPostBySlug, getBlogPosts, getNavigationByKey, getPageBySlug } from "./strapiClient";
 
 const server = setupServer(
-  http.get("http://localhost:1337/api/pages", () =>
-    HttpResponse.json({
-      data: [
-        {
-          id: 7,
-          attributes: {
-            slug: "home",
-            blocks: [
+  http.post("http://localhost:1337/graphql", async ({ request }) => {
+    const body = (await request.json()) as { query?: string };
+    const query = body.query ?? "";
+
+    if (query.includes("GetPageBySlug")) {
+      return HttpResponse.json({
+        data: {
+          pages: {
+            data: [
               {
-                __component: "blocks.hero",
-                heading: "Hello",
-                subheading: "Sub",
-                ctaLabel: "Go",
-                ctaHref: "/go"
-              },
-              {
-                __component: "blocks.faq",
-                title: "FAQ",
-                items: [{ question: "Q", answer: "A" }]
+                id: 7,
+                attributes: {
+                  slug: "home",
+                  pageType: "home",
+                  layoutKey: "homeLayout",
+                  conversionConfig: {
+                    primary: "book",
+                    product: "platform",
+                    industry: "healthcare"
+                  },
+                  blocks: [
+                    {
+                      __typename: "ComponentBlocksHero",
+                      heading: "Hello",
+                      subheading: "Sub",
+                      ctaLabel: "Go",
+                      ctaHref: "/go"
+                    },
+                    {
+                      __typename: "ComponentBlocksFaq",
+                      title: "FAQ",
+                      items: [{ question: "Q", answer: "A" }]
+                    }
+                  ],
+                  seo: {
+                    metaTitle: "Title",
+                    metaDescription: "Description",
+                    canonical: "https://lmnas.com",
+                    robots: "index,follow"
+                  }
+                }
               }
-            ],
-            seo: {
-              metaTitle: "Title"
-            }
+            ]
           }
         }
-      ]
-    })
-  )
+      });
+    }
+
+    if (query.includes("GetNavigationByKey")) {
+      return HttpResponse.json({
+        data: {
+          navigations: {
+            data: [
+              {
+                id: 2,
+                attributes: {
+                  key: "main",
+                  items: [{ label: "Products", children: [{ label: "CPQ", href: "/products/cpq" }] }]
+                }
+              }
+            ]
+          }
+        }
+      });
+    }
+
+    if (query.includes("GetBlogPosts")) {
+      return HttpResponse.json({
+        data: {
+          blogPosts: {
+            data: [
+              {
+                id: 3,
+                attributes: {
+                  slug: "first-post",
+                  title: "First Post",
+                  excerpt: "Ex",
+                  body: "Body",
+                  publishedAt: "2026-01-01T00:00:00.000Z",
+                  seo: {
+                    metaTitle: "First Post",
+                    metaDescription: "Ex",
+                    canonical: "https://lmnas.com/blogs/first-post",
+                    robots: "index,follow"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      });
+    }
+
+    if (query.includes("GetBlogPostBySlug")) {
+      return HttpResponse.json({
+        data: {
+          blogPosts: {
+            data: [
+              {
+                id: 4,
+                attributes: {
+                  slug: "phase-0-baseline",
+                  title: "Phase 0",
+                  excerpt: "Summary",
+                  body: "Body",
+                  publishedAt: "2026-01-02T00:00:00.000Z",
+                  seo: {
+                    metaTitle: "Phase 0",
+                    metaDescription: "Summary",
+                    canonical: "https://lmnas.com/blogs/phase-0-baseline",
+                    robots: "index,follow"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      });
+    }
+
+    return HttpResponse.json({ data: {} });
+  })
 );
 
 beforeAll(() => server.listen());
@@ -40,12 +133,33 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 describe("strapiClient", () => {
-  it("maps and validates Strapi responses", async () => {
+  it("maps and validates page responses from GraphQL", async () => {
     process.env.STRAPI_URL = "http://localhost:1337";
 
     const page = await getPageBySlug("home");
 
     expect(page.slug).toBe("home");
+    expect(page.pageType).toBe("home");
     expect(page.blocks[0]).toMatchObject({ type: "hero", heading: "Hello" });
+  });
+
+  it("loads navigation by key from GraphQL", async () => {
+    process.env.STRAPI_URL = "http://localhost:1337";
+
+    const navigation = await getNavigationByKey("main");
+
+    expect(navigation.key).toBe("main");
+    expect(navigation.items[0].label).toBe("Products");
+  });
+
+  it("loads blog list and detail from GraphQL", async () => {
+    process.env.STRAPI_URL = "http://localhost:1337";
+
+    const posts = await getBlogPosts();
+    const post = await getBlogPostBySlug("phase-0-baseline");
+
+    expect(posts).toHaveLength(1);
+    expect(posts[0].slug).toBe("first-post");
+    expect(post.slug).toBe("phase-0-baseline");
   });
 });

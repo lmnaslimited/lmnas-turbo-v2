@@ -3,6 +3,16 @@ module.exports = ({ env }) => {
   const previewSecret = env("STRAPI_PREVIEW_TOKEN", "");
 
   return {
+    graphql: {
+      enabled: true,
+      config: {
+        endpoint: "/graphql",
+        shadowCRUD: true,
+        playgroundAlways: true,
+        depthLimit: 10,
+        amountLimit: 100
+      }
+    },
     "preview-button": {
       config: {
         contentTypes: [
@@ -17,6 +27,20 @@ module.exports = ({ env }) => {
             },
             published: {
               url: `${clientUrl}/`,
+              query: {}
+            }
+          },
+          {
+            uid: "api::blog-post.blog-post",
+            draft: {
+              url: `${clientUrl}/api/preview`,
+              query: {
+                secret: previewSecret,
+                url: "/blogs/{slug}"
+              }
+            },
+            published: {
+              url: `${clientUrl}/blogs/{slug}`,
               query: {}
             }
           }

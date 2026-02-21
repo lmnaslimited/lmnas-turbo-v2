@@ -1,29 +1,41 @@
 import { heroBlockSchema, faqBlockSchema } from "@lmnas/blocks";
 import { z } from "zod";
 export const blockSchema = z.union([heroBlockSchema, faqBlockSchema]);
+export const pageTypeSchema = z.enum(["home", "product", "solution", "industry", "simple"]);
+export const layoutKeySchema = z.enum([
+    "homeLayout",
+    "productLayout",
+    "solutionLayout",
+    "industryLayout",
+    "simpleLayout"
+]);
+export const conversionConfigSchema = z.object({
+    primary: z.enum(["book", "benefit", "download", "subscribe"]),
+    product: z.string().min(1),
+    industry: z.string().min(1)
+});
 export const seoSchema = z.object({
-    metaTitle: z.string().optional(),
-    metaDescription: z.string().optional(),
-    canonical: z.string().optional(),
-    robots: z.string().optional()
+    metaTitle: z.string().min(1),
+    metaDescription: z.string().min(1),
+    canonical: z.string().min(1),
+    robots: z.string().min(1)
 });
 export const pageSchema = z.object({
     id: z.number().optional(),
     slug: z.string().min(1),
+    pageType: pageTypeSchema,
+    layoutKey: layoutKeySchema,
+    conversionConfig: conversionConfigSchema,
     blocks: z.array(blockSchema),
-    seo: seoSchema.optional()
+    seo: seoSchema
 });
 export const strapiPageAttributesSchema = z.object({
     slug: z.string(),
+    pageType: pageTypeSchema,
+    layoutKey: layoutKeySchema,
+    conversionConfig: conversionConfigSchema,
     blocks: z.array(z.unknown()),
-    seo: z
-        .object({
-        metaTitle: z.string().optional(),
-        metaDescription: z.string().optional(),
-        canonical: z.string().optional(),
-        robots: z.string().optional()
-    })
-        .optional()
+    seo: seoSchema
 });
 export const strapiPageItemSchema = z.object({
     id: z.number(),
@@ -31,4 +43,27 @@ export const strapiPageItemSchema = z.object({
 });
 export const strapiPageResponseSchema = z.object({
     data: z.array(strapiPageItemSchema)
+});
+const navigationChildItemSchema = z.object({
+    label: z.string().min(1),
+    href: z.string().min(1)
+});
+export const navigationItemSchema = z.object({
+    label: z.string().min(1),
+    href: z.string().optional(),
+    children: z.array(navigationChildItemSchema).max(12).optional()
+});
+export const navigationSchema = z.object({
+    id: z.number().optional(),
+    key: z.enum(["main", "footer"]),
+    items: z.array(navigationItemSchema).max(50)
+});
+export const blogPostSchema = z.object({
+    id: z.number().optional(),
+    slug: z.string().min(1),
+    title: z.string().min(1),
+    excerpt: z.string().min(1),
+    body: z.string().min(1),
+    seo: seoSchema,
+    publishedAt: z.string().optional()
 });

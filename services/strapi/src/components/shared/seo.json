@@ -6,16 +6,20 @@
   "options": {},
   "attributes": {
     "metaTitle": {
-      "type": "string"
+      "type": "string",
+      "required": true
     },
     "metaDescription": {
-      "type": "text"
+      "type": "text",
+      "required": true
     },
     "canonical": {
-      "type": "string"
+      "type": "string",
+      "required": true
     },
     "robots": {
-      "type": "string"
+      "type": "string",
+      "required": true
     }
   }
 }

@@ -57,6 +57,14 @@ Expected local services:
 - In preview mode invalid blocks render an explicit error card with the zod issue path.
 - In production mode invalid blocks are skipped safely with placeholder UI.
 
+## Blogs Canonical + Rudder
+
+- `BLOG_CANONICAL_BASE` controls canonical URL generation for blog pages.
+  - default: `https://lmnas.com/blogs`
+  - canonicals should always resolve to the lmnas.com blogs base, including alias apps.
+- Rudder tracking is centralized in `@lmnas/analytics`.
+- Cross-app cookie strategy uses `RUDDER_COOKIE_DOMAIN=.lmnas.com` so attribution remains consistent across `apps/site`, `apps/docs`, and `apps/blogs`.
+
 ## Add a New Block (Manual)
 
 1. Create `packages/blocks/<BlockName>/` with:

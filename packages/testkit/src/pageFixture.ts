@@ -3,6 +3,13 @@ import type { Page } from "@lmnas/contracts";
 export const homePageFixture: Page = {
   id: 1,
   slug: "home",
+  pageType: "home",
+  layoutKey: "homeLayout",
+  conversionConfig: {
+    primary: "book",
+    product: "platform",
+    industry: "healthcare"
+  },
   blocks: [
     {
       type: "hero",
