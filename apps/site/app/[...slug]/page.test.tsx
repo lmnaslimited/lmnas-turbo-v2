@@ -1,7 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getPageBySlugMock } = vi.hoisted(() => {
+const { getPageBySlugMock, draftModeMock } = vi.hoisted(() => {
   return {
+    draftModeMock: vi.fn(async () => ({ isEnabled: false })),
     getPageBySlugMock: vi.fn(async (slug: string) => ({
       slug,
       pageType: "product",
@@ -19,7 +20,7 @@ const { getPageBySlugMock } = vi.hoisted(() => {
 });
 
 vi.mock("next/headers", () => ({
-  draftMode: vi.fn(async () => ({ isEnabled: false }))
+  draftMode: draftModeMock
 }));
 
 vi.mock("@lmnas/integrations", () => ({
@@ -53,7 +54,12 @@ vi.mock("@lmnas/analytics", () => ({
 import SlugPage from "./page";
 
 describe("site slug route", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("uses GraphQL integration page loader for joined slug", async () => {
+    draftModeMock.mockResolvedValue({ isEnabled: true });
     await SlugPage({ params: Promise.resolve({ slug: ["products", "cpq"] }) });
 
     expect(getPageBySlugMock).toHaveBeenCalledWith("products/cpq", { preview: false });

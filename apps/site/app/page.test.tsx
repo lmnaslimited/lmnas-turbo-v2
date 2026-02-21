@@ -1,9 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-const { getPageBySlugMock } = vi.hoisted(() => {
+const { getPageBySlugMock, draftModeMock } = vi.hoisted(() => {
   return {
+    draftModeMock: vi.fn(async () => ({ isEnabled: false })),
     getPageBySlugMock: vi.fn(async () => ({
       slug: "home",
       pageType: "home",
@@ -21,7 +22,7 @@ const { getPageBySlugMock } = vi.hoisted(() => {
 });
 
 vi.mock("next/headers", () => ({
-  draftMode: vi.fn(async () => ({ isEnabled: false }))
+  draftMode: draftModeMock
 }));
 
 vi.mock("@lmnas/integrations", () => ({
@@ -55,7 +56,12 @@ vi.mock("@lmnas/analytics", () => ({
 import HomePage from "./page";
 
 describe("site home route", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("uses GraphQL integration page loader for home slug", async () => {
+    draftModeMock.mockResolvedValue({ isEnabled: true });
     await HomePage();
 
     expect(getPageBySlugMock).toHaveBeenCalledWith("home", { preview: false });

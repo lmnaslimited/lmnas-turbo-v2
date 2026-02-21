@@ -1,5 +1,4 @@
 import React from "react";
-import { draftMode } from "next/headers";
 import { notFound } from "next/navigation";
 import { track } from "@lmnas/analytics";
 import { getPageBySlug, PageNotFoundError, StrapiUnreachableError } from "@lmnas/integrations";
@@ -11,16 +10,15 @@ import { resolveCmsSlug } from "../../lib/slug";
 export default async function SlugPage({ params }: { params: Promise<{ slug?: string[] }> }) {
   const { slug: slugParts } = await params;
   const slug = resolveCmsSlug(slugParts);
-  const preview = await draftMode();
   let page;
   try {
-    page = await getPageBySlug(slug, { preview: preview.isEnabled });
+    page = await getPageBySlug(slug, { preview: false });
   } catch (error) {
     if (error instanceof PageNotFoundError) {
       notFound();
     }
     if (error instanceof StrapiUnreachableError) {
-      throw new Error("strapi_unreachable");
+      return <main>strapi_unreachable</main>;
     }
     throw error;
   }
@@ -34,7 +32,7 @@ export default async function SlugPage({ params }: { params: Promise<{ slug?: st
       <main>
         <h1 style={{ marginTop: 0 }}>{page.slug}</h1>
         <p>Meta title: {seo.meta.title ?? "n/a"}</p>
-        <PageRenderer blocks={page.blocks} preview={preview.isEnabled} />
+        <PageRenderer blocks={page.blocks} preview={false} />
       </main>
     </Layout>
   );

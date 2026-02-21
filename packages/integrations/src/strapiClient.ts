@@ -70,10 +70,7 @@ const GET_PAGE_BY_SLUG_QUERY = `
             }
             ... on ComponentBlocksFaq {
               title
-              items {
-                question
-                answer
-              }
+              items
             }
           }
           seo {
@@ -181,34 +178,48 @@ function getPublicationState(options: Options): PublicationState {
 async function requestStrapiGraphql<T>(query: string, variables: Record<string, unknown>): Promise<T> {
   const strapiUrl = process.env.STRAPI_URL || "http://localhost:1337";
   const token = process.env.STRAPI_API_TOKEN;
-  const response = await fetch(`${strapiUrl}/graphql`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    },
-    body: JSON.stringify({ query, variables }),
-    cache: "no-store"
-  });
+  let lastError: unknown;
 
-  if (!response.ok) {
-    throw new Error(`Strapi GraphQL returned ${response.status}`);
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const response = await fetch(`${strapiUrl}/graphql`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ query, variables }),
+        cache: "no-store"
+      });
+
+      if (!response.ok) {
+        const details = await response.text();
+        throw new StrapiUnreachableError(`strapi_unreachable:http_${response.status}${details ? `:${details}` : ""}`);
+      }
+
+      const payload = (await response.json()) as {
+        data?: T;
+        errors?: Array<{ message?: string }>;
+      };
+
+      if (payload.errors?.length) {
+        throw new StrapiUnreachableError(`strapi_unreachable:graphql_${payload.errors[0]?.message || "unknown"}`);
+      }
+
+      if (!payload.data) {
+        throw new StrapiUnreachableError("strapi_unreachable:missing_data");
+      }
+
+      return payload.data;
+    } catch (error) {
+      lastError = error;
+      if (attempt < 3) {
+        await new Promise((resolve) => setTimeout(resolve, 200 * attempt));
+      }
+    }
   }
 
-  const payload = (await response.json()) as {
-    data?: T;
-    errors?: Array<{ message?: string }>;
-  };
-
-  if (payload.errors?.length) {
-    throw new Error(payload.errors[0]?.message || "Unknown GraphQL error");
-  }
-
-  if (!payload.data) {
-    throw new Error("GraphQL response is missing data");
-  }
-
-  return payload.data;
+  throw lastError instanceof StrapiUnreachableError ? lastError : new StrapiUnreachableError();
 }
 
 export async function getPageBySlug(slug: string, options: Options = {}): Promise<Page> {
@@ -217,10 +228,10 @@ export async function getPageBySlug(slug: string, options: Options = {}): Promis
     process.env.ENABLE_PAGE_MOCK_FALLBACK === "true" &&
     (process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test");
 
-  try {
+  const loadPageFromState = async (requestedState: PublicationState): Promise<Page> => {
     const data = await requestStrapiGraphql<{
       pages: { data: Array<{ id: number | string; attributes: PageAttributes }> };
-    }>(GET_PAGE_BY_SLUG_QUERY, { slug, state });
+    }>(GET_PAGE_BY_SLUG_QUERY, { slug, state: requestedState });
     const first = data.pages.data[0];
 
     if (!first) {
@@ -238,6 +249,10 @@ export async function getPageBySlug(slug: string, options: Options = {}): Promis
     };
 
     return pageSchema.parse(normalizedPage);
+  };
+
+  try {
+    return await loadPageFromState(state);
   } catch (error) {
     if (error instanceof PageNotFoundError) {
       throw error;
@@ -255,6 +270,13 @@ export async function getPageBySlug(slug: string, options: Options = {}): Promis
         ...homePageFixture,
         slug
       };
+    }
+
+    if (error instanceof StrapiUnreachableError) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error(`[integrations] ${error.message} slug=${slug} preview=${state === "PREVIEW"}`);
+      }
+      throw error;
     }
 
     if (process.env.NODE_ENV !== "production") {

@@ -158,6 +158,57 @@ describe("strapiClient", () => {
     expect(receivedVariables[0]?.slug).toBe("products/cpq");
   });
 
+  it("returns published data for LIVE and draft data for PREVIEW", async () => {
+    process.env.STRAPI_URL = "http://localhost:1337";
+
+    server.use(
+      http.post("http://localhost:1337/graphql", async ({ request }) => {
+        const body = (await request.json()) as { query?: string; variables?: Record<string, unknown> };
+        if (!(body.query ?? "").includes("GetPageBySlug")) {
+          return HttpResponse.json({ data: {} });
+        }
+
+        const state = body.variables?.state;
+        const metaTitle = state === "PREVIEW" ? "Home Draft" : "Home Published";
+
+        return HttpResponse.json({
+          data: {
+            pages: {
+              data: [
+                {
+                  id: 7,
+                  attributes: {
+                    slug: "home",
+                    pageType: "home",
+                    layoutKey: "homeLayout",
+                    conversionConfig: {
+                      primary: "book",
+                      product: "platform",
+                      industry: "healthcare"
+                    },
+                    blocks: [],
+                    seo: {
+                      metaTitle,
+                      metaDescription: "Description",
+                      canonical: "https://lmnas.com",
+                      robots: "index,follow"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        });
+      })
+    );
+
+    const published = await getPageBySlug("home", { preview: false });
+    const draft = await getPageBySlug("home", { preview: true });
+
+    expect(published.seo.metaTitle).toBe("Home Published");
+    expect(draft.seo.metaTitle).toBe("Home Draft");
+  });
+
   it("loads navigation by key from GraphQL", async () => {
     process.env.STRAPI_URL = "http://localhost:1337";
 
