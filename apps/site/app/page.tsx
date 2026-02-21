@@ -1,14 +1,26 @@
 import React from "react";
 import { draftMode } from "next/headers";
+import { notFound } from "next/navigation";
 import { track } from "@lmnas/analytics";
-import { getPageBySlug } from "@lmnas/integrations";
+import { getPageBySlug, PageNotFoundError, StrapiUnreachableError } from "@lmnas/integrations";
 import { LayoutRegistry } from "@lmnas/layouts";
 import { PageRenderer } from "@lmnas/renderer";
 import { buildSeo } from "@lmnas/seo-engine";
 
 export default async function HomePage() {
   const preview = await draftMode();
-  const page = await getPageBySlug("home", { preview: preview.isEnabled });
+  let page;
+  try {
+    page = await getPageBySlug("home", { preview: preview.isEnabled });
+  } catch (error) {
+    if (error instanceof PageNotFoundError) {
+      notFound();
+    }
+    if (error instanceof StrapiUnreachableError) {
+      throw new Error("strapi_unreachable");
+    }
+    throw error;
+  }
   const Layout = LayoutRegistry[page.layoutKey];
   const seo = buildSeo(page);
   track("page_view", { slug: page.slug, pageType: page.pageType });

@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   const expectedSecret = process.env.STRAPI_PREVIEW_TOKEN;
   const providedSecret = url.searchParams.get("secret") ?? url.searchParams.get("token");
 
-  if (expectedSecret && providedSecret !== expectedSecret) {
+  if (!expectedSecret || !providedSecret || providedSecret !== expectedSecret) {
     return new NextResponse("Invalid preview token.", { status: 401 });
   }
 

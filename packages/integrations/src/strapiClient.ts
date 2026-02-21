@@ -32,6 +32,20 @@ type BlogPostAttributes = {
   seo: BlogPost["seo"];
 };
 
+export class PageNotFoundError extends Error {
+  constructor(slug: string) {
+    super(`page_not_found:${slug}`);
+    this.name = "PageNotFoundError";
+  }
+}
+
+export class StrapiUnreachableError extends Error {
+  constructor(message = "strapi_unreachable") {
+    super(message);
+    this.name = "StrapiUnreachableError";
+  }
+}
+
 const GET_PAGE_BY_SLUG_QUERY = `
   query GetPageBySlug($slug: String!, $state: PublicationState) {
     pages(filters: { slug: { eq: $slug } }, publicationState: $state) {
@@ -199,6 +213,9 @@ async function requestStrapiGraphql<T>(query: string, variables: Record<string, 
 
 export async function getPageBySlug(slug: string, options: Options = {}): Promise<Page> {
   const state = getPublicationState(options);
+  const allowMockFallback =
+    process.env.ENABLE_PAGE_MOCK_FALLBACK === "true" &&
+    (process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test");
 
   try {
     const data = await requestStrapiGraphql<{
@@ -207,7 +224,7 @@ export async function getPageBySlug(slug: string, options: Options = {}): Promis
     const first = data.pages.data[0];
 
     if (!first) {
-      throw new Error(`Page with slug '${slug}' not found`);
+      throw new PageNotFoundError(slug);
     }
 
     const normalizedPage = {
@@ -221,14 +238,29 @@ export async function getPageBySlug(slug: string, options: Options = {}): Promis
     };
 
     return pageSchema.parse(normalizedPage);
-  } catch {
-    if (slug === "home") {
-      return homePageFixture;
+  } catch (error) {
+    if (error instanceof PageNotFoundError) {
+      throw error;
     }
-    return {
-      ...homePageFixture,
-      slug
-    };
+
+    if (allowMockFallback) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn(`[integrations] page_mock_fallback slug=${slug} preview=${state === "PREVIEW"}`);
+      }
+
+      if (slug === "home") {
+        return homePageFixture;
+      }
+      return {
+        ...homePageFixture,
+        slug
+      };
+    }
+
+    if (process.env.NODE_ENV !== "production") {
+      console.error(`[integrations] strapi_unreachable slug=${slug} preview=${state === "PREVIEW"}`);
+    }
+    throw new StrapiUnreachableError();
   }
 }
 

@@ -1,5 +1,6 @@
 import React from "react";
-import { getPageBySlug } from "@lmnas/integrations";
+import { notFound } from "next/navigation";
+import { getPageBySlug, PageNotFoundError, StrapiUnreachableError } from "@lmnas/integrations";
 import { LayoutRegistry } from "@lmnas/layouts";
 import { PageRenderer } from "@lmnas/renderer";
 
@@ -63,13 +64,24 @@ export default async function PreviewPage({
   const slug = resolvePreviewSlug(params);
   const expected = process.env.STRAPI_PREVIEW_TOKEN;
   const providedToken = takeFirst(params.token) ?? takeFirst(params.secret);
-  const tokenOk = !expected || !providedToken || providedToken === expected;
+  const tokenOk = Boolean(expected && providedToken && providedToken === expected);
 
   if (!tokenOk) {
-    return <main>Invalid preview token.</main>;
+    return <main>401 Invalid preview token.</main>;
   }
 
-  const page = await getPageBySlug(slug, { preview: true });
+  let page;
+  try {
+    page = await getPageBySlug(slug, { preview: true });
+  } catch (error) {
+    if (error instanceof PageNotFoundError) {
+      notFound();
+    }
+    if (error instanceof StrapiUnreachableError) {
+      throw new Error("strapi_unreachable");
+    }
+    throw error;
+  }
   const Layout = LayoutRegistry[page.layoutKey];
 
   return (

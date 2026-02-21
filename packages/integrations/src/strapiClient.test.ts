@@ -1,12 +1,15 @@
 import { beforeAll, afterAll, afterEach, describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import { getBlogPostBySlug, getBlogPosts, getNavigationByKey, getPageBySlug } from "./strapiClient";
+import { getBlogPostBySlug, getBlogPosts, getNavigationByKey, getPageBySlug, PageNotFoundError } from "./strapiClient";
+
+const receivedVariables: Array<Record<string, unknown>> = [];
 
 const server = setupServer(
   http.post("http://localhost:1337/graphql", async ({ request }) => {
-    const body = (await request.json()) as { query?: string };
+    const body = (await request.json()) as { query?: string; variables?: Record<string, unknown> };
     const query = body.query ?? "";
+    receivedVariables.push(body.variables ?? {});
 
     if (query.includes("GetPageBySlug")) {
       return HttpResponse.json({
@@ -129,7 +132,10 @@ const server = setupServer(
 );
 
 beforeAll(() => server.listen());
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  receivedVariables.length = 0;
+});
 afterAll(() => server.close());
 
 describe("strapiClient", () => {
@@ -141,6 +147,15 @@ describe("strapiClient", () => {
     expect(page.slug).toBe("home");
     expect(page.pageType).toBe("home");
     expect(page.blocks[0]).toMatchObject({ type: "hero", heading: "Hello" });
+    expect(receivedVariables[0]?.slug).toBe("home");
+  });
+
+  it("queries requested slug for nested routes", async () => {
+    process.env.STRAPI_URL = "http://localhost:1337";
+
+    await getPageBySlug("products/cpq");
+
+    expect(receivedVariables[0]?.slug).toBe("products/cpq");
   });
 
   it("loads navigation by key from GraphQL", async () => {
@@ -161,5 +176,33 @@ describe("strapiClient", () => {
     expect(posts).toHaveLength(1);
     expect(posts[0].slug).toBe("first-post");
     expect(post.slug).toBe("phase-0-baseline");
+  });
+
+  it("throws page_not_found when page query returns empty result", async () => {
+    server.use(
+      http.post("http://localhost:1337/graphql", async ({ request }) => {
+        const body = (await request.json()) as { query?: string };
+        if ((body.query ?? "").includes("GetPageBySlug")) {
+          return HttpResponse.json({
+            data: {
+              pages: {
+                data: []
+              }
+            }
+          });
+        }
+        return HttpResponse.json({ data: {} });
+      })
+    );
+
+    await expect(getPageBySlug("does-not-exist")).rejects.toBeInstanceOf(PageNotFoundError);
+  });
+
+  it("does not silently fallback to page mock when Strapi is unreachable", async () => {
+    server.use(
+      http.post("http://localhost:1337/graphql", () => HttpResponse.json({ errors: [{ message: "down" }] }, { status: 500 }))
+    );
+
+    await expect(getPageBySlug("home")).rejects.toThrow("strapi_unreachable");
   });
 });
