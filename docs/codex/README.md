@@ -7,10 +7,14 @@ This folder stores reusable, versioned scaffold documents for `LMNAs Turbo v2`:
 
 Current baseline:
 - `Platform Spec v1`
+- `Codex Scaffold Spec v1.1`
+- `Codex Scaffold Prompt v1.1`
 - `Codex Scaffold Prompt v1`
 
 ## Files
 - `SCaffold_Spec_v1.md`: architecture and constraints source of truth
+- `SCaffold_Spec_v1.1.md`: Phase 0 stabilization update for scaffold requirements and guardrails
+- `Scaffold_Prompt_v1.1.md`: Phase 0 stabilization scaffold prompt
 - `Scaffold_Prompt_v1.md`: deterministic scaffold prompt
 
 ## When to Use Spec vs Prompt
@@ -24,7 +28,7 @@ Use the prompt when:
 - requesting deterministic bootstrap outcomes
 
 ## How to Run Codex with the Prompt
-1. Open `docs/codex/Scaffold_Prompt_v1.md`.
+1. Open `docs/codex/Scaffold_Prompt_v1.1.md` (or `Scaffold_Prompt_v1.md` for legacy runs).
 2. Copy the full prompt content.
 3. Run Codex in repo root and paste prompt.
 4. Require full boot validation:
