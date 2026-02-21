@@ -6,28 +6,7 @@
 - Scope: Turborepo local-first, CMS-driven web platform scaffold with explicit Phase 0 stabilization gate.
 
 ## Purpose
-Defines full scaffold requirements to baseline the current Turborepo scaffold to Constitution v2.1 Phase 0 requirements.
-
-## Non-negotiable Outcomes
-After scaffold, developer must run:
-
-1. `git clone ...`
-2. `pnpm install`
-3. `cp .env.example .env`
-4. `docker compose up -d`
-5. `pnpm dev`
-
-And obtain:
-
-- Next.js site running
-- Strapi running
-- n8n running
-- local mocks running
-- demo pages rendered via block renderer and layout registry
-- Strapi preview working
-- `/api/health` endpoint working
-- no crash on invalid content
-- architectural guardrails enforced
+Defines full scaffold requirements for the current Phase 0 implementation in this repository.
 
 ## Phase 0 Stabilization Gate (Mandatory)
 Phase 0 is a hard gate. All items in this spec MUST pass before any Phase 1+ work.
@@ -37,7 +16,15 @@ Explicitly out of scope for Phase 0:
 - Identity model
 - Personalization
 
-If any Phase 0 requirement fails, scaffold is incomplete.
+## Non-negotiable Outcomes
+After local boot:
+- Next.js apps run
+- Strapi v5 runs
+- Strapi admin preview works
+- `/api/health` works
+- Page contracts are validated (including mandatory `conversionConfig`)
+- pages/navigation/blog reads use GraphQL integrations (no REST reads for these domains)
+- architectural guardrails remain enforced
 
 ## Architecture Overview
 ### Apps
@@ -53,6 +40,7 @@ If any Phase 0 requirement fails, scaffold is incomplete.
 - `packages/seo-engine`
 - `packages/contracts`
 - `packages/integrations`
+- `packages/analytics`
 - `packages/testkit`
 - `packages/eslint-config`
 
@@ -60,141 +48,115 @@ If any Phase 0 requirement fails, scaffold is incomplete.
 - `services/strapi`
 - `services/n8n`
 - `services/mocks`
-- `infra/docker-compose.yml`
+- `docker-compose.yml`
 
 ## Routing Model (CMS-Driven)
-- `apps/site/app/page.tsx` resolves CMS slug `home`.
-- `apps/site/app/[...slug]/page.tsx` resolves joined slug path.
-  - Example: `/products/cpq` -> `products/cpq`
-  - Example: `/solutions/tender-intelligence` -> `solutions/tender-intelligence`
-- `apps/site/app/preview/page.tsx` resolves `/preview?slug=...&token=...` for draft/unpublished preview.
-- `apps/site/app/blogs/page.tsx` resolves `/blogs`.
-- `apps/site/app/blogs/[slug]/page.tsx` resolves `/blogs/[slug]`.
-- `apps/blogs/app/page.tsx` resolves `/`.
-- `apps/blogs/app/[slug]/page.tsx` resolves `/[slug]`.
-- Route rendering must consume validated CMS page contracts.
+- `apps/site/app/page.tsx` -> `/` -> CMS slug `home`
+- `apps/site/app/[...slug]/page.tsx` -> joined slug (for example `products/cpq`)
+- `apps/site/app/preview/page.tsx` -> `/preview?slug=...&token=...` token validation + redirect to preview session route
+- `apps/site/app/api/preview/route.ts` -> enables/disables Next draft mode using `status` and redirects to target path
+- `apps/site/app/blogs/page.tsx` -> `/blogs`
+- `apps/site/app/blogs/[slug]/page.tsx` -> `/blogs/[slug]`
+- `apps/site/app/api/health/route.ts` -> `/api/health`
+- `apps/blogs/app/page.tsx` -> `/`
+- `apps/blogs/app/[slug]/page.tsx` -> `/<slug>`
 
-## Content Model Requirements
-### Page
-`services/strapi/src/api/page/content-types/page/schema.json` MUST include:
-- `slug` (unique string)
-- `pageType` enum (required)
-- `layoutKey` enum (required)
-- `conversionConfig` component (required):
+## Strapi v5 Content + Preview Model
+### Version
+- Strapi runtime is v5 (`@strapi/strapi@^5`, GraphQL plugin v5).
+
+### Content types
+- `services/strapi/src/api/page/content-types/page/schema.json`
+- `services/strapi/src/api/navigation/content-types/navigation/schema.json`
+- `services/strapi/src/api/blog-post/content-types/blog-post/schema.json`
+
+All three use Draft & Publish.
+
+### Page model requirements
+- `slug` unique string
+- `pageType` enum required: `home | product | solution | industry | simple`
+- `layoutKey` enum required: `homeLayout | productLayout | solutionLayout | industryLayout | simpleLayout`
+- `conversionConfig` required component:
   - `primary`: `book | benefit | download | subscribe`
-  - `product`: `string`
-  - `industry`: `string`
+  - `product`: non-empty string
+  - `industry`: non-empty string
 - `blocks` dynamic zone
-- `seo` component
+- `seo` required component
 
-### Navigation
-Dedicated content type for CMS navigation is required.
-- `key` enum: `main | footer`
-- grouped items with max depth `<= 2`
-- site header/footer MUST be CMS-driven from this model
+### Preview behavior (must remain true)
+- Live site routes (`/`, `/[...slug]`) fetch **published snapshot** only.
+- Preview session uses Next draft mode and fetches **draft** state.
+- Unpublished pages return 404 on live routes.
+- Preview token is validated using `PREVIEW_SECRET` (fallback `STRAPI_PREVIEW_TOKEN`).
+- Strapi admin preview handler builds URLs to `/api/preview?...` with `status` so Draft/Published toggle reflects correctly.
 
-## Layout System
-- `packages/layouts` is required.
-- `LayoutRegistry` maps `layoutKey` -> layout component.
-- Site page renderer must select layout via `layoutKey` from validated page contract.
+## Layout + Renderer
+- `packages/layouts/src/index.ts` exports `LayoutRegistry`.
+- page rendering selects layout by `layoutKey` from validated page contract.
+- `packages/renderer` validates each block via schema.
+- Preview mode can render invalid block diagnostics; non-preview mode fails safe.
 
-## Data Access and API Policy
-- GraphQL plugin is required in Strapi.
-- `packages/integrations` MUST expose typed GraphQL clients for:
-  - pages
-  - navigation
-  - blogs
-- REST MUST NOT be used for pages/navigation/blogs reads.
-- REST usage for unrelated operational endpoints is allowed only if outside the above domains.
+## Navigation Requirements
+- Navigation key enum: `main | footer`
+- Items support grouped children depth `<= 2`
+- Site header/footer render from CMS navigation entries
 
-## Blogs Dual-Access Architecture
-- Canonical base is controlled by `BLOG_CANONICAL_BASE`.
-- `apps/site` exposes:
-  - `/blogs`
-  - `/blogs/[slug]`
-- `apps/blogs` exposes:
-  - `/`
-  - `/[slug]`
-- Canonical URL for every blog page MUST point to `https://lmnas.com/blogs/...` (or equivalent lmnas.com base from config), regardless of serving app.
+## Data Access Policy (GraphQL)
+- `services/strapi/config/plugins.js` enables GraphQL plugin at `/graphql`.
+- `packages/integrations/src/strapiClient.ts` is the typed integration layer for pages/navigation/blogs.
+- Reads for pages/navigation/blogs MUST use GraphQL, not REST.
+- Integration supports Strapi v5 queries (`status`, flat nodes with `documentId`) and keeps v4 compatibility fallback logic.
 
-## Rudder Consistency Requirements
-- Rudder tracking plan and event naming must be consistent across `apps/site`, `apps/docs`, and `apps/blogs`.
-- Cookie domain strategy must be documented and shared so cross-app attribution remains stable.
-- No app-specific divergence in core page-view and conversion events.
+## Blogs Dual-Access + Canonical
+- `apps/site`: `/blogs`, `/blogs/[slug]`
+- `apps/blogs`: `/`, `/[slug]`
+- Canonical base controlled by `BLOG_CANONICAL_BASE` (default `https://lmnas.com/blogs`)
+- Canonical must resolve to lmnas.com blogs base even when served from blogs app
 
-## Phase 0 Stabilization Requirements
-1. **Conversion Config Enforcement**
-   - Every page MUST include required `conversionConfig`.
-   - Zod contracts and integration parsing MUST enforce this.
-   - Missing/invalid conversion config MUST fail validation.
-
-2. **Renderer Validation**
-   - Validate each block via schema.
-   - Invalid blocks must:
-     - In preview: show error UI
-     - In production: skip safely
-
-3. **SEO Requirements**
-   - Meta title, description, canonical, robots required
-   - No duplicate meta tags
-   - JSON-LD valid for FAQPage, Article, VideoObject
-
-4. **Health Endpoint**
-   - `/api/health` returns OK
-
-5. **ESLint Guardrails**
-   - No reusable components in apps
-   - No external API calls from apps
-   - No direct integration subpath imports from apps
-   - No direct REST fetches for pages/navigation/blogs
-   - Pages without conversionConfig fail lint
-
-6. **Preview**
-   - Strapi admin preview opens site preview and unpublished content renders safely.
+## Rudder Consistency
+- Shared analytics module: `packages/analytics/src/index.ts`
+- apps import `@lmnas/analytics` (site + blogs)
+- cookie domain strategy: `RUDDER_COOKIE_DOMAIN=.lmnas.com`
 
 ## Seed Requirements
-Initial CMS seed data MUST include:
-- page slug `home`
-- page slug `products/cpq`
-- page slug `solutions/tender-intelligence`
-- page slug `about`
-- navigation `main`
-- navigation `footer`
-- one blog post
+Bootstrap data includes:
+- Pages: `home`, `products/cpq`, `solutions/tender-intelligence`, `about`
+- Navigation: `main`, `footer`
+- Blog post: `phase-0-baseline`
 
-## Tests Required
-- Renderer block validation tests
-- FAQ JSON-LD test
-- ConversionConfig enforcement tests
-- dynamic route slug resolution tests (`/` and `/[...slug]`)
-- layout registry resolution tests
-- GraphQL integration parsing tests for pages/navigation/blogs
-- guardrail tests that block REST usage for pages/navigation/blogs
-- blog canonical tests for both `apps/site` and `apps/blogs`
-- navigation rendering tests for CMS header/footer
-- Rudder consistency tests across apps
-- ESLint boundary tests
-- `/api/health` test
+## Required Tests / Guardrails
+Required coverage includes:
+- contracts validation (`packages/contracts/src/contracts.test.ts`)
+- integrations GraphQL parsing and publication status behavior (`packages/integrations/src/strapiClient.test.ts`)
+- site route slug resolution (`apps/site/app/page.test.tsx`, `apps/site/app/[...slug]/page.test.tsx`)
+- preview session behavior (`apps/site/app/api/preview/route.test.ts`)
+- blog route behavior (`apps/site/app/blogs/*.test.ts`, `apps/blogs/app/[slug]/page.test.ts`)
+- layout registry (`packages/layouts/src/layouts.test.ts`)
+- seo canonical behavior (`packages/seo-engine/src/seo.test.ts`)
+- analytics shared-module adoption (`packages/analytics/src/adoption.test.ts`)
+- lint boundary guardrails (`packages/eslint-config/boundaries.test.ts`)
+- `/api/health` (`apps/site/app/api/health/route.test.ts`)
+
+ESLint guardrails enforce:
+- no app `src/components/**`
+- no direct external API clients from apps
+- no `@lmnas/integrations/*` subpath imports in apps
+- no direct fetch to `/api/pages|navigations|blog-posts` from apps
+- blocks must be pure (no fetch)
+- zod imports restricted to contracts and block schema files
 
 ## Acceptance Checklist
-- `pnpm install` succeeds
-- Docker compose boots all services
-- Site renders `/` from slug `home`
-- Site renders `/products/cpq`, `/solutions/tender-intelligence`, `/about` via dynamic `[...slug]`
-- `packages/layouts` and `LayoutRegistry` are used for page rendering
-- CMS-driven header/footer navigation works from `main` and `footer` keys
-- Strapi GraphQL plugin enabled and typed integrations in use
-- REST not used for pages/navigation/blogs
-- Dual-access blogs routes work in `apps/site` and `apps/blogs`
-- Blog canonicals resolve to `lmnas.com/blogs/...` base
-- Rudder events remain consistent across apps with documented cookie-domain strategy
-- Preview route is working from Strapi admin
-- `/api/health` works
-- `pnpm lint` passes
-- `pnpm typecheck` passes
-- `pnpm test` passes
-
-## Versioning
-- Spec version: `v1.1`
-- Minor changes: bump patch
-- Major changes: bump major
+1. `pnpm install`
+2. `cp .env.example .env`
+3. `docker compose up -d`
+4. `pnpm dev`
+5. Verify routes: `/`, `/products/cpq`, `/solutions/tender-intelligence`, `/about`, `/blogs`, `/blogs/[slug]`, `/api/health`
+6. Verify preview:
+   - direct: `/preview?slug=about&token=...`
+   - Strapi admin preview button (Draft and Published toggle)
+7. Validate live vs preview behavior:
+   - live shows published snapshot
+   - preview shows draft edits
+8. `pnpm lint`
+9. `pnpm typecheck`
+10. `pnpm test`

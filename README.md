@@ -1,6 +1,6 @@
 # LMNAs Turbo v2
 
-Local-first monorepo platform scaffold for `lmnas.com` with block-based rendering, Strapi CMS, n8n, and deterministic mocks.
+Local-first monorepo platform scaffold for `lmnas.com` with block-based rendering, Strapi v5 CMS, n8n, and local mocks.
 
 ## Quick Start
 
@@ -18,81 +18,90 @@ Expected local services:
 
 ## Repository Layout
 
-- `apps/site`: Next.js App Router site for `lmnas.com`.
-- `apps/docs`: placeholder Next.js app for `docs.lmnas.com`.
-- `apps/blogs`: placeholder Next.js app for `blogs.lmnas.com`.
-- `apps/gateway`: optional gateway placeholder and rewrite guidance.
-- `packages/blocks`: pure block components (`Hero`, `FAQ`) + schemas/defaults/mocks.
-- `packages/block-registry`: maps block type -> component + zod schema.
-- `packages/renderer`: validates and renders blocks safely.
-- `packages/seo-engine`: meta and JSON-LD generation.
-- `packages/contracts`: zod contracts for page/block/Strapi payloads.
-- `packages/integrations`: transport adapters (`strapiClient`, `lens`, `analytics`).
-- `packages/testkit`: fixtures and test utilities.
-- `packages/eslint-config`: boundary guardrail rules.
-- `services/strapi`: Strapi v4 CMS project with seeded `home` page.
-- `services/n8n`: versioned workflow folder.
-- `services/mocks`: local express mocks (`lens-api`, `rudder`).
-- `infra/docker-compose.yml`: local service stack.
+- `apps/site`: Next.js App Router site for `lmnas.com`
+- `apps/docs`: placeholder Next.js app for `docs.lmnas.com`
+- `apps/blogs`: blog alias app for `blogs.lmnas.com`
+- `packages/blocks`: pure block components (`Hero`, `FAQ`) + schemas/defaults/mocks
+- `packages/block-registry`: maps block type -> component + zod schema
+- `packages/layouts`: layout registry (`LayoutRegistry`)
+- `packages/renderer`: validates and renders blocks safely
+- `packages/seo-engine`: meta and JSON-LD generation, blog canonical support
+- `packages/contracts`: zod contracts for page/navigation/blog payloads
+- `packages/integrations`: typed GraphQL integrations for Strapi page/navigation/blog reads
+- `packages/analytics`: shared Rudder wrapper used by site/blogs apps
+- `packages/testkit`: fixtures and test utilities
+- `packages/eslint-config`: boundary guardrail rules
+- `services/strapi`: Strapi v5 CMS project
+- `services/n8n`: workflow folder
+- `services/mocks`: local express mocks (`lens-api`, `rudder`)
+- `docker-compose.yml`: local service stack
 
-## Guardrails
+## Phase 0 Rules
 
-- No reusable components in apps: `apps/*/src/components/**` is forbidden.
-- Apps must not use direct external API clients (`axios`, `fetch wrappers`, etc.) for platform integrations.
-- Zod schemas live only in `packages/contracts` and `packages/blocks/*/schema.ts`.
-- Blocks are pure and do not fetch data.
-- Integrations only adapt transport + validate; no business logic.
+In scope:
+- CMS-driven routes (`/`, `/[...slug]`, `/blogs`, `/blogs/[slug]`)
+- `conversionConfig` enforcement
+- CMS navigation (`main`, `footer`) rendering in site shell
+- GraphQL reads for pages/navigation/blogs
+- dual-access blog canonical behavior
+- shared analytics module usage
+- `/api/health`
 
-## Gateway Rewrites (Placeholder)
+Out of scope:
+- Router engine
+- Identity model
+- Personalization
 
-`apps/gateway` is optional locally, but intended production host routing is:
-- `lmnas.com` -> `apps/site`
-- `docs.lmnas.com` -> `apps/docs`
-- `blogs.lmnas.com` -> `apps/blogs`
+## Preview + Publication Behavior
 
-## How Preview Works
+### Environment
+Set preview token in `.env`:
+- `PREVIEW_SECRET=local-preview-token`
+- `STRAPI_PREVIEW_TOKEN=local-preview-token` (fallback compatibility)
 
-- Preview route: `http://localhost:3000/preview?slug=home&token=local-preview-token`
-- Token checking is local-friendly (optional if `STRAPI_PREVIEW_TOKEN` is unset).
-- In preview mode invalid blocks render an explicit error card with the zod issue path.
-- In production mode invalid blocks are skipped safely with placeholder UI.
+### Site preview URL
+- `http://localhost:3000/preview?slug=home&token=local-preview-token`
+
+### Admin preview flow
+- Strapi admin preview uses `services/strapi/config/admin.js`
+- Preview URL points to `http://localhost:3000/api/preview?...`
+- `/api/preview` toggles Next draft mode based on `status` and redirects to real route
+
+### Expected behavior
+- Live routes (`/`, `/[...slug]`) show published snapshot only
+- Preview session shows draft content
+- Unpublished pages return 404 on live routes
+
+## GraphQL Notes (Strapi v5)
+
+- GraphQL plugin is enabled in `services/strapi/config/plugins.js`
+- Endpoint: `http://localhost:1337/graphql`
+- Integration layer uses Strapi v5 query shape (`status`, flat nodes, `documentId`) and keeps v4 compatibility fallback logic
+- REST is not used for pages/navigation/blog reads
 
 ## Blogs Canonical + Rudder
 
-- `BLOG_CANONICAL_BASE` controls canonical URL generation for blog pages.
+- `BLOG_CANONICAL_BASE` controls canonical URL generation for blog pages
   - default: `https://lmnas.com/blogs`
-  - canonicals should always resolve to the lmnas.com blogs base, including alias apps.
-- Rudder tracking is centralized in `@lmnas/analytics`.
-- Cross-app cookie strategy uses `RUDDER_COOKIE_DOMAIN=.lmnas.com` so attribution remains consistent across `apps/site`, `apps/docs`, and `apps/blogs`.
+- Canonicals resolve to lmnas.com blogs base, including alias app routes
+- Rudder tracking is centralized in `@lmnas/analytics`
+- Cross-app cookie strategy: `RUDDER_COOKIE_DOMAIN=.lmnas.com`
 
-## Add a New Block (Manual)
+## Seeded CMS Content
 
-1. Create `packages/blocks/<BlockName>/` with:
-   - `Component.tsx`
-   - `schema.ts`
-   - `defaults.json`
-   - `mock.ts`
-   - `index.ts`
-2. Export the block from `packages/blocks/index.ts`.
-3. Register it in `packages/block-registry/src/index.ts`.
-4. Extend unions/contracts in `packages/contracts/src/index.ts`.
-5. Add tests in `packages/renderer` and (if needed) `packages/seo-engine`.
+Strapi bootstrap seeds:
+- Pages: `home`, `products/cpq`, `solutions/tender-intelligence`, `about`
+- Navigation: `main`, `footer`
+- Blog post: `phase-0-baseline`
 
-## Codex Block Generation Placeholder
+## Validation
 
-Future generator contract (placeholder):
-- Command: `pnpm generate:block <BlockName>`
-- Expected output: creates block files + updates exports + registry wiring + contract union.
-
-Generator is intentionally left as a placeholder in this scaffold; manual flow above is the source of truth.
-
-## Strapi Notes
-
-- Content type: `Page` with `slug`, dynamic zone `blocks` (`hero`, `faq`), component `seo`.
-- Bootstrap seeds page `home` and attempts to enable public `find/findOne` permissions for page API.
-- If Strapi is temporarily unavailable, `@lmnas/integrations` falls back to `@lmnas/testkit` fixture so the site still renders.
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test`
 
 ## Codex Scaffold Docs
 
-- Scaffold spec and copy/paste prompt are versioned under `docs/codex/`.
-- Start here: `docs/codex/README.md`.
+- `docs/codex/SCaffold_Spec_v1.1.md`
+- `docs/codex/Scaffold_Prompt_v1.1.md`
+- `docs/codex/README.md`
