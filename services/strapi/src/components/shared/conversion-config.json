@@ -1,0 +1,27 @@
+{
+  "collectionName": "components_shared_conversion_configs",
+  "info": {
+    "displayName": "conversionConfig"
+  },
+  "options": {},
+  "attributes": {
+    "primary": {
+      "type": "enumeration",
+      "enum": [
+        "book",
+        "benefit",
+        "download",
+        "subscribe"
+      ],
+      "required": true
+    },
+    "product": {
+      "type": "string",
+      "required": true
+    },
+    "industry": {
+      "type": "string",
+      "required": true
+    }
+  }
+}
