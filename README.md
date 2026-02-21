@@ -4,7 +4,7 @@ Local-first monorepo platform scaffold for `lmnas.com` with block-based renderin
 
 ## Architecture & Governance
 
-The authoritative architecture document for this repository is `docs/architecture/LMNAs_Platform_Operating_Constitution_v2_1.md`.
+The authoritative architecture document and architectural guardrail for this repository is `docs/architecture/LMNAs_Platform_Operating_Constitution_v2_1.md`.
 All architectural decisions must align with this Constitution.
 If there is a conflict between implementation and documentation, the Constitution prevails.
 Codex prompts and scaffold specs must comply with this document.
@@ -18,7 +18,7 @@ Codex prompts and scaffold specs must comply with this document.
 
 ### Phase 0 Baseline Status
 
-The repository is currently aligned to the Phase 0 baseline.
+The repository is currently aligned to Phase 0 baseline.
 Router engine, Identity model, and Personalization are intentionally out of scope.
 Any introduction of these requires explicit spec updates.
 
