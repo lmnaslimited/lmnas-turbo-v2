@@ -1,64 +1,64 @@
-import type { Schema, Attribute } from '@strapi/strapi';
+import type { Schema, Struct } from '@strapi/strapi';
 
-export interface SharedSeo extends Schema.Component {
-  collectionName: 'components_shared_seos';
-  info: {
-    displayName: 'seo';
-  };
-  attributes: {
-    metaTitle: Attribute.String & Attribute.Required;
-    metaDescription: Attribute.Text & Attribute.Required;
-    canonical: Attribute.String & Attribute.Required;
-    robots: Attribute.String & Attribute.Required;
-  };
-}
-
-export interface SharedConversionConfig extends Schema.Component {
-  collectionName: 'components_shared_conversion_configs';
-  info: {
-    displayName: 'conversionConfig';
-  };
-  attributes: {
-    primary: Attribute.Enumeration<
-      ['book', 'benefit', 'download', 'subscribe']
-    > &
-      Attribute.Required;
-    product: Attribute.String & Attribute.Required;
-    industry: Attribute.String & Attribute.Required;
-  };
-}
-
-export interface BlocksHero extends Schema.Component {
-  collectionName: 'components_blocks_heroes';
-  info: {
-    displayName: 'hero';
-  };
-  attributes: {
-    heading: Attribute.String & Attribute.Required;
-    subheading: Attribute.String & Attribute.Required;
-    ctaLabel: Attribute.String & Attribute.Required;
-    ctaHref: Attribute.String & Attribute.Required;
-  };
-}
-
-export interface BlocksFaq extends Schema.Component {
+export interface BlocksFaq extends Struct.ComponentSchema {
   collectionName: 'components_blocks_faqs';
   info: {
     displayName: 'faq';
   };
   attributes: {
-    title: Attribute.String & Attribute.Required;
-    items: Attribute.JSON & Attribute.Required;
+    items: Schema.Attribute.JSON & Schema.Attribute.Required;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
   };
 }
 
-declare module '@strapi/types' {
-  export module Shared {
-    export interface Components {
-      'shared.seo': SharedSeo;
-      'shared.conversion-config': SharedConversionConfig;
-      'blocks.hero': BlocksHero;
+export interface BlocksHero extends Struct.ComponentSchema {
+  collectionName: 'components_blocks_heroes';
+  info: {
+    displayName: 'hero';
+  };
+  attributes: {
+    ctaHref: Schema.Attribute.String & Schema.Attribute.Required;
+    ctaLabel: Schema.Attribute.String & Schema.Attribute.Required;
+    heading: Schema.Attribute.String & Schema.Attribute.Required;
+    subheading: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
+export interface SharedConversionConfig extends Struct.ComponentSchema {
+  collectionName: 'components_shared_conversion_configs';
+  info: {
+    displayName: 'conversionConfig';
+  };
+  attributes: {
+    industry: Schema.Attribute.String & Schema.Attribute.Required;
+    primary: Schema.Attribute.Enumeration<
+      ['book', 'benefit', 'download', 'subscribe']
+    > &
+      Schema.Attribute.Required;
+    product: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
+export interface SharedSeo extends Struct.ComponentSchema {
+  collectionName: 'components_shared_seos';
+  info: {
+    displayName: 'seo';
+  };
+  attributes: {
+    canonical: Schema.Attribute.String & Schema.Attribute.Required;
+    metaDescription: Schema.Attribute.Text & Schema.Attribute.Required;
+    metaTitle: Schema.Attribute.String & Schema.Attribute.Required;
+    robots: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
+declare module '@strapi/strapi' {
+  export module Public {
+    export interface ComponentSchemas {
       'blocks.faq': BlocksFaq;
+      'blocks.hero': BlocksHero;
+      'shared.conversion-config': SharedConversionConfig;
+      'shared.seo': SharedSeo;
     }
   }
 }
