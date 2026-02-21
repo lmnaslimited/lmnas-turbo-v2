@@ -7,21 +7,13 @@
     "start": "strapi start"
   },
   "dependencies": {
-    "@strapi/plugin-graphql": "4.25.12",
-    "@strapi/plugin-users-permissions": "4.25.12",
-    "@strapi/strapi": "4.25.12",
-    "codemirror": "^6.0.1",
+    "@strapi/plugin-graphql": "^5.36.1",
+    "@strapi/plugin-users-permissions": "^5.36.1",
+    "@strapi/strapi": "^5.36.1",
     "pg": "^8.13.1",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-router-dom": "^5.3.4",
-    "strapi-plugin-preview-button": "^2.0.1",
-    "styled-components": "5.3.3"
+    "lodash": "4.17.21"
   },
-  "devDependencies": {
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1"
-  },
+  "devDependencies": {},
   "engines": {
     "node": ">=20.0.0 <=22.x.x"
   }

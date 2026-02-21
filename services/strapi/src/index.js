@@ -1,3 +1,37 @@
+function hasDocumentService(strapi) {
+  return typeof strapi.documents === "function";
+}
+
+async function findManyEntries(strapi, uid, filters) {
+  if (hasDocumentService(strapi)) {
+    return strapi.documents(uid).findMany({
+      filters,
+      status: "draft"
+    });
+  }
+
+  return strapi.entityService.findMany(uid, {
+    filters,
+    publicationState: "preview"
+  });
+}
+
+async function createPublishedEntry(strapi, uid, data) {
+  if (hasDocumentService(strapi)) {
+    return strapi.documents(uid).create({
+      data,
+      status: "published"
+    });
+  }
+
+  return strapi.entityService.create(uid, {
+    data: {
+      ...data,
+      publishedAt: new Date().toISOString()
+    }
+  });
+}
+
 module.exports = {
   async bootstrap({ strapi }) {
     const pages = [
@@ -115,18 +149,10 @@ module.exports = {
     ];
 
     for (const page of pages) {
-      const existing = await strapi.entityService.findMany("api::page.page", {
-        filters: { slug: page.slug },
-        publicationState: "preview"
-      });
+      const existing = await findManyEntries(strapi, "api::page.page", { slug: page.slug });
 
       if (!existing || existing.length === 0) {
-        await strapi.entityService.create("api::page.page", {
-          data: {
-            ...page,
-            publishedAt: new Date().toISOString()
-          }
-        });
+        await createPublishedEntry(strapi, "api::page.page", page);
       }
     }
 
@@ -158,40 +184,28 @@ module.exports = {
     ];
 
     for (const navigation of navigations) {
-      const existing = await strapi.entityService.findMany("api::navigation.navigation", {
-        filters: { key: navigation.key },
-        publicationState: "preview"
-      });
+      const existing = await findManyEntries(strapi, "api::navigation.navigation", { key: navigation.key });
 
       if (!existing || existing.length === 0) {
-        await strapi.entityService.create("api::navigation.navigation", {
-          data: {
-            ...navigation,
-            publishedAt: new Date().toISOString()
-          }
-        });
+        await createPublishedEntry(strapi, "api::navigation.navigation", navigation);
       }
     }
 
-    const existingBlogPost = await strapi.entityService.findMany("api::blog-post.blog-post", {
-      filters: { slug: "phase-0-baseline" },
-      publicationState: "preview"
+    const existingBlogPost = await findManyEntries(strapi, "api::blog-post.blog-post", {
+      slug: "phase-0-baseline"
     });
 
     if (!existingBlogPost || existingBlogPost.length === 0) {
-      await strapi.entityService.create("api::blog-post.blog-post", {
-        data: {
-          slug: "phase-0-baseline",
-          title: "Phase 0 Baseline Upgrade",
-          excerpt: "How LMNAs aligned the scaffold with Constitution v2.1.",
-          body: "Phase 0 baseline content.",
-          seo: {
-            metaTitle: "Phase 0 Baseline Upgrade",
-            metaDescription: "How LMNAs aligned the scaffold with Constitution v2.1.",
-            canonical: "https://lmnas.com/blogs/phase-0-baseline",
-            robots: "index,follow"
-          },
-          publishedAt: new Date().toISOString()
+      await createPublishedEntry(strapi, "api::blog-post.blog-post", {
+        slug: "phase-0-baseline",
+        title: "Phase 0 Baseline Upgrade",
+        excerpt: "How LMNAs aligned the scaffold with Constitution v2.1.",
+        body: "Phase 0 baseline content.",
+        seo: {
+          metaTitle: "Phase 0 Baseline Upgrade",
+          metaDescription: "How LMNAs aligned the scaffold with Constitution v2.1.",
+          canonical: "https://lmnas.com/blogs/phase-0-baseline",
+          robots: "index,follow"
         }
       });
     }
