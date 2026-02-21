@@ -2,6 +2,12 @@ import React from "react";
 import { getPageBySlug } from "@lmnas/integrations";
 import { PageRenderer } from "@lmnas/renderer";
 
+export const conversionConfig = {
+  primary: "benefit",
+  product: "platform",
+  industry: "healthcare"
+} as const;
+
 export default async function PreviewPage({
   searchParams
 }: {
