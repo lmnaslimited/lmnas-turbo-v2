@@ -147,6 +147,12 @@ importers:
         specifier: ^3.23.8
         version: 3.25.76
 
+  packages/contracts-sync:
+    dependencies:
+      '@lmnas/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+
   packages/eslint-config: {}
 
   packages/integrations:

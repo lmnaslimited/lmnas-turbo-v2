@@ -21,12 +21,18 @@ for (const manifestType of manifestTypeSet) {
   }
 }
 
-export function isKnownBlockType(type: string): type is BlockType {
-  if (manifestTypeSet.has(type)) {
-    return type in blockRegistry;
+const registryTypes = Object.keys(blockRegistry);
+const registryOnlyTypes = registryTypes.filter((registryType) => !manifestTypeSet.has(registryType));
+if (registryOnlyTypes.length > 0) {
+  const message = `Registry block type(s) not present in manifest: ${registryOnlyTypes.join(", ")}`;
+  if (process.env.LMNAS_STRICT_REGISTRY_MANIFEST_SYNC === "true") {
+    throw new Error(message);
   }
+  console.warn(`[block-registry] ${message}`);
+}
 
-  return type in blockRegistry;
+export function isKnownBlockType(type: string): type is BlockType {
+  return manifestTypeSet.has(type) && type in blockRegistry;
 }
 
 export function assertKnownBlockType(type: string): asserts type is BlockType {
