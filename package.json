@@ -10,7 +10,9 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "contracts:gen": "pnpm --filter @lmnas/contracts-sync run gen",
+    "contracts:check": "pnpm --filter @lmnas/contracts-sync run check"
   },
   "devDependencies": {
     "@typescript-eslint/parser": "^8.24.1",

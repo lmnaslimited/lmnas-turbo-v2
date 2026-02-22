@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { blogPostSchema, navigationSchema, pageSchema } from "./index";
+import { blogPostSchema, heroContract, navigationSchema, pageSchema } from "./index";
 
 const validPage = {
   slug: "home",
@@ -71,5 +71,10 @@ describe("contracts", () => {
       }
     });
     expect(parsed.success).toBe(true);
+  });
+
+  it("exports hero block contract metadata", () => {
+    expect(heroContract.type).toBe("hero");
+    expect(heroContract.meta.strapi.schemaPath).toBe("services/strapi/src/components/blocks/hero.json");
   });
 });

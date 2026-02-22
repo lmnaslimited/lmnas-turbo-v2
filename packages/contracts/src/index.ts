@@ -1,5 +1,7 @@
 import { heroBlockSchema, faqBlockSchema } from "@lmnas/blocks";
 import { z } from "zod";
+export { heroContract } from "./blocks";
+export type { BlockContract, BlockContractMeta, ContractPageType } from "./blocks";
 
 export const blockSchema = z.union([heroBlockSchema, faqBlockSchema]);
 

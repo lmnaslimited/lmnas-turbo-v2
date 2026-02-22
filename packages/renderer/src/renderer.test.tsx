@@ -60,4 +60,16 @@ describe("renderer", () => {
 
     expect(html).toContain("was skipped because it is invalid");
   });
+
+  it("fails fast on unknown block types", () => {
+    expect(() =>
+      renderValidatedBlock(
+        {
+          type: "unknown_block",
+          title: "Unknown"
+        },
+        false
+      )
+    ).toThrowError("Unknown block type: unknown_block");
+  });
 });
