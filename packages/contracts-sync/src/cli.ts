@@ -207,6 +207,14 @@ function mapFieldToStrapiAttribute(
     return attribute;
   }
 
+  if (typeName === "ZodArray") {
+    const attribute: JsonObject = { type: "json" };
+    if (!unwrapped.optional) {
+      attribute.required = true;
+    }
+    return attribute;
+  }
+
   throw new Error(`Unsupported Zod field at ${fieldPath}: ${typeName}`);
 }
 

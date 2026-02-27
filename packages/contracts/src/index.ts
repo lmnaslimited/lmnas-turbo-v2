@@ -1,7 +1,7 @@
 import { heroBlockSchema, faqBlockSchema } from "@lmnas/blocks";
 import { z } from "zod";
 import { conversionConfigSchema as sharedConversionConfigSchema } from "./shared";
-export { heroContract } from "./blocks";
+export { heroContract, faqContract } from "./blocks";
 export type { BlockContract, BlockContractMeta, ContractPageType } from "./blocks";
 export { conversionConfigContract } from "./shared";
 export { sharedConversionConfigSchema };
