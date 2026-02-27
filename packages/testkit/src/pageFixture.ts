@@ -5,18 +5,17 @@ export const homePageFixture: Page = {
   slug: "home",
   pageType: "home",
   layoutKey: "homeLayout",
-  conversionConfig: {
-    primary: "book",
-    product: "platform",
-    industry: "healthcare"
-  },
   blocks: [
     {
       type: "hero",
       heading: "Welcome to LMNAs",
       subheading: "Composable healthcare web platform",
       ctaLabel: "Get Started",
-      ctaHref: "/start"
+      ctaHref: "/start",
+      conversionConfig: {
+        intent: "book",
+        eventName: "hero_primary_cta_click"
+      }
     },
     {
       type: "faq",

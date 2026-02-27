@@ -40,9 +40,8 @@ module.exports = {
         pageType: "home",
         layoutKey: "homeLayout",
         conversionConfig: {
-          primary: "book",
-          product: "platform",
-          industry: "healthcare"
+          intent: "book",
+          eventName: "page_primary_cta_click"
         },
         blocks: [
           {
@@ -50,7 +49,11 @@ module.exports = {
             heading: "Welcome to LMNAs",
             subheading: "Composable healthcare web platform",
             ctaLabel: "Get Started",
-            ctaHref: "/products/cpq"
+            ctaHref: "/products/cpq",
+            conversionConfig: {
+              intent: "book",
+              eventName: "hero_primary_cta_click"
+            }
           },
           {
             __component: "blocks.faq",
@@ -76,9 +79,9 @@ module.exports = {
         pageType: "product",
         layoutKey: "productLayout",
         conversionConfig: {
-          primary: "benefit",
-          product: "cpq",
-          industry: "healthcare"
+          intent: "run_benefit",
+          eventName: "page_primary_cta_click",
+          benefitKey: "cpq"
         },
         blocks: [
           {
@@ -86,7 +89,12 @@ module.exports = {
             heading: "LMNAs CPQ",
             subheading: "Faster tender and quoting workflows",
             ctaLabel: "Talk to Sales",
-            ctaHref: "/about"
+            ctaHref: "/about",
+            conversionConfig: {
+              intent: "run_benefit",
+              eventName: "hero_primary_cta_click",
+              benefitKey: "cpq"
+            }
           }
         ],
         seo: {
@@ -101,9 +109,8 @@ module.exports = {
         pageType: "solution",
         layoutKey: "solutionLayout",
         conversionConfig: {
-          primary: "download",
-          product: "tender-intelligence",
-          industry: "healthcare"
+          intent: "download",
+          eventName: "page_primary_cta_click"
         },
         blocks: [
           {
@@ -111,7 +118,11 @@ module.exports = {
             heading: "Tender Intelligence",
             subheading: "Automate opportunity discovery and response quality",
             ctaLabel: "Download Brief",
-            ctaHref: "/blogs/phase-0-baseline"
+            ctaHref: "/blogs/phase-0-baseline",
+            conversionConfig: {
+              intent: "download",
+              eventName: "hero_primary_cta_click"
+            }
           }
         ],
         seo: {
@@ -126,9 +137,8 @@ module.exports = {
         pageType: "simple",
         layoutKey: "simpleLayout",
         conversionConfig: {
-          primary: "subscribe",
-          product: "platform",
-          industry: "healthcare"
+          intent: "subscribe",
+          eventName: "page_primary_cta_click"
         },
         blocks: [
           {
@@ -136,7 +146,11 @@ module.exports = {
             heading: "About LMNAs",
             subheading: "Built for healthcare commercialization teams",
             ctaLabel: "Subscribe",
-            ctaHref: "/blogs"
+            ctaHref: "/blogs",
+            conversionConfig: {
+              intent: "subscribe",
+              eventName: "hero_primary_cta_click"
+            }
           }
         ],
         seo: {

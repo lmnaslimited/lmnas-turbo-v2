@@ -6,14 +6,21 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 type JsonValue = string | number | boolean | null | JsonObject | JsonValue[];
 type JsonObject = { [key: string]: JsonValue };
 
-interface BlockContract {
-  type: string;
+interface StrapiContract {
   meta: {
     strapi: {
       schemaPath: string;
       collectionName: string;
       displayName: string;
+      componentFields?: Record<string, string>;
     };
+  };
+  schema: unknown;
+}
+
+interface BlockContract extends StrapiContract {
+  type: string;
+  meta: StrapiContract["meta"] & {
     governance: {
       phase: string;
       conversionBlock: boolean;
@@ -25,7 +32,6 @@ interface BlockContract {
       allowedOnPageTypes: string[];
     };
   };
-  schema: unknown;
 }
 
 interface GeneratedOutput {
@@ -35,7 +41,7 @@ interface GeneratedOutput {
 
 const thisFilePath = fileURLToPath(import.meta.url);
 const workspaceRoot = path.resolve(path.dirname(thisFilePath), "../../..");
-const contractsSrcBlocksDir = path.join(workspaceRoot, "packages/contracts/src/blocks");
+const contractsSrcDir = path.join(workspaceRoot, "packages/contracts/src");
 const contractsDistDir = path.join(workspaceRoot, "packages/contracts/dist");
 const manifestPath = "packages/block-registry/src/generated/blocks.manifest.ts";
 
@@ -48,27 +54,60 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function isBlockContract(value: unknown): value is BlockContract {
-  if (!isObject(value) || typeof value.type !== "string" || !isObject(value.meta) || !("schema" in value)) {
+function isStrapiContract(value: unknown): value is StrapiContract {
+  if (!isObject(value) || !isObject(value.meta) || !("schema" in value)) {
     return false;
   }
 
-  const { strapi, governance, editor } = value.meta as Record<string, unknown>;
-  if (!isObject(strapi) || !isObject(governance) || !isObject(editor)) {
+  const { strapi } = value.meta as Record<string, unknown>;
+  if (!isObject(strapi)) {
     return false;
   }
 
   return (
     typeof strapi.schemaPath === "string" &&
     typeof strapi.collectionName === "string" &&
-    typeof strapi.displayName === "string" &&
-    Array.isArray(editor.allowedOnPageTypes)
+    typeof strapi.displayName === "string"
   );
 }
 
+function isBlockContract(value: StrapiContract): value is BlockContract {
+  if (!("type" in value) || typeof value.type !== "string") {
+    return false;
+  }
+
+  const { governance, editor } = value.meta as Record<string, unknown>;
+  return isObject(governance) && isObject(editor) && Array.isArray(editor.allowedOnPageTypes);
+}
+
+function unwrapSchema(schema: unknown): unknown {
+  let current = schema;
+
+  while (true) {
+    const typeName = getZodTypeName(current);
+    if (typeName === "ZodEffects") {
+      current = (current as { _def?: { schema?: unknown } })._def?.schema;
+      continue;
+    }
+
+    if (typeName === "ZodBranded" || typeName === "ZodReadonly") {
+      current = (current as { _def?: { type?: unknown } })._def?.type;
+      continue;
+    }
+
+    if (typeName === "ZodCatch") {
+      current = (current as { _def?: { innerType?: unknown } })._def?.innerType;
+      continue;
+    }
+
+    return current;
+  }
+}
+
 function getObjectShape(schema: unknown, contextPath: string): Record<string, unknown> {
-  const schemaRecord = schema as { _def?: { shape?: unknown } };
-  const typeName = getZodTypeName(schema);
+  const unwrappedSchema = unwrapSchema(schema);
+  const schemaRecord = unwrappedSchema as { _def?: { shape?: unknown } };
+  const typeName = getZodTypeName(unwrappedSchema);
 
   if (typeName !== "ZodObject") {
     throw new Error(`Unsupported Zod schema at ${contextPath}: expected ZodObject, got ${typeName}`);
@@ -96,20 +135,20 @@ function hasMinOneStringCheck(schema: unknown): boolean {
 }
 
 function unwrapOptional(schema: unknown): { optional: boolean; schema: unknown } {
-  let current = schema;
+  let current = unwrapSchema(schema);
   let optional = false;
 
   while (true) {
     const typeName = getZodTypeName(current);
     if (typeName === "ZodOptional") {
       optional = true;
-      current = (current as { _def?: { innerType?: unknown } })._def?.innerType;
+      current = unwrapSchema((current as { _def?: { innerType?: unknown } })._def?.innerType);
       continue;
     }
 
     if (typeName === "ZodDefault") {
       optional = true;
-      current = (current as { _def?: { innerType?: unknown } })._def?.innerType;
+      current = unwrapSchema((current as { _def?: { innerType?: unknown } })._def?.innerType);
       continue;
     }
 
@@ -117,8 +156,26 @@ function unwrapOptional(schema: unknown): { optional: boolean; schema: unknown }
   }
 }
 
-function mapFieldToStrapiAttribute(fieldSchema: unknown, fieldPath: string): JsonObject {
+function mapFieldToStrapiAttribute(
+  fieldName: string,
+  fieldSchema: unknown,
+  fieldPath: string,
+  componentFields: Record<string, string>
+): JsonObject {
   const unwrapped = unwrapOptional(fieldSchema);
+  const componentRef = componentFields[fieldName];
+  if (componentRef) {
+    const attribute: JsonObject = {
+      type: "component",
+      repeatable: false,
+      component: componentRef
+    };
+    if (!unwrapped.optional) {
+      attribute.required = true;
+    }
+    return attribute;
+  }
+
   const typeName = getZodTypeName(unwrapped.schema);
 
   if (typeName === "ZodString") {
@@ -129,10 +186,35 @@ function mapFieldToStrapiAttribute(fieldSchema: unknown, fieldPath: string): Jso
     return attribute;
   }
 
+  if (typeName === "ZodEnum") {
+    const values = (unwrapped.schema as { _def?: { values?: unknown } })._def?.values;
+    if (!Array.isArray(values) || values.some((value) => typeof value !== "string")) {
+      throw new Error(`Unsupported Zod enum at ${fieldPath}: expected string values`);
+    }
+
+    const attribute: JsonObject = { type: "enumeration", enum: values as string[] };
+    if (!unwrapped.optional) {
+      attribute.required = true;
+    }
+    return attribute;
+  }
+
+  if (typeName === "ZodObject") {
+    const attribute: JsonObject = { type: "json" };
+    if (!unwrapped.optional) {
+      attribute.required = true;
+    }
+    return attribute;
+  }
+
   throw new Error(`Unsupported Zod field at ${fieldPath}: ${typeName}`);
 }
 
-function schemaToStrapiAttributes(schema: unknown, contractType: string): Record<string, JsonObject> {
+function schemaToStrapiAttributes(
+  schema: unknown,
+  contractType: string,
+  componentFields: Record<string, string>
+): Record<string, JsonObject> {
   const shape = getObjectShape(schema, `${contractType}.schema`);
   const attributes: Record<string, JsonObject> = {};
 
@@ -141,7 +223,7 @@ function schemaToStrapiAttributes(schema: unknown, contractType: string): Record
       continue;
     }
 
-    attributes[key] = mapFieldToStrapiAttribute(shape[key], `${contractType}.${key}`);
+    attributes[key] = mapFieldToStrapiAttribute(key, shape[key], `${contractType}.${key}`, componentFields);
   }
 
   return attributes;
@@ -183,34 +265,32 @@ function renderManifest(contracts: BlockContract[]): string {
   ].join("\n");
 }
 
-async function loadContracts(): Promise<BlockContract[]> {
-  const files = (await readdir(contractsSrcBlocksDir))
-    .filter((file) => file.endsWith(".contract.ts"))
-    .sort((a, b) => a.localeCompare(b));
+async function loadContracts(): Promise<StrapiContract[]> {
+  const files = await findContractSourceFiles(contractsSrcDir);
 
-  const contracts: BlockContract[] = [];
+  const contracts: StrapiContract[] = [];
 
-  for (const sourceFile of files) {
-    const distFile = sourceFile.replace(/\.ts$/, ".js");
+  for (const sourceFilePath of files) {
+    const distFile = path.basename(sourceFilePath).replace(/\.ts$/, ".js");
     const distPath = await findFileRecursive(contractsDistDir, distFile);
     if (!distPath) {
-      throw new Error(`Cannot find built contract module for ${sourceFile}. Run build for @lmnas/contracts.`);
+      throw new Error(`Cannot find built contract module for ${sourceFilePath}. Run build for @lmnas/contracts.`);
     }
     const moduleUrl = `${pathToFileURL(distPath).href}?cacheBust=${Date.now()}`;
     const importedModule = (await import(moduleUrl)) as Record<string, unknown>;
 
     for (const exportedValue of Object.values(importedModule)) {
-      if (isBlockContract(exportedValue)) {
+      if (isStrapiContract(exportedValue)) {
         contracts.push(exportedValue);
       }
     }
   }
 
   if (contracts.length === 0) {
-    throw new Error("No contracts found under packages/contracts/src/blocks/*.contract.ts");
+    throw new Error("No contracts found under packages/contracts/src/**/*.contract.ts");
   }
 
-  return contracts.sort((a, b) => a.type.localeCompare(b.type));
+  return contracts.sort((a, b) => a.meta.strapi.schemaPath.localeCompare(b.meta.strapi.schemaPath));
 }
 
 async function findFileRecursive(dirPath: string, fileName: string): Promise<string | null> {
@@ -233,11 +313,35 @@ async function findFileRecursive(dirPath: string, fileName: string): Promise<str
   return null;
 }
 
-function generateOutputs(contracts: BlockContract[]): GeneratedOutput[] {
+async function findContractSourceFiles(dirPath: string): Promise<string[]> {
+  const files: string[] = [];
+  const entries = await readdir(dirPath, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const entryPath = path.join(dirPath, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...(await findContractSourceFiles(entryPath)));
+      continue;
+    }
+
+    if (entry.isFile() && entry.name.endsWith(".contract.ts")) {
+      files.push(entryPath);
+    }
+  }
+
+  return files.sort((a, b) => a.localeCompare(b));
+}
+
+function generateOutputs(contracts: StrapiContract[]): GeneratedOutput[] {
   const outputs: GeneratedOutput[] = [];
 
   for (const contract of contracts) {
-    const attributes = schemaToStrapiAttributes(contract.schema, contract.type);
+    const contractIdentifier = isBlockContract(contract) ? contract.type : contract.meta.strapi.displayName;
+    const attributes = schemaToStrapiAttributes(
+      contract.schema,
+      contractIdentifier,
+      contract.meta.strapi.componentFields ?? {}
+    );
     const strapiSchema = {
       collectionName: contract.meta.strapi.collectionName,
       info: {
@@ -253,9 +357,10 @@ function generateOutputs(contracts: BlockContract[]): GeneratedOutput[] {
     });
   }
 
+  const blockContracts = contracts.filter(isBlockContract);
   outputs.push({
     relativePath: manifestPath,
-    content: renderManifest(contracts)
+    content: renderManifest(blockContracts)
   });
 
   return outputs;
@@ -269,13 +374,13 @@ async function writeOutputs(baseDir: string, outputs: GeneratedOutput[]): Promis
   }
 }
 
-async function runGen(contracts: BlockContract[]): Promise<void> {
+async function runGen(contracts: StrapiContract[]): Promise<void> {
   const outputs = generateOutputs(contracts);
   await writeOutputs(workspaceRoot, outputs);
   console.log(`Generated ${outputs.length} files from ${contracts.length} contract(s).`);
 }
 
-async function runCheck(contracts: BlockContract[]): Promise<void> {
+async function runCheck(contracts: StrapiContract[]): Promise<void> {
   const outputs = generateOutputs(contracts);
   const tempDir = await mkdtemp(path.join(os.tmpdir(), "lmnas-contracts-sync-"));
   await writeOutputs(tempDir, outputs);

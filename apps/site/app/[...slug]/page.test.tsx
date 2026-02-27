@@ -7,7 +7,6 @@ const { getPageBySlugMock, draftModeMock } = vi.hoisted(() => {
       slug,
       pageType: "product",
       layoutKey: "productLayout",
-      conversionConfig: { primary: "benefit", product: "cpq", industry: "healthcare" },
       blocks: [],
       seo: {
         metaTitle: "CPQ",

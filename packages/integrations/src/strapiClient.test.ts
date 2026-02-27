@@ -20,18 +20,17 @@ const server = setupServer(
               slug: "home",
               pageType: "home",
               layoutKey: "homeLayout",
-              conversionConfig: {
-                primary: "book",
-                product: "platform",
-                industry: "healthcare"
-              },
               blocks: [
                 {
                   __typename: "ComponentBlocksHero",
                   heading: "Hello",
                   subheading: "Sub",
                   ctaLabel: "Go",
-                  ctaHref: "/go"
+                  ctaHref: "/go",
+                  conversionConfig: {
+                    intent: "book",
+                    eventName: "hero_primary_cta_click"
+                  }
                 },
                 {
                   __typename: "ComponentBlocksFaq",
@@ -152,9 +151,8 @@ describe("strapiClient", () => {
           return HttpResponse.json({ data: {} });
         }
 
-        const state = body.variables?.state;
         const status = body.variables?.status;
-        const isPreview = state === "PREVIEW" || status === "DRAFT";
+        const isPreview = status === "DRAFT";
         const metaTitle = isPreview ? "Home Draft" : "Home Published";
 
         return HttpResponse.json({
@@ -165,11 +163,6 @@ describe("strapiClient", () => {
                 slug: "home",
                 pageType: "home",
                 layoutKey: "homeLayout",
-                conversionConfig: {
-                  primary: "book",
-                  product: "platform",
-                  industry: "healthcare"
-                },
                 blocks: [],
                 seo: {
                   metaTitle,
@@ -237,62 +230,4 @@ describe("strapiClient", () => {
     await expect(getPageBySlug("home")).rejects.toThrow("strapi_unreachable");
   });
 
-  it("falls back to v4 GraphQL schema when v5 query shape is unavailable", async () => {
-    server.use(
-      http.post("http://localhost:1337/graphql", async ({ request }) => {
-        const body = (await request.json()) as { query?: string };
-        const query = body.query ?? "";
-
-        if (query.includes("GetPageBySlugV5")) {
-          return HttpResponse.json(
-            {
-              errors: [
-                {
-                  message: "Unknown argument \"status\" on field \"Query.pages\".",
-                  extensions: { code: "GRAPHQL_VALIDATION_FAILED" }
-                }
-              ]
-            },
-            { status: 400 }
-          );
-        }
-
-        if (query.includes("GetPageBySlugV4")) {
-          return HttpResponse.json({
-            data: {
-              pages: {
-                data: [
-                  {
-                    id: 1,
-                    attributes: {
-                      slug: "home",
-                      pageType: "home",
-                      layoutKey: "homeLayout",
-                      conversionConfig: {
-                        primary: "book",
-                        product: "platform",
-                        industry: "healthcare"
-                      },
-                      blocks: [],
-                      seo: {
-                        metaTitle: "Home",
-                        metaDescription: "Home",
-                        canonical: "https://lmnas.com",
-                        robots: "index,follow"
-                      }
-                    }
-                  }
-                ]
-              }
-            }
-          });
-        }
-
-        return HttpResponse.json({ data: {} });
-      })
-    );
-
-    const page = await getPageBySlug("home");
-    expect(page.slug).toBe("home");
-  });
 });

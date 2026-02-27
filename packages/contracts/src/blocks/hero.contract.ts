@@ -1,4 +1,5 @@
 import { heroBlockSchema } from "@lmnas/blocks/Hero/schema.js";
+import { conversionConfigSchema } from "../shared/conversionConfig.contract.js";
 
 export type ContractPageType = "home" | "product" | "solution" | "industry" | "simple";
 
@@ -7,6 +8,7 @@ export interface BlockContractMeta {
     schemaPath: string;
     collectionName: string;
     displayName: string;
+    componentFields?: Record<string, string>;
   };
   governance: {
     phase: "M1";
@@ -32,7 +34,10 @@ export const heroContract: BlockContract = {
     strapi: {
       schemaPath: "services/strapi/src/components/blocks/hero.json",
       collectionName: "components_blocks_heroes",
-      displayName: "hero"
+      displayName: "hero",
+      componentFields: {
+        conversionConfig: "shared.conversion-config"
+      }
     },
     governance: {
       phase: "M1",
@@ -45,5 +50,7 @@ export const heroContract: BlockContract = {
       allowedOnPageTypes: ["home", "product", "solution", "industry", "simple"]
     }
   },
-  schema: heroBlockSchema
+  schema: heroBlockSchema.extend({
+    conversionConfig: conversionConfigSchema
+  })
 };

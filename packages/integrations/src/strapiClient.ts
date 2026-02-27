@@ -7,17 +7,15 @@ import {
   type Navigation,
   type Page
 } from "@lmnas/contracts";
-import { blogPostFixture, footerNavigationFixture, homePageFixture, mainNavigationFixture } from "@lmnas/testkit";
+import { blogPostFixture, footerNavigationFixture, mainNavigationFixture } from "@lmnas/testkit";
 
 type Options = { preview?: boolean };
-type PublicationStateV4 = "LIVE" | "PREVIEW";
 type PublicationStatusV5 = "PUBLISHED" | "DRAFT";
 
 type PageAttributes = {
   slug: string;
   pageType: Page["pageType"];
   layoutKey: Page["layoutKey"];
-  conversionConfig: Page["conversionConfig"];
   blocks: Array<Record<string, unknown>>;
   seo: Page["seo"];
 };
@@ -60,11 +58,6 @@ const GET_PAGE_BY_SLUG_QUERY_V5 = `
       slug
       pageType
       layoutKey
-      conversionConfig {
-        primary
-        product
-        industry
-      }
       blocks {
         __typename
         ... on ComponentBlocksHero {
@@ -72,6 +65,15 @@ const GET_PAGE_BY_SLUG_QUERY_V5 = `
           subheading
           ctaLabel
           ctaHref
+          conversionConfig {
+            intent
+            eventName
+            eventCategory
+            campaignId
+            utmDefaults
+            destination
+            benefitKey
+          }
         }
         ... on ComponentBlocksFaq {
           title
@@ -88,65 +90,12 @@ const GET_PAGE_BY_SLUG_QUERY_V5 = `
   }
 `;
 
-const GET_PAGE_BY_SLUG_QUERY_V4 = `
-  query GetPageBySlugV4($slug: String!, $state: PublicationState) {
-    pages(filters: { slug: { eq: $slug } }, publicationState: $state) {
-      data {
-        id
-        attributes {
-          slug
-          pageType
-          layoutKey
-          conversionConfig {
-            primary
-            product
-            industry
-          }
-          blocks {
-            __typename
-            ... on ComponentBlocksHero {
-              heading
-              subheading
-              ctaLabel
-              ctaHref
-            }
-            ... on ComponentBlocksFaq {
-              title
-              items
-            }
-          }
-          seo {
-            metaTitle
-            metaDescription
-            canonical
-            robots
-          }
-        }
-      }
-    }
-  }
-`;
-
 const GET_NAVIGATION_BY_KEY_QUERY_V5 = `
   query GetNavigationByKeyV5($key: String!, $status: PublicationStatus) {
     navigations(filters: { key: { eq: $key } }, status: $status) {
       documentId
       key
       items
-    }
-  }
-`;
-
-const GET_NAVIGATION_BY_KEY_QUERY_V4 = `
-  query GetNavigationByKeyV4($key: String!, $state: PublicationState) {
-    navigations(filters: { key: { eq: $key } }, publicationState: $state) {
-      data {
-        id
-        attributes {
-          key
-          items
-        }
-      }
     }
   }
 `;
@@ -165,29 +114,6 @@ const GET_BLOG_POSTS_QUERY_V5 = `
         metaDescription
         canonical
         robots
-      }
-    }
-  }
-`;
-
-const GET_BLOG_POSTS_QUERY_V4 = `
-  query GetBlogPostsV4($state: PublicationState) {
-    blogPosts(publicationState: $state, sort: "publishedAt:desc") {
-      data {
-        id
-        attributes {
-          slug
-          title
-          excerpt
-          body
-          publishedAt
-          seo {
-            metaTitle
-            metaDescription
-            canonical
-            robots
-          }
-        }
       }
     }
   }
@@ -212,29 +138,6 @@ const GET_BLOG_POST_BY_SLUG_QUERY_V5 = `
   }
 `;
 
-const GET_BLOG_POST_BY_SLUG_QUERY_V4 = `
-  query GetBlogPostBySlugV4($slug: String!, $state: PublicationState) {
-    blogPosts(filters: { slug: { eq: $slug } }, publicationState: $state) {
-      data {
-        id
-        attributes {
-          slug
-          title
-          excerpt
-          body
-          publishedAt
-          seo {
-            metaTitle
-            metaDescription
-            canonical
-            robots
-          }
-        }
-      }
-    }
-  }
-`;
-
 function normalizeStrapiBlock(block: Record<string, unknown>): Record<string, unknown> {
   const component = String(block.__typename || "");
 
@@ -244,7 +147,8 @@ function normalizeStrapiBlock(block: Record<string, unknown>): Record<string, un
       heading: block.heading,
       subheading: block.subheading,
       ctaLabel: block.ctaLabel,
-      ctaHref: block.ctaHref
+      ctaHref: block.ctaHref,
+      conversionConfig: block.conversionConfig
     };
   }
 
@@ -261,30 +165,8 @@ function normalizeStrapiBlock(block: Record<string, unknown>): Record<string, un
   };
 }
 
-function getPublicationStateV4(options: Options): PublicationStateV4 {
-  return options.preview ? "PREVIEW" : "LIVE";
-}
-
 function getPublicationStatusV5(options: Options): PublicationStatusV5 {
   return options.preview ? "DRAFT" : "PUBLISHED";
-}
-
-function isGraphqlSchemaMismatch(error: unknown): boolean {
-  if (!(error instanceof StrapiUnreachableError)) {
-    return false;
-  }
-
-  const message = error.message;
-  return (
-    message.includes("GRAPHQL_VALIDATION_FAILED") ||
-    message.includes("Cannot query field") ||
-    message.includes("Unknown argument") ||
-    message.includes("Unknown type") ||
-    message.includes("publicationState") ||
-    message.includes("PublicationState") ||
-    message.includes("status") ||
-    message.includes("PublicationStatus")
-  );
 }
 
 function unwrapNode<T>(node: V4Node<T> | V5Node<T>): V5Node<T> {
@@ -359,39 +241,34 @@ async function requestStrapiGraphql<T>(query: string, variables: Record<string, 
   throw lastError instanceof StrapiUnreachableError ? lastError : new StrapiUnreachableError();
 }
 
-async function requestWithCompatibility<T>(
-  queryV5: string,
-  variablesV5: Record<string, unknown>,
-  queryV4: string,
-  variablesV4: Record<string, unknown>
-): Promise<T> {
-  try {
-    return await requestStrapiGraphql<T>(queryV5, variablesV5);
-  } catch (error) {
-    if (!isGraphqlSchemaMismatch(error)) {
-      throw error;
-    }
+type StrapiErrorLogDetails = {
+  message: string;
+  httpStatus?: string;
+  responseBody?: string;
+};
 
-    return requestStrapiGraphql<T>(queryV4, variablesV4);
+function getStrapiErrorLogDetails(error: unknown): StrapiErrorLogDetails {
+  const message = error instanceof Error ? error.message : String(error);
+  const details: StrapiErrorLogDetails = { message };
+
+  const httpMatch = message.match(/strapi_unreachable:http_(\d+)(?::(.*))?/);
+  if (httpMatch) {
+    details.httpStatus = httpMatch[1];
+    if (httpMatch[2]) {
+      details.responseBody = httpMatch[2];
+    }
   }
+
+  return details;
 }
 
 export async function getPageBySlug(slug: string, options: Options = {}): Promise<Page> {
-  const allowMockFallback =
-    process.env.ENABLE_PAGE_MOCK_FALLBACK === "true" &&
-    (process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test");
-
   const loadPage = async (): Promise<Page> => {
-    const data = (await requestWithCompatibility<Record<string, unknown>>(
+    const data = (await requestStrapiGraphql<Record<string, unknown>>(
       GET_PAGE_BY_SLUG_QUERY_V5,
       {
         slug,
         status: getPublicationStatusV5(options)
-      },
-      GET_PAGE_BY_SLUG_QUERY_V4,
-      {
-        slug,
-        state: getPublicationStateV4(options)
       }
     )) as Record<string, unknown>;
 
@@ -408,7 +285,6 @@ export async function getPageBySlug(slug: string, options: Options = {}): Promis
       slug: normalized.slug,
       pageType: normalized.pageType,
       layoutKey: normalized.layoutKey,
-      conversionConfig: normalized.conversionConfig,
       blocks: normalized.blocks.map((block) => normalizeStrapiBlock(block as Record<string, unknown>)),
       seo: normalized.seo
     });
@@ -417,34 +293,30 @@ export async function getPageBySlug(slug: string, options: Options = {}): Promis
   try {
     return await loadPage();
   } catch (error) {
+    if (process.env.NODE_ENV !== "production") {
+      const details = getStrapiErrorLogDetails(error);
+      console.warn("[integrations] strapi_error", {
+        slug,
+        preview: options.preview === true,
+        message: details.message,
+        ...(details.httpStatus ? { httpStatus: details.httpStatus } : {}),
+        ...(details.responseBody ? { responseBody: details.responseBody } : {})
+      });
+    }
+
     if (error instanceof PageNotFoundError) {
       throw error;
     }
 
-    if (allowMockFallback) {
-      if (process.env.NODE_ENV !== "production") {
-        console.warn(`[integrations] page_mock_fallback slug=${slug} preview=${options.preview === true}`);
-      }
-
-      if (slug === "home") {
-        return homePageFixture;
-      }
-
-      return {
-        ...homePageFixture,
-        slug
-      };
-    }
-
     if (error instanceof StrapiUnreachableError) {
       if (process.env.NODE_ENV !== "production") {
-        console.error(`[integrations] ${error.message} slug=${slug} preview=${options.preview === true}`);
+        console.warn(`[integrations] ${error.message} slug=${slug} preview=${options.preview === true}`);
       }
       throw error;
     }
 
     if (process.env.NODE_ENV !== "production") {
-      console.error(`[integrations] strapi_unreachable slug=${slug} preview=${options.preview === true}`);
+      console.warn(`[integrations] strapi_unreachable slug=${slug} preview=${options.preview === true}`);
     }
 
     throw new StrapiUnreachableError();
@@ -453,16 +325,11 @@ export async function getPageBySlug(slug: string, options: Options = {}): Promis
 
 export async function getNavigationByKey(key: "main" | "footer", options: Options = {}): Promise<Navigation> {
   try {
-    const data = (await requestWithCompatibility<Record<string, unknown>>(
+    const data = (await requestStrapiGraphql<Record<string, unknown>>(
       GET_NAVIGATION_BY_KEY_QUERY_V5,
       {
         key,
         status: getPublicationStatusV5(options)
-      },
-      GET_NAVIGATION_BY_KEY_QUERY_V4,
-      {
-        key,
-        state: getPublicationStateV4(options)
       }
     )) as Record<string, unknown>;
 
@@ -498,14 +365,10 @@ function normalizeBlogPost(raw: V4Node<BlogPostAttributes> | V5Node<BlogPostAttr
 
 export async function getBlogPosts(options: Options = {}): Promise<BlogPost[]> {
   try {
-    const data = (await requestWithCompatibility<Record<string, unknown>>(
+    const data = (await requestStrapiGraphql<Record<string, unknown>>(
       GET_BLOG_POSTS_QUERY_V5,
       {
         status: getPublicationStatusV5(options)
-      },
-      GET_BLOG_POSTS_QUERY_V4,
-      {
-        state: getPublicationStateV4(options)
       }
     )) as Record<string, unknown>;
 
@@ -517,16 +380,11 @@ export async function getBlogPosts(options: Options = {}): Promise<BlogPost[]> {
 
 export async function getBlogPostBySlug(slug: string, options: Options = {}): Promise<BlogPost> {
   try {
-    const data = (await requestWithCompatibility<Record<string, unknown>>(
+    const data = (await requestStrapiGraphql<Record<string, unknown>>(
       GET_BLOG_POST_BY_SLUG_QUERY_V5,
       {
         slug,
         status: getPublicationStatusV5(options)
-      },
-      GET_BLOG_POST_BY_SLUG_QUERY_V4,
-      {
-        slug,
-        state: getPublicationStateV4(options)
       }
     )) as Record<string, unknown>;
 

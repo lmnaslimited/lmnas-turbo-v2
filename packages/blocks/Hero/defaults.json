@@ -2,5 +2,9 @@
   "heading": "Welcome to LMNAs",
   "subheading": "Composable healthcare web platform",
   "ctaLabel": "Get Started",
-  "ctaHref": "/start"
+  "ctaHref": "/start",
+  "conversionConfig": {
+    "intent": "book",
+    "eventName": "hero_primary_cta_click"
+  }
 }

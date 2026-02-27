@@ -13,7 +13,11 @@ describe("renderer", () => {
             heading: "Hello",
             subheading: "World",
             ctaLabel: "Start",
-            ctaHref: "/start"
+            ctaHref: "/start",
+            conversionConfig: {
+              intent: "book",
+              eventName: "hero_primary_cta_click"
+            }
           }
         ]}
       />
@@ -31,7 +35,11 @@ describe("renderer", () => {
           heading: "",
           subheading: "Subheading",
           ctaLabel: "Start",
-          ctaHref: "/start"
+          ctaHref: "/start",
+          conversionConfig: {
+            intent: "book",
+            eventName: "hero_primary_cta_click"
+          }
         },
         true
       )
@@ -50,7 +58,11 @@ describe("renderer", () => {
             heading: "",
             subheading: "Subheading",
             ctaLabel: "Start",
-            ctaHref: "/start"
+            ctaHref: "/start",
+            conversionConfig: {
+              intent: "book",
+              eventName: "hero_primary_cta_click"
+            }
           }
         ]}
         preview={false}

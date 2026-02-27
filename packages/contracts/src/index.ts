@@ -1,7 +1,11 @@
 import { heroBlockSchema, faqBlockSchema } from "@lmnas/blocks";
 import { z } from "zod";
+import { conversionConfigSchema as sharedConversionConfigSchema } from "./shared";
 export { heroContract } from "./blocks";
 export type { BlockContract, BlockContractMeta, ContractPageType } from "./blocks";
+export { conversionConfigContract } from "./shared";
+export { sharedConversionConfigSchema };
+export type { ConversionConfig as SharedConversionConfig } from "./shared";
 
 export const blockSchema = z.union([heroBlockSchema, faqBlockSchema]);
 
@@ -14,11 +18,7 @@ export const layoutKeySchema = z.enum([
   "simpleLayout"
 ]);
 
-export const conversionConfigSchema = z.object({
-  primary: z.enum(["book", "benefit", "download", "subscribe"]),
-  product: z.string().min(1),
-  industry: z.string().min(1)
-});
+export const conversionConfigSchema = sharedConversionConfigSchema;
 
 export const seoSchema = z.object({
   metaTitle: z.string().min(1),
@@ -32,7 +32,6 @@ export const pageSchema = z.object({
   slug: z.string().min(1),
   pageType: pageTypeSchema,
   layoutKey: layoutKeySchema,
-  conversionConfig: conversionConfigSchema,
   blocks: z.array(blockSchema),
   seo: seoSchema
 });
@@ -41,7 +40,6 @@ export const strapiPageAttributesSchema = z.object({
   slug: z.string(),
   pageType: pageTypeSchema,
   layoutKey: layoutKeySchema,
-  conversionConfig: conversionConfigSchema,
   blocks: z.array(z.unknown()),
   seo: seoSchema
 });

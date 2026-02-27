@@ -5,23 +5,40 @@
   },
   "options": {},
   "attributes": {
-    "primary": {
+    "intent": {
       "type": "enumeration",
       "enum": [
         "book",
-        "benefit",
+        "run_benefit",
         "download",
         "subscribe"
       ],
       "required": true
     },
-    "product": {
+    "eventName": {
       "type": "string",
       "required": true
     },
-    "industry": {
-      "type": "string",
-      "required": true
+    "eventCategory": {
+      "type": "enumeration",
+      "enum": [
+        "conversion",
+        "engagement",
+        "navigation",
+        "experiment"
+      ]
+    },
+    "campaignId": {
+      "type": "string"
+    },
+    "utmDefaults": {
+      "type": "json"
+    },
+    "destination": {
+      "type": "json"
+    },
+    "benefitKey": {
+      "type": "string"
     }
   }
 }

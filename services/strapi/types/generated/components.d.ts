@@ -17,6 +17,11 @@ export interface BlocksHero extends Struct.ComponentSchema {
     displayName: 'hero';
   };
   attributes: {
+    conversionConfig: Schema.Attribute.Component<
+      'shared.conversion-config',
+      false
+    > &
+      Schema.Attribute.Required;
     ctaHref: Schema.Attribute.String & Schema.Attribute.Required;
     ctaLabel: Schema.Attribute.String & Schema.Attribute.Required;
     heading: Schema.Attribute.String & Schema.Attribute.Required;
@@ -30,12 +35,18 @@ export interface SharedConversionConfig extends Struct.ComponentSchema {
     displayName: 'conversionConfig';
   };
   attributes: {
-    industry: Schema.Attribute.String & Schema.Attribute.Required;
-    primary: Schema.Attribute.Enumeration<
-      ['book', 'benefit', 'download', 'subscribe']
+    benefitKey: Schema.Attribute.String;
+    campaignId: Schema.Attribute.String;
+    destination: Schema.Attribute.JSON;
+    eventCategory: Schema.Attribute.Enumeration<
+      ['conversion', 'engagement', 'navigation', 'experiment']
+    >;
+    eventName: Schema.Attribute.String & Schema.Attribute.Required;
+    intent: Schema.Attribute.Enumeration<
+      ['book', 'run_benefit', 'download', 'subscribe']
     > &
       Schema.Attribute.Required;
-    product: Schema.Attribute.String & Schema.Attribute.Required;
+    utmDefaults: Schema.Attribute.JSON;
   };
 }
 

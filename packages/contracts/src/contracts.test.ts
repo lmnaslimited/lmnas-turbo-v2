@@ -11,7 +11,11 @@ const validPage = {
       heading: "Welcome",
       subheading: "Sub",
       ctaLabel: "Start",
-      ctaHref: "/start"
+      ctaHref: "/start",
+      conversionConfig: {
+        intent: "book",
+        eventName: "hero_primary_cta_click"
+      }
     }
   ],
   seo: {
@@ -19,23 +23,10 @@ const validPage = {
     metaDescription: "Description",
     canonical: "http://localhost:3000",
     robots: "index,follow"
-  },
-  conversionConfig: {
-    primary: "book",
-    product: "platform",
-    industry: "healthcare"
   }
 };
 
 describe("contracts", () => {
-  it("requires conversionConfig on every page", () => {
-    const withoutConversion = { ...validPage } as Record<string, unknown>;
-    delete withoutConversion.conversionConfig;
-
-    const parsed = pageSchema.safeParse(withoutConversion);
-    expect(parsed.success).toBe(false);
-  });
-
   it("requires canonical and robots seo fields", () => {
     const missingSeo = {
       ...validPage,
