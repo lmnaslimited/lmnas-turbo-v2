@@ -138,6 +138,15 @@ importers:
         specifier: ^19.0.2
         version: 19.2.3(@types/react@19.2.14)
 
+  packages/content-importer:
+    dependencies:
+      '@lmnas/block-registry':
+        specifier: workspace:*
+        version: link:../block-registry
+      '@lmnas/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+
   packages/contracts:
     dependencies:
       '@lmnas/blocks':

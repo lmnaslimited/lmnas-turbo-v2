@@ -1,0 +1,20 @@
+{
+  "name": "@lmnas/content-importer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run --passWithNoTests -c vitest.config.ts",
+    "typecheck": "tsc --noEmit",
+    "plan": "pnpm run build && node dist/cli.js plan",
+    "apply": "pnpm run build && node dist/cli.js apply"
+  },
+  "dependencies": {
+    "@lmnas/contracts": "workspace:*",
+    "@lmnas/block-registry": "workspace:*"
+  }
+}

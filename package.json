@@ -11,6 +11,8 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
+    "content:plan": "pnpm --filter @lmnas/content-importer run plan --",
+    "content:apply": "pnpm --filter @lmnas/content-importer run apply --",
     "contracts:gen": "pnpm --filter @lmnas/contracts-sync run gen",
     "contracts:check": "pnpm --filter @lmnas/contracts-sync run check"
   },
