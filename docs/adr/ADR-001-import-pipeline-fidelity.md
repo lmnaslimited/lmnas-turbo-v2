@@ -43,24 +43,11 @@ Policy A requires new block types to be allowlisted through contracts -> manifes
 
 ## Links
 
-Execution is split into subsystem RR units 001A–001E (parent intake INT-001).
+Execution is split into subsystem RR units 001A–001E under parent intake INT-001.
 
 - Intake: `docs/phase0_1/intake/INT-001-import-pipeline-fidelity.md`
-- Spec:
-  - `docs/phase0_1/specs/SPEC-001A-snapshot-sanitizer.md`
-  - `docs/phase0_1/specs/SPEC-001B-css-system.md`
-  - `docs/phase0_1/specs/SPEC-001C-import-mode-fidelity.md`
-  - `docs/phase0_1/specs/SPEC-001D-theme-system.md`
-  - `docs/phase0_1/specs/SPEC-001E-docs.md`
-- Tasks:
-  - `docs/phase0_1/tasks/TASK-001A-snapshot-sanitizer.md`
-  - `docs/phase0_1/tasks/TASK-001B-css-system.md`
-  - `docs/phase0_1/tasks/TASK-001C-import-mode-fidelity.md`
-  - `docs/phase0_1/tasks/TASK-001D-theme-system.md`
-  - `docs/phase0_1/tasks/TASK-001E-docs.md`
-- Proof:
-  - `docs/phase0_1/proof/PROOF-001A-snapshot-sanitizer.md`
-  - `docs/phase0_1/proof/PROOF-001B-css-system.md`
-  - `docs/phase0_1/proof/PROOF-001C-import-mode-fidelity.md`
-  - `docs/phase0_1/proof/PROOF-001D-theme-system.md`
-  - `docs/phase0_1/proof/PROOF-001E-docs.md`
+- 001A: `docs/phase0_1/specs/SPEC-001A-snapshot-sanitizer.md` / `docs/phase0_1/tasks/TASK-001A-snapshot-sanitizer.md` / `docs/phase0_1/proof/PROOF-001A-snapshot-sanitizer.md`
+- 001B: `docs/phase0_1/specs/SPEC-001B-css-system.md` / `docs/phase0_1/tasks/TASK-001B-css-system.md` / `docs/phase0_1/proof/PROOF-001B-css-system.md`
+- 001C: `docs/phase0_1/specs/SPEC-001C-import-mode-fidelity.md` / `docs/phase0_1/tasks/TASK-001C-import-mode-fidelity.md` / `docs/phase0_1/proof/PROOF-001C-import-mode-fidelity.md`
+- 001D: `docs/phase0_1/specs/SPEC-001D-theme-system.md` / `docs/phase0_1/tasks/TASK-001D-theme-system.md` / `docs/phase0_1/proof/PROOF-001D-theme-system.md`
+- 001E: `docs/phase0_1/specs/SPEC-001E-docs.md` / `docs/phase0_1/tasks/TASK-001E-docs.md` / `docs/phase0_1/proof/PROOF-001E-docs.md`
