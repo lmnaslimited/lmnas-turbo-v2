@@ -443,6 +443,56 @@ describe("apply importer modes", () => {
     expect(result.finalSlug).toBe("home--import-20260228-123456789");
   });
 
+  it("force-create retries with a fresh slug when initial import slug collides", async () => {
+    let createAttempts = 0;
+    const calls = setupGraphqlMock((body) => {
+      if (body.operationName === "Ping") {
+        return ok({ __typename: "Query" });
+      }
+      if (isSafeFind(body)) {
+        if (body.variables?.status === "DRAFT" && body.variables?.hasPublishedVersion === undefined) {
+          return findRows([
+            pageRow({
+              documentId: "doc-draft",
+              publishedAt: null
+            })
+          ]);
+        }
+        return findRows([]);
+      }
+      if (body.operationName === "ImporterCreatePage") {
+        createAttempts += 1;
+        if (createAttempts === 1) {
+          return operationError("slug must be unique");
+        }
+        return ok({ createPage: { documentId: "doc-created" } });
+      }
+      if (isFullFind(body)) {
+        return findRows([]);
+      }
+      throw new Error(`Unexpected operation ${body.operationName}`);
+    });
+
+    const result = await applyImportPlan(clonePlan(), {
+      strapiUrl: TEST_STRAPI_URL,
+      strapiToken: TEST_STRAPI_TOKEN,
+      graphqlPath: TEST_GRAPHQL_PATH,
+      forceCreate: true,
+      now: new Date("2026-02-28T12:34:56.789Z")
+    });
+
+    const createCalls = calls.filter((call) => call.operationName === "ImporterCreatePage");
+    expect(createCalls).toHaveLength(2);
+
+    const firstSlug = (createCalls[0]?.variables?.data as { slug?: string }).slug;
+    const secondSlug = (createCalls[1]?.variables?.data as { slug?: string }).slug;
+
+    expect(firstSlug).toBe("home--import-20260228-123456789");
+    expect(secondSlug).toBe("home--import-20260228-123456790");
+    expect(secondSlug).not.toBe(firstSlug);
+    expect(result.finalSlug).toBe("home--import-20260228-123456790");
+  });
+
   it("defaults apply write state to draft even when plan requests published", async () => {
     const calls = setupGraphqlMock((body) => {
       if (body.operationName === "Ping") {

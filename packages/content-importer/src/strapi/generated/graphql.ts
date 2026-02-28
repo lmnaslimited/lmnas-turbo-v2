@@ -5,7 +5,7 @@ export const BLOCK_COMPONENT_TYPES = [
   "ComponentBlocksFaq",
   "Error"
 ] as const;
-export const PAGE_BLOCKS_FRAGMENT = "fragment ImporterPageBlocks on PageBlocksDynamicZone {\n  __typename\n  ... on ComponentBlocksHero {\n    id\n    heading\n    subheading\n    ctaLabel\n    ctaHref\n    conversionConfig { id intent eventName eventCategory campaignId utmDefaults destination benefitKey }\n  }\n  ... on ComponentBlocksFaq {\n    id\n    title\n    items\n  }\n  ... on Error {\n    id\n    code\n    message\n  }\n}\n";
+export const PAGE_BLOCKS_FRAGMENT = "fragment ImporterPageBlocks on PageBlocksDynamicZone {\n  __typename\n  ... on ComponentBlocksHero {\n    id\n    heading\n    subheading\n    ctaLabel\n    ctaHref\n    conversionConfig { id intent eventName eventCategory campaignId utmDefaults destination benefitKey }\n  }\n  ... on ComponentBlocksFaq {\n    id\n    title\n    items\n  }\n  ... on Error {\n    code\n    message\n  }\n}\n";
 export const BLOCK_SELECTED_FIELDS = {
   "ComponentBlocksHero": [
     "id",
