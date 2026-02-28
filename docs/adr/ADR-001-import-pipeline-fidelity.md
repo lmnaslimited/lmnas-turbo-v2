@@ -29,7 +29,6 @@ Policy A requires new block types to be allowlisted through contracts -> manifes
    - plan stores theme metadata (`themeKey`, `themeScopeClass`)
    - theme token registry + nearest-match thresholds
    - `ThemeDebtReport` emitted for debt visibility
-6. Implementation is split into subsystem RR units `001A-001E`.
 
 ## Consequences
 
@@ -43,6 +42,8 @@ Policy A requires new block types to be allowlisted through contracts -> manifes
   - Fidelity runner requires browser automation in CI/local workflows.
 
 ## Links
+
+Execution is split into subsystem RR units 001A–001E (parent intake INT-001).
 
 - Intake: `docs/phase0_1/intake/INT-001-import-pipeline-fidelity.md`
 - Spec:
