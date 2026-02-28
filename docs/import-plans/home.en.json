@@ -1,0 +1,49 @@
+{
+  "blocks": [
+    {
+      "__component": "blocks.hero",
+      "conversionConfig": {
+        "destination": {
+          "type": "url",
+          "value": "https://lmnas.com/en"
+        },
+        "eventCategory": "conversion",
+        "eventName": "hero_primary_cta_click",
+        "intent": "book"
+      },
+      "ctaHref": "/",
+      "ctaLabel": "LMNAs",
+      "heading": "Reimagine Your Business Through AI Driven ERP",
+      "subheading": "LMNAs Products Industries Solutions Pricing EN Contact Us EN Solutions Products Industries Pricing More Home Reimagine Your Business Through AI Driven ERP From seamless operations to actionable insights LMNAs empowers businesses to overcome their tough..."
+    }
+  ],
+  "page": {
+    "conversionConfig": {
+      "destination": {
+        "type": "url",
+        "value": "https://lmnas.com/en"
+      },
+      "eventCategory": "conversion",
+      "eventName": "hero_primary_cta_click",
+      "intent": "book"
+    },
+    "layoutKey": "homeLayout",
+    "locale": "en",
+    "pageType": "home",
+    "seo": {
+      "canonical": "https://lmnas.com/en",
+      "metaDescription": "Unlock seamless operations and actionable insights with LMNAs. Empowering businesses across industries to overcome challenges and achieve transformational growth.",
+      "metaTitle": "LMNAs Cloud Solutions | Cloud ERP for End-to-End Business Transformation.",
+      "robots": "index,follow"
+    },
+    "slug": "home",
+    "sourceUrl": "https://lmnas.com/en"
+  },
+  "publish": {
+    "state": "draft"
+  },
+  "source": {
+    "fetchedAt": "2026-02-28T08:04:06.337Z",
+    "schemaVersion": "content-plan.v1"
+  }
+}

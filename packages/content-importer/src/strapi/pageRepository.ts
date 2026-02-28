@@ -41,6 +41,8 @@ export type UpsertResult = {
   mode: ApplyMode;
   action: "created" | "updated" | "replaced";
   finalSlug: string;
+  documentId?: string;
+  status: "draft" | "published" | "unknown";
   existing: {
     found: boolean;
     status?: PageLookupResult["status"];
@@ -102,7 +104,10 @@ export async function createPageRepository(options: PageRepositoryOptions) {
     });
   }
 
-  async function findBySlugAllStatuses(input: Pick<FindPageOptions, "slug" | "locale">): Promise<PageLookupResult[]> {
+  async function findBySlugAllStatuses(
+    input: Pick<FindPageOptions, "slug" | "locale">,
+    options?: { suppressResolvedLog?: boolean }
+  ): Promise<PageLookupResult[]> {
     const statuses: Array<string | undefined> = supportsStatusArg ? statusCandidates : [undefined];
     const hasPublishedVersionValues: Array<boolean | undefined> = supportsHasPublishedVersionArg
       ? [undefined, true, false]
@@ -137,7 +142,7 @@ export async function createPageRepository(options: PageRepositoryOptions) {
 
     const matches = Array.from(merged.values()).sort(compareLookupPriority);
 
-    if (process.env.NODE_ENV !== "production") {
+    if (!options?.suppressResolvedLog && process.env.NODE_ENV !== "production") {
       const selected = matches[0];
       const existingId = selected?.documentId ?? selected?.id;
       console.warn("[content-importer] existing page id resolved", {
@@ -210,10 +215,13 @@ export async function createPageRepository(options: PageRepositoryOptions) {
 
       await updatePage(preferred, plan);
       await verifyWithFullRead(plan.page.slug, plan.page.locale);
+      const metadata = await resolveWriteMetadata(plan.page.slug, plan.page.locale, preferred);
       return {
         mode,
         action: "updated",
         finalSlug: plan.page.slug,
+        documentId: metadata.documentId,
+        status: metadata.status,
         existing: {
           found: true,
           status: preferred.status,
@@ -229,10 +237,13 @@ export async function createPageRepository(options: PageRepositoryOptions) {
 
       const finalSlug = await createPage(plan);
       await verifyWithFullRead(finalSlug, plan.page.locale);
+      const metadata = await resolveWriteMetadata(finalSlug, plan.page.locale, preferred);
       return {
         mode,
         action: preferred ? "replaced" : "created",
         finalSlug,
+        documentId: metadata.documentId,
+        status: metadata.status,
         existing: {
           found: Boolean(preferred),
           status: preferred?.status,
@@ -250,11 +261,14 @@ export async function createPageRepository(options: PageRepositoryOptions) {
       });
 
       await verifyWithFullRead(result.finalSlug, plan.page.locale);
+      const metadata = await resolveWriteMetadata(result.finalSlug, plan.page.locale, preferred);
 
       return {
         mode,
         action: "created",
         finalSlug: result.finalSlug,
+        documentId: metadata.documentId,
+        status: metadata.status,
         existing: {
           found: matches.length > 0,
           status: preferred?.status,
@@ -267,10 +281,13 @@ export async function createPageRepository(options: PageRepositoryOptions) {
       try {
         const finalSlug = await createPage(plan);
         await verifyWithFullRead(finalSlug, plan.page.locale);
+        const metadata = await resolveWriteMetadata(finalSlug, plan.page.locale, preferred);
         return {
           mode,
           action: "created",
           finalSlug,
+          documentId: metadata.documentId,
+          status: metadata.status,
           existing: {
             found: false,
             count: 0
@@ -289,10 +306,13 @@ export async function createPageRepository(options: PageRepositoryOptions) {
 
     await updatePage(preferred, plan);
     await verifyWithFullRead(plan.page.slug, plan.page.locale);
+    const metadata = await resolveWriteMetadata(plan.page.slug, plan.page.locale, preferred);
     return {
       mode,
       action: "updated",
       finalSlug: plan.page.slug,
+      documentId: metadata.documentId,
+      status: metadata.status,
       existing: {
         found: true,
         status: preferred.status,
@@ -318,6 +338,18 @@ export async function createPageRepository(options: PageRepositoryOptions) {
         }
       );
     }
+  }
+
+  async function resolveWriteMetadata(slug: string, locale: string, fallback?: PageLookupResult): Promise<{
+    documentId?: string;
+    status: "draft" | "published" | "unknown";
+  }> {
+    const matches = await findBySlugAllStatuses({ slug, locale }, { suppressResolvedLog: true });
+    const selected = matches[0] ?? fallback;
+    return {
+      documentId: selected?.documentId ?? selected?.id,
+      status: selected?.status ?? "unknown"
+    };
   }
 
   return {

@@ -47,6 +47,8 @@ curl -X POST "${STRAPI_URL}/graphql" \\
 ```
 
 Importer commands:
+- `pnpm content:onboard --url https://lmnas.com/en --slug home --locale en` (one-command dry-run onboarding)
+- `pnpm content:onboard --url https://lmnas.com/en --slug home --locale en --apply` (one-command apply)
 - `pnpm content:schema`
 - `pnpm content:schema:facts`
 - `pnpm content:plan --url https://lmnas.com/en --slug home --locale en --out /tmp/plan.json`

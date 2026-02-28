@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { writeFile } from "node:fs/promises";
 import { applyImportPlan, createImportPlan, stableStringify, validatePlanFile } from "./index.js";
+import { executeOnboard } from "./onboard.js";
 import { preflight } from "./strapi/graphqlClient.js";
 import { generateSchemaArtifacts } from "./strapi/schema/runSchema.js";
 import { deriveSchemaFacts, formatSchemaFacts } from "./strapi/schema/facts.js";
@@ -13,6 +14,14 @@ function parseArgs(argv: string[]): { command?: string; flags: Record<string, st
   for (let i = 0; i < rest.length; i += 1) {
     const token = rest[i];
     if (token === "--" || !token.startsWith("--")) {
+      continue;
+    }
+
+    const eqIndex = token.indexOf("=");
+    if (eqIndex > 2) {
+      const key = token.slice(2, eqIndex);
+      const value = token.slice(eqIndex + 1);
+      flags[key] = value.length > 0 ? value : true;
       continue;
     }
 
@@ -70,6 +79,7 @@ async function runPlan(flags: Record<string, string | boolean>): Promise<void> {
   const locale = typeof flags.locale === "string" ? flags.locale : undefined;
   const out = typeof flags.out === "string" ? flags.out : undefined;
   const url = typeof flags.url === "string" ? flags.url : undefined;
+  const html = typeof flags.html === "string" ? flags.html : undefined;
   const statusFlag = typeof flags.status === "string" ? flags.status.toUpperCase() : undefined;
   const status = statusFlag === "DRAFT" || statusFlag === "PUBLISHED" ? statusFlag : undefined;
   const env = resolveEnv(flags);
@@ -82,6 +92,7 @@ async function runPlan(flags: Record<string, string | boolean>): Promise<void> {
     slug,
     locale,
     url,
+    html,
     status,
     strapiUrl: env.strapiUrl,
     strapiToken: env.strapiToken,
@@ -147,6 +158,10 @@ async function runApply(flags: Record<string, string | boolean>): Promise<void> 
   );
 }
 
+async function runOnboard(flags: Record<string, string | boolean>): Promise<void> {
+  await executeOnboard(flags);
+}
+
 async function main(): Promise<void> {
   const { command, flags } = parseArgs(process.argv.slice(2));
 
@@ -175,7 +190,12 @@ async function main(): Promise<void> {
     return;
   }
 
-  throw new Error("Usage: content-importer <schema|schema:facts|plan|validate-plan|apply> [--flags]");
+  if (command === "onboard") {
+    await runOnboard(flags);
+    return;
+  }
+
+  throw new Error("Usage: content-importer <schema|schema:facts|plan|validate-plan|apply|onboard> [--flags]");
 }
 
 main().catch((error) => {

@@ -2,10 +2,37 @@
 
 This importer is GraphQL-driven for schema discovery, plan generation, and upsert writes.
 
-**Environment variables**
+## Prerequisites
+
+- Node 22 LTS
 - `STRAPI_URL` (default: `http://localhost:1337`)
 - `STRAPI_TOKEN` (required, use a Strapi API token with write permissions)
 - `STRAPI_GRAPHQL_PATH` (optional, default: `/graphql`)
+
+## One-Command Onboarding
+
+Dry run (plan only):
+```bash
+pnpm content:onboard --url https://lmnas.com/en --slug home --locale en
+```
+
+Apply:
+```bash
+pnpm content:onboard --url https://lmnas.com/en --slug home --locale en --apply
+```
+
+HTML mode:
+```bash
+pnpm content:onboard --html /tmp/lmnas-home.html --slug home --locale en --apply
+```
+
+Custom output:
+```bash
+pnpm content:onboard --url https://lmnas.com/en --slug home --locale en --out docs/import-plans/home.en.json
+```
+
+Default output path when `--out` is omitted:
+`docs/import-plans/<slug>.<locale>.json`
 
 ## Token Quick Check
 

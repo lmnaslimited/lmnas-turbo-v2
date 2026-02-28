@@ -19,6 +19,7 @@
     "content:plan": "pnpm --filter @lmnas/content-importer run plan",
     "content:validate-plan": "pnpm --filter @lmnas/content-importer run validate-plan",
     "content:apply": "pnpm --filter @lmnas/content-importer run apply",
+    "content:onboard": "pnpm --filter @lmnas/content-importer run onboard",
     "contracts:gen": "pnpm --filter @lmnas/contracts-sync run gen",
     "contracts:check": "pnpm --filter @lmnas/contracts-sync run check"
   },

@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "plan": "pnpm run build && node dist/cli.js plan",
     "apply": "pnpm run build && node dist/cli.js apply",
+    "onboard": "pnpm run build && node dist/cli.js onboard",
     "schema": "pnpm run build && node dist/cli.js schema",
     "schema:facts": "pnpm run build && node dist/cli.js schema:facts",
     "validate-plan": "pnpm run build && node dist/cli.js validate-plan"

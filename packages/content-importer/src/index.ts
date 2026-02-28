@@ -8,6 +8,7 @@ export type PlanOptions = {
   slug: string;
   locale: string;
   url?: string;
+  html?: string;
   status?: "DRAFT" | "PUBLISHED";
   strapiUrl?: string;
   strapiToken?: string;
@@ -22,6 +23,14 @@ export type ApplyOptions = UpsertOptions & {
 };
 
 export async function createImportPlan(options: PlanOptions): Promise<ContentPlan> {
+  if (options.html) {
+    return createPlanFromHtmlFile(options);
+  }
+
+  if (options.url) {
+    return createPlanFromUrl(options);
+  }
+
   const env = resolveEnv(options);
   await preflight({ strapiUrl: env.strapiUrl, token: env.strapiToken, graphqlPath: env.graphqlPath });
 
@@ -33,9 +42,6 @@ export async function createImportPlan(options: PlanOptions): Promise<ContentPla
   });
 
   if (!existing) {
-    if (options.url) {
-      return createPlanFromUrl(options);
-    }
     throw new Error(`No page found for slug=${options.slug} locale=${options.locale}`);
   }
 
@@ -189,12 +195,25 @@ async function createPlanFromUrl(options: PlanOptions): Promise<ContentPlan> {
   }
 
   const html = await response.text();
+  return createPlanFromHtml(options, html, options.url);
+}
+
+async function createPlanFromHtmlFile(options: PlanOptions): Promise<ContentPlan> {
+  if (!options.html) {
+    throw new Error("Cannot build HTML plan without html");
+  }
+
+  const html = await readFile(options.html, "utf8");
+  return createPlanFromHtml(options, html, options.html);
+}
+
+function createPlanFromHtml(options: PlanOptions, html: string, sourceValue: string): ContentPlan {
   const heading = extractHeading(html);
   const subheading = extractSubheading(html);
   const cta = extractCta(html);
   const title = extractTagContent(html, "title") ?? heading;
   const description = extractMetaDescription(html) ?? subheading;
-  const canonical = extractCanonical(html) ?? options.url;
+  const canonical = extractCanonical(html) ?? sourceValue;
   const pageType = options.slug === "home" ? "home" : "simple";
   const layoutKey = options.slug === "home" ? "homeLayout" : "simpleLayout";
 
@@ -202,7 +221,7 @@ async function createPlanFromUrl(options: PlanOptions): Promise<ContentPlan> {
     page: {
       slug: options.slug,
       locale: options.locale,
-      sourceUrl: options.url,
+      sourceUrl: sourceValue,
       pageType,
       layoutKey,
       conversionConfig: {
@@ -211,7 +230,7 @@ async function createPlanFromUrl(options: PlanOptions): Promise<ContentPlan> {
         eventCategory: "conversion",
         destination: {
           type: "url",
-          value: options.url
+          value: sourceValue
         }
       },
       seo: {
@@ -234,7 +253,7 @@ async function createPlanFromUrl(options: PlanOptions): Promise<ContentPlan> {
           eventCategory: "conversion",
           destination: {
             type: "url",
-            value: cta.href.startsWith("http") ? cta.href : options.url
+            value: cta.href.startsWith("http") ? cta.href : sourceValue
           }
         }
       }
