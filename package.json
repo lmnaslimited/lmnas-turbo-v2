@@ -21,7 +21,9 @@
     "content:apply": "pnpm --filter @lmnas/content-importer run apply",
     "content:onboard": "pnpm --filter @lmnas/content-importer run onboard",
     "contracts:gen": "pnpm --filter @lmnas/contracts-sync run gen",
-    "contracts:check": "pnpm --filter @lmnas/contracts-sync run check"
+    "contracts:check": "pnpm --filter @lmnas/contracts-sync run check",
+    "phase0:guard": "node tools/phase0/guard.mjs",
+    "phase0:new": "node tools/phase0/new.mjs"
   },
   "devDependencies": {
     "@typescript-eslint/parser": "^8.24.1",

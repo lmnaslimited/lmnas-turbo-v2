@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import React from "react";
 import type { Navigation } from "@lmnas/contracts";
 import { getNavigationByKey } from "@lmnas/integrations";
@@ -6,6 +6,11 @@ import { getNavigationByKey } from "@lmnas/integrations";
 export const metadata: Metadata = {
   title: "LMNAs Turbo v2",
   description: "Block-based platform scaffold"
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1
 };
 
 function renderNavItems(items: Navigation["items"]) {
