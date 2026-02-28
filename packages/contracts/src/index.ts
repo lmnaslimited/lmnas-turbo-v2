@@ -1,13 +1,13 @@
-import { heroBlockSchema, faqBlockSchema } from "@lmnas/blocks";
+import { heroBlockSchema, faqBlockSchema, importedDomSnapshotBlockSchema } from "@lmnas/blocks";
 import { z } from "zod";
 import { conversionConfigSchema as sharedConversionConfigSchema } from "./shared";
-export { heroContract, faqContract } from "./blocks";
+export { heroContract, faqContract, importedDomSnapshotContract } from "./blocks";
 export type { BlockContract, BlockContractMeta, ContractPageType } from "./blocks";
 export { conversionConfigContract } from "./shared";
 export { sharedConversionConfigSchema };
 export type { ConversionConfig as SharedConversionConfig } from "./shared";
 
-export const blockSchema = z.union([heroBlockSchema, faqBlockSchema]);
+export const blockSchema = z.union([heroBlockSchema, faqBlockSchema, importedDomSnapshotBlockSchema]);
 
 export const pageTypeSchema = z.enum(["home", "product", "solution", "industry", "simple"]);
 export const layoutKeySchema = z.enum([

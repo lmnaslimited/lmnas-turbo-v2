@@ -49,6 +49,30 @@ export const blockManifest = [
         "simple"
       ]
     }
+  },
+  {
+    "type": "imported_dom_snapshot",
+    "strapi": {
+      "schemaPath": "services/strapi/src/components/blocks/imported-dom-snapshot.json",
+      "collectionName": "components_blocks_imported_dom_snapshots",
+      "displayName": "imported-dom-snapshot"
+    },
+    "governance": {
+      "phase": "M1",
+      "conversionBlock": false,
+      "requiresProductMapping": false,
+      "requiresConversionConfig": false,
+      "requiresPrimaryCta": false
+    },
+    "editor": {
+      "allowedOnPageTypes": [
+        "home",
+        "product",
+        "solution",
+        "industry",
+        "simple"
+      ]
+    }
   }
 ] as const;
 

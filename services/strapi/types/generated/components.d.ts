@@ -29,6 +29,18 @@ export interface BlocksHero extends Struct.ComponentSchema {
   };
 }
 
+export interface BlocksImportedDomSnapshot extends Struct.ComponentSchema {
+  collectionName: 'components_blocks_imported_dom_snapshots';
+  info: {
+    displayName: 'imported-dom-snapshot';
+  };
+  attributes: {
+    classMap: Schema.Attribute.JSON & Schema.Attribute.Required;
+    domJson: Schema.Attribute.JSON & Schema.Attribute.Required;
+    stylesheetRef: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
 export interface SharedConversionConfig extends Struct.ComponentSchema {
   collectionName: 'components_shared_conversion_configs';
   info: {
@@ -68,6 +80,7 @@ declare module '@strapi/strapi' {
     export interface ComponentSchemas {
       'blocks.faq': BlocksFaq;
       'blocks.hero': BlocksHero;
+      'blocks.imported-dom-snapshot': BlocksImportedDomSnapshot;
       'shared.conversion-config': SharedConversionConfig;
       'shared.seo': SharedSeo;
     }

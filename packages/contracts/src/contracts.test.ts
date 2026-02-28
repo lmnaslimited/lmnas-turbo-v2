@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { blogPostSchema, heroContract, navigationSchema, pageSchema } from "./index";
+import { blogPostSchema, heroContract, importedDomSnapshotContract, navigationSchema, pageSchema } from "./index";
 
 const validPage = {
   slug: "home",
@@ -67,5 +67,12 @@ describe("contracts", () => {
   it("exports hero block contract metadata", () => {
     expect(heroContract.type).toBe("hero");
     expect(heroContract.meta.strapi.schemaPath).toBe("services/strapi/src/components/blocks/hero.json");
+  });
+
+  it("exports imported dom snapshot contract metadata", () => {
+    expect(importedDomSnapshotContract.type).toBe("imported_dom_snapshot");
+    expect(importedDomSnapshotContract.meta.strapi.schemaPath).toBe(
+      "services/strapi/src/components/blocks/imported-dom-snapshot.json"
+    );
   });
 });

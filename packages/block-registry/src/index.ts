@@ -1,4 +1,11 @@
-import { HeroBlockComponent, heroBlockSchema, FAQBlockComponent, faqBlockSchema } from "@lmnas/blocks";
+import {
+  HeroBlockComponent,
+  heroBlockSchema,
+  FAQBlockComponent,
+  faqBlockSchema,
+  ImportedDomSnapshotBlockComponent,
+  importedDomSnapshotBlockSchema
+} from "@lmnas/blocks";
 import { manifestBlockTypes } from "./generated/blocks.manifest";
 export { blockManifest, manifestBlockTypes } from "./generated/blocks.manifest";
 
@@ -10,6 +17,10 @@ export const blockRegistry = {
   faq: {
     component: FAQBlockComponent,
     schema: faqBlockSchema
+  },
+  imported_dom_snapshot: {
+    component: ImportedDomSnapshotBlockComponent,
+    schema: importedDomSnapshotBlockSchema
   }
 } as const;
 
