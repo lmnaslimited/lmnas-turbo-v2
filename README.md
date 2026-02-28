@@ -51,11 +51,16 @@ Importer commands:
 - `pnpm content:schema:facts`
 - `pnpm content:plan --url https://lmnas.com/en --slug home --locale en --out /tmp/plan.json`
 - `pnpm content:validate-plan --plan /tmp/plan.json`
-- `pnpm content:apply --plan /tmp/plan.json`
+- `pnpm content:apply --plan /tmp/plan.json` (writes as draft by default)
+- `pnpm content:apply --plan /tmp/plan.json --publish` (explicitly publish)
+- `pnpm content:apply --plan /tmp/plan.json --force-create` (always create, auto-suffix slug if needed)
+- `pnpm content:apply --plan /tmp/plan.json --force-update` (must exist)
+- `pnpm content:apply --plan /tmp/plan.json --force-replace` (delete existing and recreate)
 
 Notes:
 - Importer is Strapi v5 GraphQL schema-driven (introspection-backed), not hardcoded to v4 query signatures.
 - Introspection is written to `packages/content-importer/src/strapi/schema/introspection.json`.
+- `content:apply` treats `plan.json` as desired state and can repair broken/partial CMS records using repair-safe reads.
 
 ## Runtime Requirements
 

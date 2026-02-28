@@ -122,21 +122,29 @@ async function runApply(flags: Record<string, string | boolean>): Promise<void> 
   const env = resolveEnv(flags);
   const forceCreate = flags["force-create"] === true;
   const forceUpdate = flags["force-update"] === true;
+  const forceReplace = flags["force-replace"] === true;
   const strictUpsert = flags["strict-upsert"] === true;
+  const publishState = flags.publish === true ? "published" : "draft";
 
   if (!planPath) {
     throw new Error("Missing required arg: --plan");
   }
 
   const plan = await validatePlanFile(planPath);
-  await applyImportPlan(plan, {
+  const result = await applyImportPlan(plan, {
     strapiUrl: env.strapiUrl,
     strapiToken: env.strapiToken,
     graphqlPath: env.graphqlPath,
     forceCreate,
     forceUpdate,
-    strictUpsert
+    forceReplace,
+    strictUpsert,
+    publishState
   });
+
+  console.log(
+    `[content-importer] apply complete mode=${result.mode} action=${result.action} existing=${result.existing.found ? "yes" : "no"} publishState=${publishState} finalSlug=${result.finalSlug}`
+  );
 }
 
 async function main(): Promise<void> {

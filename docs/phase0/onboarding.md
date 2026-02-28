@@ -6,7 +6,6 @@ This importer is GraphQL-driven for schema discovery, plan generation, and upser
 - `STRAPI_URL` (default: `http://localhost:1337`)
 - `STRAPI_TOKEN` (required, use a Strapi API token with write permissions)
 - `STRAPI_GRAPHQL_PATH` (optional, default: `/graphql`)
-- `LMNAS_IMPORTER_STRICT_UPSERT=true` (optional, disables fallback create when update is forbidden)
 
 ## Token Quick Check
 
@@ -43,8 +42,14 @@ pnpm content:validate-plan --plan /tmp/plan.json
 ```bash
 pnpm content:apply --plan /tmp/plan.json
 ```
+Default apply write state is `draft`.
 
-6. Force create mode (always create)
+If you need to publish from importer explicitly:
+```bash
+pnpm content:apply --plan /tmp/plan.json --publish
+```
+
+6. Force create mode (always create, auto-suffixes slug if base slug already exists)
 ```bash
 pnpm content:apply --plan /tmp/plan.json --force-create
 ```
@@ -54,6 +59,11 @@ pnpm content:apply --plan /tmp/plan.json --force-create
 pnpm content:apply --plan /tmp/plan.json --force-update
 ```
 
+8. Force replace mode (delete existing by slug, then recreate)
+```bash
+pnpm content:apply --plan /tmp/plan.json --force-replace
+```
+
 ## Troubleshooting
 
 - `401/403` during preflight or apply:
@@ -61,10 +71,8 @@ pnpm content:apply --plan /tmp/plan.json --force-update
   - Ensure token is exported as `STRAPI_TOKEN`.
   - Importer prints endpoint, status, and response body (token is never logged).
 
-- `403` on update operation:
-  - Importer logs operation + endpoint + token length + remediation hint.
-  - Default behavior falls back to create for Phase 0 testing.
-  - Set `LMNAS_IMPORTER_STRICT_UPSERT=true` to disable fallback and fail fast.
+- Slug uniqueness during `--force-create`:
+  - Importer auto-generates `${slug}--import-YYYYMMDD-HHmmssSSS` and logs the final slug.
 
 - Plan validation errors (`blocks required`, etc.):
   - Run `pnpm content:validate-plan --plan <path>` and fix missing required fields in source content.

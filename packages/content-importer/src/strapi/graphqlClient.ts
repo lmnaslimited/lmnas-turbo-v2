@@ -6,7 +6,7 @@ export type GraphqlClientOptions = {
 
 export type GraphqlResponse<TData> = {
   data?: TData;
-  errors?: Array<{ message?: string; extensions?: Record<string, unknown> }>;
+  errors?: Array<{ message?: string; path?: Array<string | number>; extensions?: Record<string, unknown> }>;
 };
 
 export class GraphqlRequestError extends Error {
@@ -28,12 +28,12 @@ export class GraphqlRequestError extends Error {
 export class GraphqlOperationError extends Error {
   readonly endpoint: string;
   readonly operationName: string;
-  readonly errors: Array<{ message?: string; extensions?: Record<string, unknown> }>;
+  readonly errors: Array<{ message?: string; path?: Array<string | number>; extensions?: Record<string, unknown> }>;
 
   constructor(
     endpoint: string,
     operationName: string,
-    errors: Array<{ message?: string; extensions?: Record<string, unknown> }>
+    errors: Array<{ message?: string; path?: Array<string | number>; extensions?: Record<string, unknown> }>
   ) {
     super(`GraphQL operation failed for ${operationName} on ${endpoint}: ${JSON.stringify(errors)}`);
     this.name = "GraphqlOperationError";

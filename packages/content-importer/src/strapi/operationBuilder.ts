@@ -3,10 +3,17 @@ import { deriveSchemaFacts } from "./schema/facts.js";
 
 export type OperationBundle = {
   facts: ReturnType<typeof deriveSchemaFacts>;
-  findBySlug: {
+  statusValues: string[];
+  findBySlugSafe: {
     operationName: string;
     query: string;
-    variables: (input: { slug: string; locale?: string; status?: "DRAFT" | "PUBLISHED" }) => Record<string, unknown>;
+    variables: (input: { slug: string; locale?: string; status?: string; hasPublishedVersion?: boolean }) => Record<string, unknown>;
+    parse: (payload: Record<string, unknown>) => Array<Record<string, unknown>>;
+  };
+  findBySlugFull: {
+    operationName: string;
+    query: string;
+    variables: (input: { slug: string; locale?: string; status?: string; hasPublishedVersion?: boolean }) => Record<string, unknown>;
     parse: (payload: Record<string, unknown>) => Array<Record<string, unknown>>;
   };
   create: {
@@ -23,6 +30,12 @@ export type OperationBundle = {
       data: Record<string, unknown>;
       publishState: "draft" | "published";
     }) => Record<string, unknown>;
+  };
+  delete: {
+    operationName: string;
+    mutation: string;
+    identifier: "documentId" | "id";
+    variables: (input: { identifierValue: string }) => Record<string, unknown>;
   };
 };
 
@@ -52,31 +65,39 @@ export function buildOperations(payload: IntrospectionPayload): OperationBundle 
     throw new Error(`Cannot find page type '${facts.pagesQueryField.pageTypeName}' fields`);
   }
 
-  const findBySlugQuery = buildFindBySlugQuery(map, pagesField, pageType);
+  const findBySlugSafe = buildFindBySlugQuery(map, pagesField, pageType, "safe");
+  const findBySlugFull = buildFindBySlugQuery(map, pagesField, pageType, "full");
   const createMutationField = findMutationField(mutationType.fields, "create", facts.pagesQueryField.pageTypeName);
   const updateMutationField = findMutationField(mutationType.fields, "update", facts.pagesQueryField.pageTypeName);
+  const deleteMutationField = findMutationField(mutationType.fields, "delete", facts.pagesQueryField.pageTypeName);
 
-  if (!createMutationField || !updateMutationField) {
-    throw new Error("Unable to find create/update page mutations from introspection");
+  if (!createMutationField || !updateMutationField || !deleteMutationField) {
+    throw new Error("Unable to find create/update/delete page mutations from introspection");
   }
 
   const createMutation = buildCreateMutation(map, createMutationField, pageType);
   const updateMutation = buildUpdateMutation(map, updateMutationField, pageType, facts.pageIdentifiers);
+  const deleteMutation = buildDeleteMutation(map, deleteMutationField, pageType, facts.pageIdentifiers);
+  const statusValues = resolveStatusValues(map, pagesField);
 
   return {
     facts,
-    findBySlug: findBySlugQuery,
+    statusValues,
+    findBySlugSafe,
+    findBySlugFull,
     create: createMutation,
-    update: updateMutation
+    update: updateMutation,
+    delete: deleteMutation
   };
 }
 
 function buildFindBySlugQuery(
   map: Map<string, IntrospectionType>,
   pagesField: IntrospectionField,
-  pageType: IntrospectionType
-): OperationBundle["findBySlug"] {
-  const operationName = "ImporterFindPageBySlug";
+  pageType: IntrospectionType,
+  mode: "safe" | "full"
+): OperationBundle["findBySlugSafe"] {
+  const operationName = mode === "safe" ? "ImporterFindPageBySlugSafe" : "ImporterFindPageBySlugFull";
   const hasLocaleArg = (pagesField.args ?? []).some((arg) => arg.name === "locale");
   const args = ["filters: { slug: { eq: $slug } }", "pagination: { page: 1, pageSize: 1 }"];
   const variableDefs = ["$slug: String!"];
@@ -97,7 +118,13 @@ function buildFindBySlugQuery(
     }
   }
 
-  const pageSelection = buildPageSelection(map, pageType);
+  const hasPublishedVersionArg = (pagesField.args ?? []).find((arg) => arg.name === "hasPublishedVersion");
+  if (hasPublishedVersionArg) {
+    variableDefs.push(`$hasPublishedVersion: ${renderVariableType(hasPublishedVersionArg.type)}`);
+    args.push("hasPublishedVersion: $hasPublishedVersion");
+  }
+
+  const pageSelection = mode === "safe" ? buildSafePageSelection(pageType) : buildPageSelection(map, pageType);
   const outerReturnName = unwrapType(pagesField.type).name;
   const outerReturn = outerReturnName ? map.get(outerReturnName) : undefined;
 
@@ -127,10 +154,25 @@ function buildFindBySlugQuery(
     variables: (input) => ({
       slug: input.slug,
       ...(hasLocaleArg && input.locale ? { locale: input.locale } : {}),
-      ...((pagesField.args ?? []).some((arg) => arg.name === "status") && input.status ? { status: input.status } : {})
+      ...((pagesField.args ?? []).some((arg) => arg.name === "status") && input.status ? { status: input.status } : {}),
+      ...(hasPublishedVersionArg ? { hasPublishedVersion: input.hasPublishedVersion } : {})
     }),
     parse: (payload) => parseFindResult(payload, parsePath)
   };
+}
+
+function buildSafePageSelection(pageType: IntrospectionType): string {
+  const safeScalars = new Set(["documentId", "id", "slug", "publishedAt", "createdAt", "updatedAt", "pageType", "layoutKey"]);
+  return (pageType.fields ?? [])
+    .filter((field) => {
+      if (!safeScalars.has(field.name)) {
+        return false;
+      }
+      const kind = unwrapType(field.type).kind;
+      return kind === "SCALAR" || kind === "ENUM";
+    })
+    .map((field) => field.name)
+    .join("\n    ");
 }
 
 function parseFindResult(payload: Record<string, unknown>, parsePath: string[]): Array<Record<string, unknown>> {
@@ -240,6 +282,43 @@ function buildUpdateMutation(
   };
 }
 
+function buildDeleteMutation(
+  map: Map<string, IntrospectionType>,
+  mutationField: IntrospectionField,
+  pageType: IntrospectionType,
+  identifierFacts: { preferred: "documentId" | "id" | "none" }
+): OperationBundle["delete"] {
+  const operationName = "ImporterDeletePage";
+  const args = mutationField.args ?? [];
+  const identifierArg =
+    args.find((arg) => arg.name === "documentId") ??
+    args.find((arg) => arg.name === "id") ??
+    args.find((arg) => arg.name.endsWith("Id"));
+
+  if (!identifierArg) {
+    throw new Error(`Mutation ${mutationField.name} missing identifier arg`);
+  }
+
+  const identifier = identifierArg.name === "documentId" ? "documentId" : "id";
+  if (identifierFacts.preferred === "documentId" && identifier !== "documentId") {
+    console.warn("[content-importer] Introspection preferred documentId but delete mutation did not expose documentId; falling back to id.");
+  }
+
+  const variableDefs = [`$${identifierArg.name}: ${renderVariableType(identifierArg.type)}`];
+  const argPairs = [`${identifierArg.name}: $${identifierArg.name}`];
+  const selection = buildMutationResultSelection(map, mutationField, pageType);
+  const mutation = `mutation ${operationName}(${variableDefs.join(", ")}) {\n  ${mutationField.name}(${argPairs.join(", ")}) {\n    ${selection}\n  }\n}`;
+
+  return {
+    operationName,
+    mutation,
+    identifier,
+    variables: (input) => ({
+      [identifierArg.name]: input.identifierValue
+    })
+  };
+}
+
 function buildPageSelection(map: Map<string, IntrospectionType>, pageType: IntrospectionType): string {
   const fields = pageType.fields ?? [];
   const scalars = fields
@@ -309,17 +388,30 @@ function selectBlocks(map: Map<string, IntrospectionType>, blocksField: Introspe
       continue;
     }
 
-    const fields = componentType.fields
-      .filter((field) => {
-        const kind = unwrapType(field.type).kind;
-        return kind === "SCALAR" || kind === "ENUM";
-      })
-      .map((field) => field.name);
+    const fields = selectComponentFields(map, componentType);
 
     segments.push(`... on ${maybeType.name} { ${fields.join(" ")} }`);
   }
 
   return segments.join(" ");
+}
+
+function selectComponentFields(map: Map<string, IntrospectionType>, componentType: IntrospectionType): string[] {
+  const selected: string[] = [];
+  for (const field of componentType.fields ?? []) {
+    const unwrapped = unwrapType(field.type);
+    if (unwrapped.kind === "SCALAR" || unwrapped.kind === "ENUM") {
+      selected.push(field.name);
+      continue;
+    }
+
+    const nested = selectNestedFields(map, field);
+    if (nested.length > 0) {
+      selected.push(`${field.name} { ${nested.join(" ")} }`);
+    }
+  }
+
+  return selected;
 }
 
 function resolveBlockUnion(map: Map<string, IntrospectionType>, container: IntrospectionType | undefined): IntrospectionType | undefined {
@@ -369,7 +461,11 @@ function selectEntityIdentifiers(type: IntrospectionType): string {
   return fields.length ? fields.join(" ") : "__typename";
 }
 
-function findMutationField(fields: IntrospectionField[], action: "create" | "update", pageTypeName: string): IntrospectionField | undefined {
+function findMutationField(
+  fields: IntrospectionField[],
+  action: "create" | "update" | "delete",
+  pageTypeName: string
+): IntrospectionField | undefined {
   const candidateByName = fields.find((field) => field.name.toLowerCase().includes(`${action}page`));
   if (candidateByName) {
     return candidateByName;
@@ -377,6 +473,17 @@ function findMutationField(fields: IntrospectionField[], action: "create" | "upd
 
   const lowerPage = pageTypeName.toLowerCase().replace(/type$/, "");
   return fields.find((field) => field.name.toLowerCase().includes(action) && field.name.toLowerCase().includes(lowerPage));
+}
+
+function resolveStatusValues(map: Map<string, IntrospectionType>, pagesField: IntrospectionField): string[] {
+  const statusArg = (pagesField.args ?? []).find((arg) => arg.name === "status");
+  if (!statusArg) {
+    return [];
+  }
+
+  const enumTypeName = unwrapType(statusArg.type).name;
+  const enumType = enumTypeName ? map.get(enumTypeName) : undefined;
+  return (enumType?.enumValues ?? []).map((item) => item.name);
 }
 
 function renderVariableType(typeRef: { kind: string; name?: string | null; ofType?: any }): string {

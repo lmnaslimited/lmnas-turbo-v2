@@ -9,7 +9,6 @@
       },
       "types": [
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": null,
           "kind": "SCALAR",
@@ -17,7 +16,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": null,
           "kind": "SCALAR",
@@ -25,7 +23,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -56,7 +53,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": null,
           "kind": "SCALAR",
@@ -64,7 +60,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -125,7 +120,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": null,
           "kind": "SCALAR",
@@ -133,7 +127,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -155,7 +148,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": null,
           "kind": "SCALAR",
@@ -163,14 +155,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": [
-            {
-              "name": "DRAFT"
-            },
-            {
-              "name": "PUBLISHED"
-            }
-          ],
           "fields": null,
           "inputFields": null,
           "kind": "ENUM",
@@ -178,7 +162,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -383,7 +366,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": null,
           "kind": "SCALAR",
@@ -391,7 +373,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -596,7 +577,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -801,7 +781,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -1006,7 +985,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -1211,7 +1189,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": null,
           "kind": "SCALAR",
@@ -1219,7 +1196,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -1424,7 +1400,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -1629,7 +1604,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -1716,7 +1690,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -1764,7 +1737,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -1837,7 +1809,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -1886,7 +1857,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -1960,20 +1930,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": [
-            {
-              "name": "book"
-            },
-            {
-              "name": "run_benefit"
-            },
-            {
-              "name": "download"
-            },
-            {
-              "name": "subscribe"
-            }
-          ],
           "fields": null,
           "inputFields": null,
           "kind": "ENUM",
@@ -1981,20 +1937,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": [
-            {
-              "name": "conversion"
-            },
-            {
-              "name": "engagement"
-            },
-            {
-              "name": "navigation"
-            },
-            {
-              "name": "experiment"
-            }
-          ],
           "fields": null,
           "inputFields": null,
           "kind": "ENUM",
@@ -2002,7 +1944,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -2099,7 +2040,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -2172,7 +2112,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -2265,7 +2204,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -2458,7 +2396,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -2679,7 +2616,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -2721,7 +2657,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -2810,7 +2745,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -2877,7 +2811,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -2919,7 +2852,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -3024,7 +2956,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -3077,7 +3008,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -3245,7 +3175,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -3287,7 +3216,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -3384,7 +3312,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -3425,7 +3352,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -3501,7 +3427,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -3543,7 +3468,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -3572,7 +3496,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -3661,7 +3584,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -3732,7 +3654,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -3761,7 +3682,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -3874,7 +3794,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -3939,7 +3858,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -4187,7 +4105,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -4229,7 +4146,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -4350,7 +4266,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -4423,7 +4338,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -4534,7 +4448,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -4552,7 +4465,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -4594,7 +4506,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -4623,7 +4534,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -4736,7 +4646,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -4793,7 +4702,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -4907,7 +4815,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -4949,14 +4856,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": [
-            {
-              "name": "main"
-            },
-            {
-              "name": "footer"
-            }
-          ],
           "fields": null,
           "inputFields": null,
           "kind": "ENUM",
@@ -4964,7 +4863,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -5053,7 +4951,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -5086,7 +4983,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -5161,7 +5057,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -5203,23 +5098,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": [
-            {
-              "name": "home"
-            },
-            {
-              "name": "product"
-            },
-            {
-              "name": "solution"
-            },
-            {
-              "name": "industry"
-            },
-            {
-              "name": "simple"
-            }
-          ],
           "fields": null,
           "inputFields": null,
           "kind": "ENUM",
@@ -5227,23 +5105,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": [
-            {
-              "name": "homeLayout"
-            },
-            {
-              "name": "productLayout"
-            },
-            {
-              "name": "solutionLayout"
-            },
-            {
-              "name": "industryLayout"
-            },
-            {
-              "name": "simpleLayout"
-            }
-          ],
           "fields": null,
           "inputFields": null,
           "kind": "ENUM",
@@ -5251,7 +5112,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": null,
           "kind": "UNION",
@@ -5269,7 +5129,6 @@
           ]
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": null,
           "kind": "SCALAR",
@@ -5277,7 +5136,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -5390,7 +5248,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -5463,7 +5320,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -5594,7 +5450,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -5636,7 +5491,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": null,
           "kind": "UNION",
@@ -5687,7 +5541,6 @@
           ]
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -5720,7 +5573,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -5804,7 +5656,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -5857,7 +5708,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -5902,7 +5752,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -5947,7 +5796,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -5969,7 +5817,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -6000,7 +5847,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -6022,7 +5868,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -6044,7 +5889,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -6066,7 +5910,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": null,
           "inputFields": [
             {
@@ -6107,7 +5950,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [
@@ -7223,7 +7065,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [
@@ -8114,7 +7955,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -8203,7 +8043,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -8382,32 +8221,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": [
-            {
-              "name": "SCALAR"
-            },
-            {
-              "name": "OBJECT"
-            },
-            {
-              "name": "INTERFACE"
-            },
-            {
-              "name": "UNION"
-            },
-            {
-              "name": "ENUM"
-            },
-            {
-              "name": "INPUT_OBJECT"
-            },
-            {
-              "name": "LIST"
-            },
-            {
-              "name": "NON_NULL"
-            }
-          ],
           "fields": null,
           "inputFields": null,
           "kind": "ENUM",
@@ -8415,7 +8228,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -8510,7 +8322,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -8585,7 +8396,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -8638,7 +8448,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": null,
           "fields": [
             {
               "args": [],
@@ -8731,65 +8540,6 @@
           "possibleTypes": null
         },
         {
-          "enumValues": [
-            {
-              "name": "QUERY"
-            },
-            {
-              "name": "MUTATION"
-            },
-            {
-              "name": "SUBSCRIPTION"
-            },
-            {
-              "name": "FIELD"
-            },
-            {
-              "name": "FRAGMENT_DEFINITION"
-            },
-            {
-              "name": "FRAGMENT_SPREAD"
-            },
-            {
-              "name": "INLINE_FRAGMENT"
-            },
-            {
-              "name": "VARIABLE_DEFINITION"
-            },
-            {
-              "name": "SCHEMA"
-            },
-            {
-              "name": "SCALAR"
-            },
-            {
-              "name": "OBJECT"
-            },
-            {
-              "name": "FIELD_DEFINITION"
-            },
-            {
-              "name": "ARGUMENT_DEFINITION"
-            },
-            {
-              "name": "INTERFACE"
-            },
-            {
-              "name": "UNION"
-            },
-            {
-              "name": "ENUM"
-            },
-            {
-              "name": "ENUM_VALUE"
-            },
-            {
-              "name": "INPUT_OBJECT"
-            },
-            {
-              "name": "INPUT_FIELD_DEFINITION"
-            }
-          ],
           "fields": null,
           "inputFields": null,
           "kind": "ENUM",

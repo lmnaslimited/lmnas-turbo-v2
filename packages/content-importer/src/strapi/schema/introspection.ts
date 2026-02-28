@@ -25,6 +25,7 @@ export type IntrospectionType = {
   fields?: IntrospectionField[] | null;
   possibleTypes?: Array<{ name?: string | null }> | null;
   inputFields?: Array<{ name: string; type: TypeRef }> | null;
+  enumValues?: Array<{ name: string }> | null;
 };
 
 export type IntrospectionPayload = {
@@ -104,6 +105,9 @@ query IntrospectionQuery {
             }
           }
         }
+      }
+      enumValues {
+        name
       }
     }
   }

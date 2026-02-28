@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import type { ContentPlan } from "./contracts/contentPlan.schema.js";
 import { validateContentPlan } from "./contracts/contentPlan.schema.js";
 import { preflight } from "./strapi/graphqlClient.js";
-import { createPageRepository, type UpsertOptions } from "./strapi/pageRepository.js";
+import { createPageRepository, type UpsertOptions, type UpsertResult } from "./strapi/pageRepository.js";
 
 export type PlanOptions = {
   slug: string;
@@ -18,6 +18,7 @@ export type ApplyOptions = UpsertOptions & {
   strapiUrl?: string;
   strapiToken?: string;
   graphqlPath?: string;
+  publishState?: "draft" | "published";
 };
 
 export async function createImportPlan(options: PlanOptions): Promise<ContentPlan> {
@@ -70,15 +71,30 @@ export async function createImportPlan(options: PlanOptions): Promise<ContentPla
   return validateContentPlan(plan);
 }
 
-export async function applyImportPlan(planInput: unknown, options: ApplyOptions = {}): Promise<void> {
+export async function applyImportPlan(planInput: unknown, options: ApplyOptions = {}): Promise<UpsertResult> {
+  const plan = validateContentPlan(planInput);
+
   const env = resolveEnv(options);
   await preflight({ strapiUrl: env.strapiUrl, token: env.strapiToken, graphqlPath: env.graphqlPath });
 
-  const plan = validateContentPlan(planInput);
+  const effectivePublishState = options.publishState ?? "draft";
+  const writePlan =
+    plan.publish.state === effectivePublishState
+      ? plan
+      : {
+          ...plan,
+          publish: {
+            ...plan.publish,
+            state: effectivePublishState
+          }
+        };
+
   const repository = await createPageRepository(env);
-  await repository.upsertPage(plan, {
+  return repository.upsertPage(writePlan, {
     forceCreate: options.forceCreate,
     forceUpdate: options.forceUpdate,
+    forceReplace: options.forceReplace,
+    now: options.now,
     strictUpsert: options.strictUpsert ?? process.env.LMNAS_IMPORTER_STRICT_UPSERT === "true"
   });
 }
@@ -278,7 +294,7 @@ function extractCanonical(html: string): string | undefined {
 }
 
 function extractTagContent(html: string, tag: string): string | undefined {
-  const regex = new RegExp(`<${tag}[^>]*>([\\\\s\\\\S]*?)<\\/${tag}>`, "i");
+  const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i");
   const match = html.match(regex);
   if (!match) {
     return undefined;
