@@ -10,8 +10,18 @@
 3. `AGENTS.md`
 4. `docs/phase0_1/README.md`
 - Rule of Build: if it is not in Intake, it does not get built.
-- Rule of Code: Codex implements only from `TASK-###`.
-- Rule of Done: `PROOF-###` is required before closure.
+- Rule of Code: Codex implements only from `TASK-<ID>`.
+- Rule of Done: `PROOF-<ID>` is required before closure.
+
+## ID Format
+
+- Feature IDs support:
+  - Numeric: `001`
+  - Numeric + subsystem suffix: `001A`
+- `idNorm` rules:
+  - zero-pad numeric part to 3 digits
+  - suffix is optional and uppercased
+  - examples: `1 -> 001`, `1a -> 001A`, `INT-001b -> 001B`
 
 ## RR-flow Gates
 
@@ -36,7 +46,7 @@ No gate skipping is allowed.
 
 ## Canonical Task Insertion
 
-After drafting `SPEC-###`, produce `TASK-###` by inserting canonical tasks using this structure:
+After drafting `SPEC-<ID>`, produce `TASK-<ID>` by inserting canonical tasks using this structure:
 
 1. Step number
 2. Exact file path(s)
@@ -50,19 +60,32 @@ Canonical task requirements:
 
 ## Artifact Requirements
 
-For each feature id `###`, generate and maintain:
+For each feature id `<ID>`, generate and maintain:
 
-- `docs/phase0_1/intake/INT-###-<short-title>.md`
-- `docs/phase0_1/specs/SPEC-###-<short-title>.md`
-- `docs/phase0_1/tasks/TASK-###-<short-title>.md`
-- `docs/phase0_1/proof/PROOF-###-<short-title>.md`
-- `docs/phase0_1/adr/ADR-###-<short-title>.md` (architectural decision record)
+- `docs/phase0_1/intake/INT-<ID>-<short-title>.md`
+- `docs/phase0_1/specs/SPEC-<ID>-<short-title>.md`
+- `docs/phase0_1/tasks/TASK-<ID>-<short-title>.md`
+- `docs/phase0_1/proof/PROOF-<ID>-<short-title>.md`
+- `docs/phase0_1/adr/ADR-<ID>-<short-title>.md` (architectural decision record)
 
 Mandatory link fields:
-- Spec includes `Linked Intake: INT-###`
-- Tasks includes `Linked Spec: SPEC-###`
-- Proof includes `Linked Spec: SPEC-###`
-- ADR references related `INT-###` and `SPEC-###`
+- Spec includes `Linked Intake: INT-<ID>`
+- Tasks includes `Linked Spec: SPEC-<ID>`
+- Proof includes `Linked Spec: SPEC-<ID>`
+- ADR references related `INT-<ID>` and `SPEC-<ID>`
+
+## Output Required
+
+- Output files must use the full normalized ID (`<ID>`), including subsystem suffix when present.
+- Example numeric ID:
+  - `INT-001-import-pipeline-fidelity.md`
+  - `SPEC-001-import-pipeline-fidelity.md`
+  - `TASK-001-import-pipeline-fidelity.md`
+  - `PROOF-001-import-pipeline-fidelity.md`
+- Example subsystem ID:
+  - `SPEC-001A-snapshot-sanitizer.md`
+  - `TASK-001A-snapshot-sanitizer.md`
+  - `PROOF-001A-snapshot-sanitizer.md`
 
 ## Validation Checklist
 
@@ -71,7 +94,7 @@ Mandatory link fields:
 - [ ] Tasks exists and links Spec.
 - [ ] Proof exists and links Spec.
 - [ ] ADR exists and captures decision, context, and consequences.
-- [ ] `pnpm phase0:guard -- --id ###` passes.
+- [ ] `pnpm phase0:guard -- --id <ID>` passes.
 - [ ] Artifacts remain compliant with Constitution and Phase 0 constraints.
 
 ## Output Format Rules
@@ -80,7 +103,7 @@ Mandatory link fields:
 - Use repo-relative file paths.
 - Avoid conversational text and avoid implementation code.
 - Do not rely on chat memory; update artifacts directly in files.
-- Keep ids consistent across all artifacts (`INT/SPEC/TASK/PROOF/ADR-###`).
+- Keep IDs consistent across all artifacts (`INT/SPEC/TASK/PROOF/ADR-<ID>`).
 - End with a short status summary:
   - Created files
   - Updated files

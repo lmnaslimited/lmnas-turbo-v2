@@ -12,6 +12,8 @@ function printUsage() {
   console.log('Usage:');
   console.log('  node tools/phase0/new.mjs --id 012 --title "rr-flow-bootstrap"');
   console.log('  node tools/phase0/new.mjs --id INT-012 --title "CTA Routing"');
+  console.log('  node tools/phase0/new.mjs --id 012A --title "snapshot-sanitizer"');
+  console.log('  node tools/phase0/new.mjs --id INT-012A --title "snapshot-sanitizer"');
   console.log('Exit codes:');
   console.log('  0 = scaffold created (or already exists)');
   console.log('  1 = invalid usage or write/read error');
@@ -26,11 +28,14 @@ function getArg(name, argv) {
 }
 
 function normalizeId(raw) {
-  const match = raw.trim().match(/^(?:INT-)?(\d+)$/i);
+  const match = raw.trim().match(/^(?:INT-)?(\d+)([A-Za-z])?$/i);
   if (!match) {
     return null;
   }
-  return match[1].padStart(3, '0');
+
+  const digits = match[1].padStart(3, '0');
+  const suffix = match[2] ? match[2].toUpperCase() : '';
+  return `${digits}${suffix}`;
 }
 
 function toSlug(input) {
@@ -58,9 +63,21 @@ async function ensureDirs(dirs) {
 
 async function createFromTemplate(templatePath, outPath, id, readableTitle) {
   const template = await readFile(templatePath, 'utf8');
-  const content = template
+  let content = template
     .replaceAll('###', id)
     .replaceAll('<short title>', readableTitle);
+
+  const baseIdMatch = id.match(/^(\d+)/);
+  const baseId = baseIdMatch ? baseIdMatch[1] : id;
+  const hasSuffix = id !== baseId;
+
+  if (hasSuffix && templatePath.endsWith('spec.template.md')) {
+    const normalizedLine = `Linked Intake: INT-${id}`;
+    const parentLine = `Linked Intake: INT-${baseId}`;
+    if (content.includes(normalizedLine) && !content.includes(parentLine)) {
+      content = content.replace(normalizedLine, `${normalizedLine}\n${parentLine}`);
+    }
+  }
 
   try {
     await writeFile(outPath, content, { flag: 'wx' });
@@ -86,7 +103,7 @@ async function main() {
 
   const id = normalizeId(rawId);
   if (!id) {
-    console.error('Invalid --id. Use numeric id like 012 or INT-012.');
+    console.error('Invalid --id. Use 012, 012A, INT-012, or INT-012A.');
     printUsage();
     process.exitCode = 1;
     return;

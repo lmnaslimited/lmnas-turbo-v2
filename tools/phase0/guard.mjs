@@ -13,6 +13,8 @@ function printUsage() {
   console.log('Usage:');
   console.log('  node tools/phase0/guard.mjs --id INT-012');
   console.log('  node tools/phase0/guard.mjs --id 012');
+  console.log('  node tools/phase0/guard.mjs --id 012A');
+  console.log('  node tools/phase0/guard.mjs --id INT-012A');
   console.log('Exit codes:');
   console.log('  0 = all checks passed');
   console.log('  1 = checks failed or invalid usage');
@@ -25,12 +27,20 @@ function parseId(argv) {
   }
 
   const raw = argv[idx + 1].trim();
-  const match = raw.match(/^(?:INT-)?(\d+)$/i);
+  const match = raw.match(/^(?:INT-)?(\d+)([A-Za-z])?$/i);
   if (!match) {
     return null;
   }
 
-  return match[1].padStart(3, '0');
+  const baseId = match[1].padStart(3, '0');
+  const suffix = match[2] ? match[2].toUpperCase() : '';
+  const idNorm = `${baseId}${suffix}`;
+
+  return {
+    idNorm,
+    baseId,
+    hasSuffix: suffix.length > 0
+  };
 }
 
 async function findDoc(dirPath, prefix) {
@@ -53,17 +63,18 @@ function toRelative(filePath) {
 }
 
 async function main() {
-  const id = parseId(process.argv.slice(2));
-  if (!id) {
+  const parsedId = parseId(process.argv.slice(2));
+  if (!parsedId) {
     printUsage();
     process.exitCode = 1;
     return;
   }
 
-  const intakePrefix = `INT-${id}`;
-  const specPrefix = `SPEC-${id}`;
-  const taskPrefix = `TASK-${id}`;
-  const proofPrefix = `PROOF-${id}`;
+  const intakeId = parsedId.hasSuffix ? parsedId.baseId : parsedId.idNorm;
+  const intakePrefix = `INT-${intakeId}`;
+  const specPrefix = `SPEC-${parsedId.idNorm}`;
+  const taskPrefix = `TASK-${parsedId.idNorm}`;
+  const proofPrefix = `PROOF-${parsedId.idNorm}`;
 
   const intake = await findDoc(path.join(phaseRoot, 'intake'), intakePrefix);
   const spec = await findDoc(path.join(phaseRoot, 'specs'), specPrefix);
@@ -90,33 +101,36 @@ async function main() {
 
   if (spec) {
     const specText = await readFile(spec, 'utf8');
-    const linked = specText.includes(`Linked Intake: INT-${id}`);
+    const requiredLinkedIntake = `Linked Intake: INT-${intakeId}`;
+    const linked = specText.includes(requiredLinkedIntake);
     if (linked) {
-      console.log(`✅ Spec links intake: INT-${id}`);
+      console.log(`✅ Spec links intake: INT-${intakeId}`);
     } else {
-      console.log(`❌ Spec missing link: Linked Intake: INT-${id}`);
+      console.log(`❌ Spec missing link: ${requiredLinkedIntake}`);
       ok = false;
     }
   }
 
   if (task) {
     const taskText = await readFile(task, 'utf8');
-    const linked = taskText.includes(`Linked Spec: SPEC-${id}`);
+    const requiredLinkedSpec = `Linked Spec: SPEC-${parsedId.idNorm}`;
+    const linked = taskText.includes(requiredLinkedSpec);
     if (linked) {
-      console.log(`✅ Task links spec: SPEC-${id}`);
+      console.log(`✅ Task links spec: SPEC-${parsedId.idNorm}`);
     } else {
-      console.log(`❌ Task missing link: Linked Spec: SPEC-${id}`);
+      console.log(`❌ Task missing link: ${requiredLinkedSpec}`);
       ok = false;
     }
   }
 
   if (proof) {
     const proofText = await readFile(proof, 'utf8');
-    const linked = proofText.includes(`Linked Spec: SPEC-${id}`);
+    const requiredLinkedSpec = `Linked Spec: SPEC-${parsedId.idNorm}`;
+    const linked = proofText.includes(requiredLinkedSpec);
     if (linked) {
-      console.log(`✅ Proof links spec: SPEC-${id}`);
+      console.log(`✅ Proof links spec: SPEC-${parsedId.idNorm}`);
     } else {
-      console.log(`❌ Proof missing link: Linked Spec: SPEC-${id}`);
+      console.log(`❌ Proof missing link: ${requiredLinkedSpec}`);
       ok = false;
     }
   }

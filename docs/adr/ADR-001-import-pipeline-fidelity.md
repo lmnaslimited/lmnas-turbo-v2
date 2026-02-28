@@ -29,6 +29,7 @@ Policy A requires new block types to be allowlisted through contracts -> manifes
    - plan stores theme metadata (`themeKey`, `themeScopeClass`)
    - theme token registry + nearest-match thresholds
    - `ThemeDebtReport` emitted for debt visibility
+6. Implementation is split into subsystem RR units `001A-001E`.
 
 ## Consequences
 
@@ -44,5 +45,21 @@ Policy A requires new block types to be allowlisted through contracts -> manifes
 ## Links
 
 - Intake: `docs/phase0_1/intake/INT-001-import-pipeline-fidelity.md`
-- Spec: `docs/phase0_1/specs/SPEC-001-import-pipeline-fidelity.md`
-- Tasks: `docs/phase0_1/tasks/TASK-001-import-pipeline-fidelity.md`
+- Spec:
+  - `docs/phase0_1/specs/SPEC-001A-snapshot-sanitizer.md`
+  - `docs/phase0_1/specs/SPEC-001B-css-system.md`
+  - `docs/phase0_1/specs/SPEC-001C-import-mode-fidelity.md`
+  - `docs/phase0_1/specs/SPEC-001D-theme-system.md`
+  - `docs/phase0_1/specs/SPEC-001E-docs.md`
+- Tasks:
+  - `docs/phase0_1/tasks/TASK-001A-snapshot-sanitizer.md`
+  - `docs/phase0_1/tasks/TASK-001B-css-system.md`
+  - `docs/phase0_1/tasks/TASK-001C-import-mode-fidelity.md`
+  - `docs/phase0_1/tasks/TASK-001D-theme-system.md`
+  - `docs/phase0_1/tasks/TASK-001E-docs.md`
+- Proof:
+  - `docs/phase0_1/proof/PROOF-001A-snapshot-sanitizer.md`
+  - `docs/phase0_1/proof/PROOF-001B-css-system.md`
+  - `docs/phase0_1/proof/PROOF-001C-import-mode-fidelity.md`
+  - `docs/phase0_1/proof/PROOF-001D-theme-system.md`
+  - `docs/phase0_1/proof/PROOF-001E-docs.md`
