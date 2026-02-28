@@ -89,3 +89,16 @@ export type PageType = z.infer<typeof pageTypeSchema>;
 export type LayoutKey = z.infer<typeof layoutKeySchema>;
 export type Navigation = z.infer<typeof navigationSchema>;
 export type BlogPost = z.infer<typeof blogPostSchema>;
+export {
+  contentPlanSchema,
+  contentPlanConversionConfigSchema,
+  contentPlanSeoSchema,
+  contentPlanPageTypeSchema,
+  contentPlanLayoutKeySchema,
+  validateContentPlan
+} from "./contentPlan.schema";
+export type {
+  ContentPlan,
+  ContentPlanConversionConfig,
+  ContentPlanSeo
+} from "./contentPlan.schema";

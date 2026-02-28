@@ -1,0 +1,68 @@
+{
+  "page": {
+    "slug": "home",
+    "locale": "en",
+    "sourceUrl": "https://lmnas.com/en",
+    "pageType": "home",
+    "layoutKey": "homeLayout",
+    "conversionConfig": {
+      "intent": "book",
+      "eventName": "hero_primary_cta_click",
+      "eventCategory": "conversion",
+      "campaignId": "lmnas-home",
+      "utmDefaults": {
+        "source": "website",
+        "medium": "organic",
+        "campaign": "home-import",
+        "content": "hero-cta",
+        "term": "cpq"
+      },
+      "destination": {
+        "type": "url",
+        "value": "https://lmnas.com/en/book-demo"
+      },
+      "benefitKey": "cpq"
+    },
+    "seo": {
+      "metaTitle": "LMNAs Home",
+      "metaDescription": "Accelerate tender and proposal workflows with AI.",
+      "canonical": "https://lmnas.com/en",
+      "robots": "index,follow"
+    }
+  },
+  "blocks": [
+    {
+      "__typename": "ComponentBlocksHero",
+      "heading": "Bid smarter. Win faster.",
+      "subheading": "AI-powered proposal workflows for enterprise teams.",
+      "ctaLabel": "Book demo",
+      "ctaHref": "https://lmnas.com/en/book-demo",
+      "conversionConfig": {
+        "intent": "book",
+        "eventName": "hero_primary_cta_click",
+        "eventCategory": "conversion",
+        "destination": {
+          "type": "url",
+          "value": "https://lmnas.com/en/book-demo"
+        }
+      }
+    },
+    {
+      "__typename": "ComponentBlocksFaq",
+      "title": "Frequently asked questions",
+      "items": [
+        {
+          "question": "How long does onboarding take?",
+          "answer": "Most teams go live in a few weeks."
+        }
+      ]
+    }
+  ],
+  "publish": {
+    "state": "draft"
+  },
+  "source": {
+    "fetchedAt": "2026-02-28T10:00:00.000Z",
+    "schemaVersion": "content-plan.v1"
+  }
+}

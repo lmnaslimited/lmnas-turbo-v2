@@ -146,6 +146,9 @@ importers:
       '@lmnas/contracts':
         specifier: workspace:*
         version: link:../contracts
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
 
   packages/contracts:
     dependencies:

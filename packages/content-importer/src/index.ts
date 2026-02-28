@@ -1,400 +1,118 @@
-import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { pageSchema } from "@lmnas/contracts";
-import { heroBlockSchema } from "@lmnas/blocks";
-import { manifestBlockTypes } from "@lmnas/block-registry";
-
-export type SourceKind = "url" | "html";
-
-export type ImportPlan = {
-  page: {
-    slug: string;
-    locale: string;
-    title?: string;
-    pageType: string;
-    layoutKey: string;
-    seo?: {
-      metaTitle: string;
-      metaDescription: string;
-      canonical: string;
-      robots: string;
-    };
-  };
-  blocks: Array<{
-    type: "hero";
-    data: HeroPlanData;
-  }>;
-  source: {
-    kind: SourceKind;
-    value: string;
-    fetchedAt: string;
-    fingerprint: string;
-  };
-};
-
-export type HeroPlanData = {
-  heading: string;
-  subheading: string;
-  ctaLabel: string;
-  ctaHref: string;
-  conversionConfig: {
-    intent: "book" | "run_benefit" | "download" | "subscribe";
-    eventName: string;
-    eventCategory?: "conversion" | "engagement" | "navigation" | "experiment";
-    campaignId?: string;
-    utmDefaults?: {
-      source?: string;
-      medium?: string;
-      campaign?: string;
-      content?: string;
-      term?: string;
-    };
-    destination?: {
-      type: "url" | "benefit" | "asset" | "form";
-      value: string;
-    };
-    benefitKey?: string;
-  };
-};
-
-const heroPlanSchema = heroBlockSchema;
+import type { ContentPlan } from "./contracts/contentPlan.schema.js";
+import { validateContentPlan } from "./contracts/contentPlan.schema.js";
+import { preflight } from "./strapi/graphqlClient.js";
+import { createPageRepository, type UpsertOptions, type UpsertResult } from "./strapi/pageRepository.js";
 
 export type PlanOptions = {
   slug: string;
   locale: string;
   url?: string;
-  htmlPath?: string;
-};
-
-export type ApplyOptions = {
+  html?: string;
+  status?: "DRAFT" | "PUBLISHED";
   strapiUrl?: string;
   strapiToken?: string;
+  graphqlPath?: string;
 };
 
-export async function loadHtmlSource(options: PlanOptions): Promise<{ html: string; source: ImportPlan["source"] }>{
+export type ApplyOptions = UpsertOptions & {
+  strapiUrl?: string;
+  strapiToken?: string;
+  graphqlPath?: string;
+  publishState?: "draft" | "published";
+};
+
+export async function createImportPlan(options: PlanOptions): Promise<ContentPlan> {
+  if (options.html) {
+    return createPlanFromHtmlFile(options);
+  }
+
   if (options.url) {
-    const response = await fetch(options.url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch URL: ${options.url} (status ${response.status})`);
-    }
-    const html = await response.text();
-    return {
-      html,
-      source: buildSource("url", options.url, html)
-    };
+    return createPlanFromUrl(options);
   }
 
-  if (!options.htmlPath) {
-    throw new Error("Either --url or --html must be provided");
-  }
+  const env = resolveEnv(options);
+  await preflight({ strapiUrl: env.strapiUrl, token: env.strapiToken, graphqlPath: env.graphqlPath });
 
-  const html = await readFile(options.htmlPath, "utf8");
-  return {
-    html,
-    source: buildSource("html", options.htmlPath, html)
-  };
-}
-
-export async function createImportPlan(options: PlanOptions): Promise<ImportPlan> {
-  const { html, source } = await loadHtmlSource(options);
-  const heroData = extractHero(html, options.url);
-
-  const heroBlock = heroPlanSchema.parse({
-    type: "hero",
-    ...heroData
+  const repository = await createPageRepository(env);
+  const existing = await repository.findBySlug({
+    slug: options.slug,
+    locale: options.locale,
+    status: options.status
   });
-  const { type: _type, ...heroBlockData } = heroBlock;
 
-  assertAllowlisted("hero");
+  if (!existing) {
+    throw new Error(`No page found for slug=${options.slug} locale=${options.locale}`);
+  }
 
-  const pageType = options.slug === "home" ? "home" : "simple";
-  const layoutKey = options.slug === "home" ? "homeLayout" : "simpleLayout";
-  const title = extractTitle(html) ?? heroData.heading;
-  const seo = buildSeo(html, options.url, heroData, title, options.slug);
+  const page = existing.page;
+  const slug = asNonEmptyString(page.slug, "page.slug");
+  const locale = asNonEmptyString((page.locale as string | undefined) ?? options.locale, "page.locale");
+  const pageType = normalizePageType(asNonEmptyString(page.pageType, "page.pageType"));
+  const layoutKey = normalizeLayoutKey(asNonEmptyString(page.layoutKey, "page.layoutKey"));
+  const conversionConfig = asRecord(page.conversionConfig, "page.conversionConfig");
+  const seo = asRecord(page.seo, "page.seo");
+  const blocks = normalizeBlocks(asBlockArray(page.blocks, "page.blocks"));
 
-  const plan: ImportPlan = {
+  const plan: ContentPlan = {
     page: {
-      slug: options.slug,
-      locale: options.locale,
-      title,
+      slug,
+      locale,
+      sourceUrl: options.url ?? `${env.strapiUrl.replace(/\/$/, "")}/${options.slug}`,
       pageType,
       layoutKey,
-      seo
+      conversionConfig: conversionConfig as ContentPlan["page"]["conversionConfig"],
+      seo: seo as ContentPlan["page"]["seo"]
     },
-    blocks: [
-      {
-        type: "hero",
-        data: heroBlockData
-      }
-    ],
-    source
+    blocks,
+    publish: {
+      state: page.publishedAt ? "published" : "draft"
+    },
+    source: {
+      fetchedAt: new Date().toISOString(),
+      schemaVersion: "content-plan.v1"
+    }
   };
 
-  assertPlanShape(plan);
-  pageSchema.parse({
-    slug: plan.page.slug,
-    pageType: plan.page.pageType,
-    layoutKey: plan.page.layoutKey,
-    blocks: [heroBlock],
-    seo: plan.page.seo
-      ? {
-          metaTitle: plan.page.seo.metaTitle,
-          metaDescription: plan.page.seo.metaDescription,
-          canonical: plan.page.seo.canonical,
-          robots: plan.page.seo.robots
-        }
+  return validateContentPlan(plan);
+}
+
+export async function applyImportPlan(planInput: unknown, options: ApplyOptions = {}): Promise<UpsertResult> {
+  const plan = validateContentPlan(planInput);
+
+  const env = resolveEnv(options);
+  await preflight({ strapiUrl: env.strapiUrl, token: env.strapiToken, graphqlPath: env.graphqlPath });
+
+  const effectivePublishState = options.publishState ?? "draft";
+  const writePlan =
+    plan.publish.state === effectivePublishState
+      ? plan
       : {
-          metaTitle: heroData.heading,
-          metaDescription: heroData.subheading,
-          canonical: options.url ?? `https://lmnas.com/${options.slug}`,
-          robots: "index,follow"
-        }
+          ...plan,
+          publish: {
+            ...plan.publish,
+            state: effectivePublishState
+          }
+        };
+
+  const repository = await createPageRepository(env);
+  return repository.upsertPage(writePlan, {
+    forceCreate: options.forceCreate,
+    forceUpdate: options.forceUpdate,
+    forceReplace: options.forceReplace,
+    now: options.now,
+    strictUpsert: options.strictUpsert ?? process.env.LMNAS_IMPORTER_STRICT_UPSERT === "true"
   });
-
-  return plan;
 }
 
-export async function applyImportPlan(plan: ImportPlan, options: ApplyOptions = {}): Promise<void> {
-  const validatedPlan = assertPlanShape(plan);
-
-  for (const block of validatedPlan.blocks) {
-    assertAllowlisted(block.type);
-    heroPlanSchema.parse({ type: block.type, ...(block.data as HeroPlanData) });
-  }
-
-  const payload = buildStrapiPayload(validatedPlan);
-  const strapiUrl = options.strapiUrl ?? process.env.STRAPI_URL ?? "http://localhost:1337";
-  const strapiToken = options.strapiToken ?? process.env.STRAPI_TOKEN ?? "";
-
-  const existingId = await findExistingPageId(strapiUrl, strapiToken, validatedPlan.page.slug, validatedPlan.page.locale);
-
-  if (existingId) {
-    await writeStrapiPage(strapiUrl, strapiToken, payload, existingId);
-  } else {
-    await writeStrapiPage(strapiUrl, strapiToken, payload);
-  }
-}
-
-export function assertAllowlisted(type: string): void {
-  if (!manifestBlockTypes.includes(type as (typeof manifestBlockTypes)[number])) {
-    throw new Error(`Block type not allowlisted by manifest: ${type}`);
-  }
-}
-
-export function buildStrapiPayload(plan: ImportPlan): { data: Record<string, unknown> } {
-  const hero = plan.blocks[0].data;
-
-  const data: Record<string, unknown> = {
-    slug: plan.page.slug,
-    locale: plan.page.locale,
-    pageType: plan.page.pageType,
-    layoutKey: plan.page.layoutKey,
-    blocks: [
-      {
-        __component: "blocks.hero",
-        heading: hero.heading,
-        subheading: hero.subheading,
-        ctaLabel: hero.ctaLabel,
-        ctaHref: hero.ctaHref,
-        conversionConfig: hero.conversionConfig
-      }
-    ]
-  };
-
-  if (plan.page.seo) {
-    data.seo = plan.page.seo;
-  }
-
-  return { data };
-}
-
-function buildSource(kind: SourceKind, value: string, html: string): ImportPlan["source"] {
-  return {
-    kind,
-    value,
-    fetchedAt: new Date().toISOString(),
-    fingerprint: createHash("sha256").update(html).digest("hex")
-  };
-}
-
-function extractTitle(html: string): string | undefined {
-  const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-  if (!match) {
-    return undefined;
-  }
-  const title = stripTags(match[1]);
-  return title || undefined;
-}
-
-function extractHero(html: string, sourceUrl?: string): HeroPlanData {
-  const h1Match = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
-  if (!h1Match) {
-    throw new Error("Unable to locate hero heading (h1)");
-  }
-  const heading = stripTags(h1Match[1]);
-
-  const afterH1 = html.slice(h1Match.index ? h1Match.index + h1Match[0].length : 0);
-  const pMatch = afterH1.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
-  if (!pMatch) {
-    throw new Error("Unable to locate hero subheading (p)");
-  }
-  const subheading = stripTags(pMatch[1]);
-
-  const anchorMatch = afterH1.match(/<a[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/i);
-  if (!anchorMatch) {
-    throw new Error("Unable to locate hero CTA (a[href])");
-  }
-
-  const ctaHref = anchorMatch[1];
-  const ctaLabel = stripTags(anchorMatch[2]);
-
-  const conversionConfig = {
-    intent: "book" as const,
-    eventName: "hero_primary_cta_click",
-    destination: sourceUrl ? { type: "url" as const, value: sourceUrl } : undefined
-  };
-
-  return {
-    heading,
-    subheading,
-    ctaLabel,
-    ctaHref,
-    conversionConfig
-  };
-}
-
-function stripTags(input: string): string {
-  const withoutTags = input.replace(/<[^>]+>/g, " ");
-  return decodeHtml(withoutTags).replace(/\s+/g, " ").trim();
-}
-
-function decodeHtml(input: string): string {
-  return input
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .trim();
-}
-
-function buildSeo(
-  html: string,
-  sourceUrl: string | undefined,
-  hero: HeroPlanData,
-  title: string,
-  slug?: string
-): ImportPlan["page"]["seo"] {
-  const descriptionMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["'][^>]*>/i);
-  const canonicalMatch = html.match(/<link[^>]*rel=["']canonical["'][^>]*href=["']([^"']+)["'][^>]*>/i);
-
-  const metaTitle = title || hero.heading;
-  const metaDescription = descriptionMatch ? stripTags(descriptionMatch[1]) : hero.subheading;
-  const fallbackSlug = slug === "home" ? "" : slug ?? "";
-  const canonical = canonicalMatch
-    ? canonicalMatch[1]
-    : sourceUrl ?? `https://lmnas.com/${fallbackSlug}`.replace(/\/$/, "");
-
-  return {
-    metaTitle,
-    metaDescription,
-    canonical,
-    robots: "index,follow"
-  };
-}
-
-async function findExistingPageId(
-  strapiUrl: string,
-  token: string,
-  slug: string,
-  locale: string
-): Promise<number | null> {
-  const query = new URLSearchParams({
-    "filters[slug][$eq]": slug,
-    locale
-  });
-
-  const response = await fetch(`${strapiUrl}/api/pages?${query.toString()}`, {
-    headers: buildHeaders(token)
-  });
-
-  if (!response.ok) {
-    throw new Error(`Strapi lookup failed (${response.status})`);
-  }
-
-  const payload = (await response.json()) as { data?: Array<{ id?: number }> };
-  const first = payload.data?.[0];
-  if (!first?.id) {
-    return null;
-  }
-
-  return first.id;
-}
-
-async function writeStrapiPage(
-  strapiUrl: string,
-  token: string,
-  payload: { data: Record<string, unknown> },
-  id?: number
-): Promise<void> {
-  const url = id ? `${strapiUrl}/api/pages/${id}` : `${strapiUrl}/api/pages`;
-  const method = id ? "PUT" : "POST";
-
-  const response = await fetch(url, {
-    method,
-    headers: buildHeaders(token),
-    body: JSON.stringify(payload)
-  });
-
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Strapi write failed (${response.status}): ${body}`);
-  }
-}
-
-function buildHeaders(token: string): Record<string, string> {
-  return {
-    "content-type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {})
-  };
+export async function validatePlanFile(planPath: string): Promise<ContentPlan> {
+  const raw = await readFile(planPath, "utf8");
+  const parsed = JSON.parse(raw) as unknown;
+  return validateContentPlan(parsed);
 }
 
 export function stableStringify(value: unknown): string {
-  const sorted = sortKeys(value);
-  return JSON.stringify(sorted, null, 2) + "\n";
-}
-
-function assertPlanShape(value: unknown): ImportPlan {
-  if (!value || typeof value !== "object") {
-    throw new Error("Invalid plan: expected object");
-  }
-
-  const plan = value as ImportPlan;
-  if (!plan.page || !plan.blocks || !plan.source) {
-    throw new Error("Invalid plan: missing page, blocks, or source");
-  }
-
-  if (!plan.page.slug || !plan.page.locale || !plan.page.pageType || !plan.page.layoutKey) {
-    throw new Error("Invalid plan: missing required page fields");
-  }
-
-  if (!Array.isArray(plan.blocks) || plan.blocks.length === 0) {
-    throw new Error("Invalid plan: blocks must be a non-empty array");
-  }
-
-  if (!plan.source.kind || !plan.source.value || !plan.source.fetchedAt || !plan.source.fingerprint) {
-    throw new Error("Invalid plan: source is incomplete");
-  }
-
-  if (plan.page.seo) {
-    const { metaTitle, metaDescription, canonical, robots } = plan.page.seo;
-    if (!metaTitle || !metaDescription || !canonical || !robots) {
-      throw new Error("Invalid plan: seo is incomplete");
-    }
-  }
-
-  return plan;
+  return `${JSON.stringify(sortKeys(value), null, 2)}\n`;
 }
 
 function sortKeys(value: unknown): unknown {
@@ -408,4 +126,209 @@ function sortKeys(value: unknown): unknown {
   }
 
   return value;
+}
+
+function normalizePageType(value: string): ContentPlan["page"]["pageType"] {
+  if (["home", "product", "solution", "industry", "simple"].includes(value)) {
+    return value as ContentPlan["page"]["pageType"];
+  }
+  throw new Error(`Invalid pageType from Strapi: ${value}`);
+}
+
+function normalizeLayoutKey(value: string): ContentPlan["page"]["layoutKey"] {
+  if (["homeLayout", "productLayout", "solutionLayout", "industryLayout", "simpleLayout"].includes(value)) {
+    return value as ContentPlan["page"]["layoutKey"];
+  }
+  throw new Error(`Invalid layoutKey from Strapi: ${value}`);
+}
+
+function normalizeBlocks(blocks: Record<string, unknown>[]): ContentPlan["blocks"] {
+  if (!Array.isArray(blocks)) {
+    throw new Error("Invalid Strapi page response: blocks must be an array");
+  }
+
+  return blocks.map((block) => {
+    if (!block || typeof block !== "object") {
+      throw new Error("Invalid Strapi page response: block must be an object");
+    }
+    return block;
+  });
+}
+
+function asNonEmptyString(value: unknown, field: string): string {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new Error(`Invalid ${field}: expected non-empty string`);
+  }
+  return value;
+}
+
+function asRecord(value: unknown, field: string): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`Invalid ${field}: expected object`);
+  }
+  return value as Record<string, unknown>;
+}
+
+function asBlockArray(value: unknown, field: string): Record<string, unknown>[] {
+  if (!Array.isArray(value)) {
+    throw new Error(`Invalid ${field}: expected array`);
+  }
+  return value as Record<string, unknown>[];
+}
+
+function resolveEnv(options: { strapiUrl?: string; strapiToken?: string; graphqlPath?: string }) {
+  return {
+    strapiUrl: options.strapiUrl ?? process.env.STRAPI_URL ?? "",
+    strapiToken: options.strapiToken ?? process.env.STRAPI_TOKEN ?? "",
+    graphqlPath: options.graphqlPath ?? process.env.STRAPI_GRAPHQL_PATH ?? "/graphql"
+  };
+}
+
+async function createPlanFromUrl(options: PlanOptions): Promise<ContentPlan> {
+  if (!options.url) {
+    throw new Error("Cannot build URL plan without url");
+  }
+
+  const response = await fetch(options.url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch URL for plan fallback: ${options.url} (${response.status})`);
+  }
+
+  const html = await response.text();
+  return createPlanFromHtml(options, html, options.url);
+}
+
+async function createPlanFromHtmlFile(options: PlanOptions): Promise<ContentPlan> {
+  if (!options.html) {
+    throw new Error("Cannot build HTML plan without html");
+  }
+
+  const html = await readFile(options.html, "utf8");
+  return createPlanFromHtml(options, html, options.html);
+}
+
+function createPlanFromHtml(options: PlanOptions, html: string, sourceValue: string): ContentPlan {
+  const heading = extractHeading(html);
+  const subheading = extractSubheading(html);
+  const cta = extractCta(html);
+  const title = extractTagContent(html, "title") ?? heading;
+  const description = extractMetaDescription(html) ?? subheading;
+  const canonical = extractCanonical(html) ?? sourceValue;
+  const pageType = options.slug === "home" ? "home" : "simple";
+  const layoutKey = options.slug === "home" ? "homeLayout" : "simpleLayout";
+
+  const plan: ContentPlan = {
+    page: {
+      slug: options.slug,
+      locale: options.locale,
+      sourceUrl: sourceValue,
+      pageType,
+      layoutKey,
+      conversionConfig: {
+        intent: "book",
+        eventName: "hero_primary_cta_click",
+        eventCategory: "conversion",
+        destination: {
+          type: "url",
+          value: sourceValue
+        }
+      },
+      seo: {
+        metaTitle: truncateText(title, 255),
+        metaDescription: truncateText(description, 255),
+        canonical,
+        robots: "index,follow"
+      }
+    },
+    blocks: [
+      {
+        __component: "blocks.hero",
+        heading: truncateText(heading, 255),
+        subheading: truncateText(subheading, 255),
+        ctaLabel: truncateText(cta.label, 255),
+        ctaHref: truncateText(cta.href, 255),
+        conversionConfig: {
+          intent: "book",
+          eventName: "hero_primary_cta_click",
+          eventCategory: "conversion",
+          destination: {
+            type: "url",
+            value: cta.href.startsWith("http") ? cta.href : sourceValue
+          }
+        }
+      }
+    ],
+    publish: {
+      state: "draft"
+    },
+    source: {
+      fetchedAt: new Date().toISOString(),
+      schemaVersion: "content-plan.v1"
+    }
+  };
+
+  return validateContentPlan(plan);
+}
+
+function extractHeading(html: string): string {
+  const match =
+    html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i) ??
+    html.match(/<h2[^>]*>([\s\S]*?)<\/h2>/i) ??
+    html.match(/<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/i);
+  if (!match) {
+    throw new Error("Unable to derive heading from URL source");
+  }
+  return stripTags(match[1]);
+}
+
+function extractSubheading(html: string): string {
+  const match = html.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
+  if (match) {
+    const text = stripTags(match[1]);
+    if (text) {
+      return text;
+    }
+  }
+  return "Learn more";
+}
+
+function extractCta(html: string): { label: string; href: string } {
+  const match = html.match(/<a[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/i);
+  if (!match) {
+    return { label: "Learn more", href: "/" };
+  }
+  const href = match[1].trim() || "/";
+  const label = stripTags(match[2]) || "Learn more";
+  return { label, href };
+}
+
+function extractMetaDescription(html: string): string | undefined {
+  const match = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["'][^>]*>/i);
+  return match ? stripTags(match[1]) : undefined;
+}
+
+function extractCanonical(html: string): string | undefined {
+  const match = html.match(/<link[^>]*rel=["']canonical["'][^>]*href=["']([^"']+)["'][^>]*>/i);
+  return match ? match[1].trim() : undefined;
+}
+
+function extractTagContent(html: string, tag: string): string | undefined {
+  const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i");
+  const match = html.match(regex);
+  if (!match) {
+    return undefined;
+  }
+  const text = stripTags(match[1]);
+  return text || undefined;
+}
+
+function stripTags(input: string): string {
+  return input.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function truncateText(value: string, max: number): string {
+  if (value.length <= max) {
+    return value;
+  }
+  return `${value.slice(0, Math.max(0, max - 3)).trim()}...`;
 }

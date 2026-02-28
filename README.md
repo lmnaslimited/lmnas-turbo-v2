@@ -29,6 +29,52 @@ Any introduction of these requires explicit spec updates.
 3. `docker compose up -d`
 4. `pnpm dev`
 
+## Content Importer Runtime
+
+Required environment variables:
+- `STRAPI_URL` (example: `http://localhost:1337`)
+- `STRAPI_TOKEN` (Strapi API Token with write permissions)
+
+Optional:
+- `STRAPI_GRAPHQL_PATH` (default: `/graphql`)
+
+Token check (GraphQL ping):
+```bash
+curl -X POST "${STRAPI_URL}/graphql" \\
+  -H "Authorization: Bearer ${STRAPI_TOKEN}" \\
+  -H "Content-Type: application/json" \\
+  -d '{ "query": "query Ping { __typename }" }'
+```
+
+Importer commands:
+- `pnpm content:onboard --url https://lmnas.com/en --slug home --locale en` (one-command dry-run onboarding)
+- `pnpm content:onboard --url https://lmnas.com/en --slug home --locale en --apply` (one-command apply)
+- `pnpm content:schema`
+- `pnpm content:schema:facts`
+- `pnpm content:plan --url https://lmnas.com/en --slug home --locale en --out /tmp/plan.json`
+- `pnpm content:validate-plan --plan /tmp/plan.json`
+- `pnpm content:apply --plan /tmp/plan.json` (writes as draft by default)
+- `pnpm content:apply --plan /tmp/plan.json --publish` (explicitly publish)
+- `pnpm content:apply --plan /tmp/plan.json --force-create` (always create, auto-suffix slug if needed)
+- `pnpm content:apply --plan /tmp/plan.json --force-update` (must exist)
+- `pnpm content:apply --plan /tmp/plan.json --force-replace` (delete existing and recreate)
+
+Notes:
+- Importer is Strapi v5 GraphQL schema-driven (introspection-backed), not hardcoded to v4 query signatures.
+- Introspection is written to `packages/content-importer/src/strapi/schema/introspection.json`.
+- `content:apply` treats `plan.json` as desired state and can repair broken/partial CMS records using repair-safe reads.
+
+## Runtime Requirements
+
+This repository requires Node 22 LTS.
+
+If using nvm:
+`nvm install 22`
+`nvm use 22`
+
+If using Volta:
+`volta install node@22`
+
 Expected local services:
 - Site: `http://localhost:3000`
 - Strapi: `http://localhost:1337`
