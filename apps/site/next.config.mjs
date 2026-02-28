@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
+  poweredByHeader: false,
   transpilePackages: [
     "@lmnas/blocks",
     "@lmnas/block-registry",

@@ -15,6 +15,21 @@
 12) docs/codex/Scaffold_Prompt_v1.1.md
 13) docs/codex/README.md
 
+### Phase 0.1 Architect Governance
+
+For all Phase 0.1 features:
+
+GPT MUST read:
+docs/phase0_1/PHASE0_1_MASTER_PROMPT.md
+
+RR-flow artifacts (Intake, Spec, Tasks, Proof, ADR) MUST be generated using this master prompt.
+
+Codex MUST NOT implement Phase 0.1 features unless:
+- Intake exists
+- Spec exists
+- Tasks doc exists
+- Guard validation passes
+
 ## Non-negotiables
 - Schema-first: every Block must have a Zod schema and exported TS type.
 - Blocks are pure UI: no hardcoded copy inside components.
@@ -33,8 +48,8 @@
 - Build: npm run build
 
 ## Block conventions
-- Schema: lib/blocks/schemas/<block>.ts
-- Component: components/blocks/<Block>.tsx
-- Fixture: __fixtures__/blocks/<block>.json
-- Tests: __tests__/blocks/<block>.test.tsx
-- Registry: lib/blocks/registry.ts
+- Schema: packages/blocks/<Block>/schema.ts
+- Component: packages/blocks/<Block>/Component.tsx
+- Fixture: packages/blocks/<Block>/mock.ts and packages/blocks/<Block>/defaults.json
+- Tests: packages/blocks/<Block>/Component.test.tsx
+- Registry: packages/block-registry/src/index.ts

@@ -194,7 +194,7 @@ function pickCollectionNodes<T>(payload: Record<string, unknown>, key: string): 
   return [];
 }
 
-async function requestStrapiGraphql<T>(query: string, variables: Record<string, unknown>): Promise<T> {
+async function requestStrapiGraphql<T>(query: string, variables: Record<string, unknown>, preview = false): Promise<T> {
   const strapiUrl = process.env.STRAPI_URL || "http://localhost:1337";
   const token = process.env.STRAPI_API_TOKEN;
   let lastError: unknown;
@@ -208,7 +208,8 @@ async function requestStrapiGraphql<T>(query: string, variables: Record<string, 
           ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
         body: JSON.stringify({ query, variables }),
-        cache: "no-store"
+        cache: preview ? "no-store" : "force-cache",
+        ...(preview ? {} : { next: { revalidate: 60 } })
       });
 
       if (!response.ok) {
@@ -269,7 +270,8 @@ export async function getPageBySlug(slug: string, options: Options = {}): Promis
       {
         slug,
         status: getPublicationStatusV5(options)
-      }
+      },
+      options.preview
     )) as Record<string, unknown>;
 
     const first = pickCollectionNodes<PageAttributes>(data, "pages")[0];
@@ -330,7 +332,8 @@ export async function getNavigationByKey(key: "main" | "footer", options: Option
       {
         key,
         status: getPublicationStatusV5(options)
-      }
+      },
+      options.preview
     )) as Record<string, unknown>;
 
     const first = pickCollectionNodes<NavigationAttributes>(data, "navigations")[0];
@@ -369,7 +372,8 @@ export async function getBlogPosts(options: Options = {}): Promise<BlogPost[]> {
       GET_BLOG_POSTS_QUERY_V5,
       {
         status: getPublicationStatusV5(options)
-      }
+      },
+      options.preview
     )) as Record<string, unknown>;
 
     return pickCollectionNodes<BlogPostAttributes>(data, "blogPosts").map(normalizeBlogPost);
@@ -385,7 +389,8 @@ export async function getBlogPostBySlug(slug: string, options: Options = {}): Pr
       {
         slug,
         status: getPublicationStatusV5(options)
-      }
+      },
+      options.preview
     )) as Record<string, unknown>;
 
     const first = pickCollectionNodes<BlogPostAttributes>(data, "blogPosts")[0];
