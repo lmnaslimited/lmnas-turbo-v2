@@ -1,6 +1,7 @@
 # Phase 0 Importer (GraphQL v1)
 
 This importer is GraphQL-driven for schema discovery, plan generation, and upsert writes.
+Policy A allowlist is enforced at runtime; block types must exist in both manifest and registry (see `docs/blocks/contracts-sync.md`).
 
 ## Prerequisites
 

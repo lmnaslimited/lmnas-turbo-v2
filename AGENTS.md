@@ -8,6 +8,12 @@
 5) docs/operating/strategy/LMNAs_Master_Operating_Prompt_v1.2_Product_Architecture.md
 6) docs/operating/strategy/LMNAs_Master_Operating_Prompt_v1.1_GTM.md
 7) docs/operating/strategy/LMNAs_Master_Operating_Prompt_v1.0.md (fallback reference)
+8) docs/blocks/contracts-sync.md
+9) docs/blocks/strapi-model.md
+10) docs/blocks/catalog.md
+11) docs/codex/SCaffold_Spec_v1.1.md
+12) docs/codex/Scaffold_Prompt_v1.1.md
+13) docs/codex/README.md
 
 ## Non-negotiables
 - Schema-first: every Block must have a Zod schema and exported TS type.
@@ -15,6 +21,10 @@
 - Every Block ships with: fixture JSON + tests (schema parse + render + snapshot/DOM).
 - Conversion blocks MUST include: productMapping, conversionConfig, primaryCta.
   If missing → fail fast (throw) and do not render.
+- Policy A (allowlist): a block type is renderable only if it exists in BOTH
+  `packages/block-registry/src/generated/blocks.manifest.ts` and
+  `packages/block-registry/src/index.ts` registry mapping.
+  Unknown block types must fail fast.
 
 ## Commands
 - Install: npm install

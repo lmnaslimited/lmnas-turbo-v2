@@ -118,6 +118,14 @@ Out of scope:
 - Identity model
 - Personalization
 
+## Policy A (Block Allowlist)
+
+- A block type is valid only when it exists in both:
+  - `packages/block-registry/src/generated/blocks.manifest.ts`
+  - `packages/block-registry/src/index.ts` (`blockRegistry`)
+- Unknown block types fail fast before render.
+- Contracts are the source of truth; run `pnpm contracts:gen` and `pnpm contracts:check` to keep manifest and registry aligned.
+
 ## Preview + Publication Behavior
 
 ### Environment
