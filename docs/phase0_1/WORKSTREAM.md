@@ -6,14 +6,18 @@ Keep this file open while running RR-flow work.
 
 | ID | Title | Owner | Status | Links |
 | --- | --- | --- | --- | --- |
-| 001 | import-pipeline-fidelity |  | Tasks | `INT-001` `SPEC-001` `TASK-001` `PROOF-001` `ADR-001` |
+| 001A | snapshot-sanitizer |  | Tasks | `INT-001` `SPEC-001A` `TASK-001A` `PROOF-001A` |
+| 001B | css-system |  | Tasks | `INT-001` `SPEC-001B` `TASK-001B` `PROOF-001B` |
+| 001C | import-mode-fidelity |  | Tasks | `INT-001` `SPEC-001C` `TASK-001C` `PROOF-001C` |
+| 001D | theme-system |  | Tasks | `INT-001` `SPEC-001D` `TASK-001D` `PROOF-001D` |
+| 001E | docs |  | Tasks | `INT-001` `SPEC-001E` `TASK-001E` `PROOF-001E` |
 
 ## Next 3 actions
 
 - [ ] Run `pnpm phase0:guard -- --id 001` and keep it passing as artifacts evolve.
-- [ ] Assign an owner and begin implementation strictly from `docs/phase0_1/tasks/TASK-001-import-pipeline-fidelity.md`.
-- [ ] Update `docs/phase0_1/proof/PROOF-001-import-pipeline-fidelity.md` with evidence after implementation.
+- [ ] Assign owners for 001A-001E and begin implementation strictly from each subsystem `TASK-001X` document.
+- [ ] Update each subsystem `PROOF-001X` with evidence after implementation.
 
 ## Decision log
 
-- RR-001 adopts strict->snapshot fallback with deterministic sanitizer, scoped CSS, safelist, theme debt reporting, and fidelity diff gate (see `docs/adr/ADR-001-import-pipeline-fidelity.md`).
+- RR-001 split into 5 subsystem RR units (001A-001E) for parallel execution while preserving traceability to `INT-001` and `ADR-001`.

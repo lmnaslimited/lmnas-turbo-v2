@@ -65,3 +65,26 @@ When strict semantic mapping is low-confidence, the importer must fall back to a
 - Spec: SPEC-001
 - Tasks: TASK-001
 - Proof: PROOF-001
+
+## Subsystem RR units
+
+- 001A Snapshot + Sanitizer:
+  - Spec: `docs/phase0_1/specs/SPEC-001A-snapshot-sanitizer.md`
+  - Tasks: `docs/phase0_1/tasks/TASK-001A-snapshot-sanitizer.md`
+  - Proof: `docs/phase0_1/proof/PROOF-001A-snapshot-sanitizer.md`
+- 001B CSS System:
+  - Spec: `docs/phase0_1/specs/SPEC-001B-css-system.md`
+  - Tasks: `docs/phase0_1/tasks/TASK-001B-css-system.md`
+  - Proof: `docs/phase0_1/proof/PROOF-001B-css-system.md`
+- 001C Import Mode + Fidelity:
+  - Spec: `docs/phase0_1/specs/SPEC-001C-import-mode-fidelity.md`
+  - Tasks: `docs/phase0_1/tasks/TASK-001C-import-mode-fidelity.md`
+  - Proof: `docs/phase0_1/proof/PROOF-001C-import-mode-fidelity.md`
+- 001D Theme System:
+  - Spec: `docs/phase0_1/specs/SPEC-001D-theme-system.md`
+  - Tasks: `docs/phase0_1/tasks/TASK-001D-theme-system.md`
+  - Proof: `docs/phase0_1/proof/PROOF-001D-theme-system.md`
+- 001E Documentation:
+  - Spec: `docs/phase0_1/specs/SPEC-001E-docs.md`
+  - Tasks: `docs/phase0_1/tasks/TASK-001E-docs.md`
+  - Proof: `docs/phase0_1/proof/PROOF-001E-docs.md`
