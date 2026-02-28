@@ -381,7 +381,10 @@ async function createForForceCreate(params: {
       throw error;
     }
 
-    const retrySlug = generateImportSlug(baseSlug, params.now);
+    const retrySlug =
+      initialSlug === baseSlug
+        ? generateImportSlug(baseSlug, params.now)
+        : generateImportSlug(baseSlug, new Date(params.now.getTime() + 1));
     const finalSlug = await params.createPage(params.plan, retrySlug);
     return { finalSlug };
   }

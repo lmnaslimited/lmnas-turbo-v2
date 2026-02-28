@@ -167,11 +167,8 @@ export function generateArtifactsFromIntrospection(schema: IntrospectionSchema):
     selectedFields[componentTypeName] = fields;
 
     parts.push(`  ... on ${componentTypeName} {`);
-    if (fields.some((field) => field.startsWith("id") || field === "id")) {
-      parts.push(...fields.map((field) => `    ${field}`));
-    } else {
-      parts.push("    id", ...fields.map((field) => `    ${field}`));
-    }
+    const fragmentFields = fields.length > 0 ? fields : ["__typename"];
+    parts.push(...fragmentFields.map((field) => `    ${field}`));
     parts.push("  }");
   }
 
