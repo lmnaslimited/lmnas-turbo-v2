@@ -7,6 +7,13 @@ import { emitClassMap, parseInlineStyle, type CssDeclarations } from "./import/c
 import { sanitizeDomToJson, type SanitizedDomNode, type SanitizedDomRoot } from "./import/domSanitizer.js";
 import { generateScopedStylesheet } from "./import/scopedStylesheet.js";
 import { writeTailwindSafelistFile } from "./import/tailwindSafelist.js";
+import {
+  buildThemeDebtEntriesFromCss,
+  buildThemeDebtReport,
+  writeThemeDebtReport,
+  type ThemeDebtReport
+} from "./import/themeDebtReport.js";
+import { buildThemeScopeClass, normalizeThemeKey } from "./import/themeTokens.js";
 import { preflight } from "./strapi/graphqlClient.js";
 import { createPageRepository, type UpsertOptions, type UpsertResult } from "./strapi/pageRepository.js";
 
@@ -15,6 +22,7 @@ export type PlanOptions = {
   locale: string;
   url?: string;
   html?: string;
+  theme?: string;
   status?: "DRAFT" | "PUBLISHED";
   strapiUrl?: string;
   strapiToken?: string;
@@ -29,12 +37,15 @@ export type ApplyOptions = UpsertOptions & {
 };
 
 export async function createImportPlan(options: PlanOptions): Promise<ContentPlan> {
+  const themeKey = normalizeThemeKey(options.theme);
+  const themeScopeClass = buildThemeScopeClass(themeKey);
+
   if (options.html) {
-    return createPlanFromHtmlFile(options);
+    return createPlanFromHtmlFile({ ...options, theme: themeKey });
   }
 
   if (options.url) {
-    return createPlanFromUrl(options);
+    return createPlanFromUrl({ ...options, theme: themeKey });
   }
 
   const env = resolveEnv(options);
@@ -76,7 +87,11 @@ export async function createImportPlan(options: PlanOptions): Promise<ContentPla
     },
     source: {
       fetchedAt: new Date().toISOString(),
-      schemaVersion: "content-plan.v1"
+      schemaVersion: "content-plan.v1",
+      theme: {
+        themeKey,
+        themeScopeClass
+      }
     }
   };
 
@@ -214,6 +229,8 @@ async function createPlanFromHtmlFile(options: PlanOptions): Promise<ContentPlan
 }
 
 async function createPlanFromHtml(options: PlanOptions, html: string, sourceValue: string): Promise<ContentPlan> {
+  const themeKey = normalizeThemeKey(options.theme);
+  const themeScopeClass = buildThemeScopeClass(themeKey);
   const heading = extractHeading(html);
   const subheading = extractSubheading(html);
   const cta = extractCta(html);
@@ -223,18 +240,28 @@ async function createPlanFromHtml(options: PlanOptions, html: string, sourceValu
   const pageType = options.slug === "home" ? "home" : "simple";
   const layoutKey = options.slug === "home" ? "homeLayout" : "simpleLayout";
   const domJson = sanitizeDomToJson(html, sourceValue);
-  const classMap = emitClassMap(buildCssNodeInputs(html, domJson));
+  const cssNodeInputs = buildCssNodeInputs(html, domJson);
+  const classMap = emitClassMap(cssNodeInputs);
+  const themedClassMap = applyThemeScopeClassToClassMap(classMap, domJson, themeScopeClass);
+  const themeDebtEntries = buildThemeDebtEntriesFromCss(
+    cssNodeInputs.map((entry) => ({ path: entry.path, declarations: entry.declarations }))
+  );
+  const themeDebtReport = buildThemeDebtReport({
+    themeKey,
+    declarations: themeDebtEntries
+  });
   const styleTagCss = extractStyleTagCss(html);
   const scopedStylesheet = generateScopedStylesheet({
     domJson,
-    classMap,
+    classMap: themedClassMap,
     cssText: styleTagCss,
-    themeKey: "default"
+    themeKey
   });
   await writeImportArtifacts({
     wrapperId: scopedStylesheet.wrapperId,
     scopedCss: scopedStylesheet.css,
-    classMap
+    classMap: themedClassMap,
+    themeDebtReport
   });
 
   const plan: ContentPlan = {
@@ -280,7 +307,7 @@ async function createPlanFromHtml(options: PlanOptions, html: string, sourceValu
       {
         __component: "blocks.imported-dom-snapshot",
         domJson,
-        classMap,
+        classMap: themedClassMap,
         stylesheetRef: scopedStylesheet.stylesheetRef
       }
     ],
@@ -289,7 +316,11 @@ async function createPlanFromHtml(options: PlanOptions, html: string, sourceValu
     },
     source: {
       fetchedAt: new Date().toISOString(),
-      schemaVersion: "content-plan.v1"
+      schemaVersion: "content-plan.v1",
+      theme: {
+        themeKey,
+        themeScopeClass
+      }
     }
   };
 
@@ -434,10 +465,16 @@ function extractStyleTagCss(html: string): string {
   return chunks.join("\n");
 }
 
-async function writeImportArtifacts(input: { wrapperId: string; scopedCss: string; classMap: Record<string, string> }): Promise<void> {
+async function writeImportArtifacts(input: {
+  wrapperId: string;
+  scopedCss: string;
+  classMap: Record<string, string>;
+  themeDebtReport: ThemeDebtReport;
+}): Promise<void> {
   const artifactsRoot = resolveArtifactsRoot();
   const stylesheetPath = path.join(artifactsRoot, `${input.wrapperId}.css`);
   const safelistPath = path.join(artifactsRoot, "tailwind.safelist.txt");
+  const themeDebtPath = path.join(artifactsRoot, `theme-debt.${input.themeDebtReport.themeKey}.json`);
 
   await mkdir(artifactsRoot, { recursive: true });
   await writeFile(stylesheetPath, input.scopedCss, "utf8");
@@ -448,6 +485,47 @@ async function writeImportArtifacts(input: { wrapperId: string; scopedCss: strin
     .filter((entry) => entry.length > 0);
 
   await writeTailwindSafelistFile(safelistPath, safelistClasses);
+  await writeThemeDebtReport(themeDebtPath, input.themeDebtReport);
+}
+
+function applyThemeScopeClassToClassMap(
+  classMap: Record<string, string>,
+  domJson: SanitizedDomRoot,
+  themeScopeClass: string
+): Record<string, string> {
+  const rootPath = findFirstElementPath(domJson);
+  if (!rootPath) {
+    return classMap;
+  }
+
+  const mergedClasses = [classMap[rootPath], themeScopeClass]
+    .flatMap((value) => (value ? value.split(/\s+/) : []))
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+
+  const uniqueClasses = Array.from(new Set(mergedClasses)).sort((left, right) => left.localeCompare(right));
+  return {
+    ...classMap,
+    [rootPath]: uniqueClasses.join(" ")
+  };
+}
+
+function findFirstElementPath(domJson: SanitizedDomRoot): string | null {
+  const visit = (nodes: SanitizedDomNode[], parentPath: string): string | null => {
+    for (let index = 0; index < nodes.length; index += 1) {
+      const node = nodes[index];
+      if (node.kind !== "element") {
+        continue;
+      }
+
+      const pathKey = parentPath ? `${parentPath}.${index}` : `${index}`;
+      return pathKey;
+    }
+
+    return null;
+  };
+
+  return visit(domJson.children, "");
 }
 
 function resolveArtifactsRoot(): string {

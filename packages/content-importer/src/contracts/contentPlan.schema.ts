@@ -52,7 +52,13 @@ export const contentPlanSchema = z.object({
   }),
   source: z.object({
     fetchedAt: z.string().min(1),
-    schemaVersion: z.literal("content-plan.v1")
+    schemaVersion: z.literal("content-plan.v1"),
+    theme: z
+      .object({
+        themeKey: z.string().min(1),
+        themeScopeClass: z.string().min(1)
+      })
+      .optional()
   })
 });
 

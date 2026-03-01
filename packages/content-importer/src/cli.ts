@@ -80,6 +80,7 @@ async function runPlan(flags: Record<string, string | boolean>): Promise<void> {
   const out = typeof flags.out === "string" ? flags.out : undefined;
   const url = typeof flags.url === "string" ? flags.url : undefined;
   const html = typeof flags.html === "string" ? flags.html : undefined;
+  const theme = typeof flags.theme === "string" ? flags.theme : undefined;
   const statusFlag = typeof flags.status === "string" ? flags.status.toUpperCase() : undefined;
   const status = statusFlag === "DRAFT" || statusFlag === "PUBLISHED" ? statusFlag : undefined;
   const env = resolveEnv(flags);
@@ -93,6 +94,7 @@ async function runPlan(flags: Record<string, string | boolean>): Promise<void> {
     locale,
     url,
     html,
+    theme,
     status,
     strapiUrl: env.strapiUrl,
     strapiToken: env.strapiToken,

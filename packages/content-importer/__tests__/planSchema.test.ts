@@ -23,7 +23,14 @@ describe("contentPlan schema", () => {
       },
       blocks: [{ __component: "blocks.hero", heading: "Hello" }],
       publish: { state: "draft" },
-      source: { fetchedAt: new Date().toISOString(), schemaVersion: "content-plan.v1" }
+      source: {
+        fetchedAt: new Date().toISOString(),
+        schemaVersion: "content-plan.v1",
+        theme: {
+          themeKey: "default",
+          themeScopeClass: "theme-default"
+        }
+      }
     });
 
     expect(parsed.page.slug).toBe("home");
