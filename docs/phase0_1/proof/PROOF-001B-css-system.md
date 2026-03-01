@@ -25,6 +25,7 @@
   - `packages/content-importer/src/import/tailwindSafelist.ts`
   - `packages/content-importer/src/import/scopedStylesheet.ts`
   - `packages/content-importer/src/index.ts`
+  - `packages/content-importer/src/__tests__/inlineStyleAlignment.test.ts`
   - `packages/content-importer/src/__tests__/cssToTailwind.test.ts`
   - `packages/content-importer/src/__tests__/tailwindSafelist.test.ts`
   - `packages/content-importer/src/__tests__/scopedStylesheet.test.ts`
@@ -34,7 +35,7 @@
 
 | AC item | Status (✅/❌) | Notes |
 | --- | --- | --- |
-| AC-003 | ✅ | `cssToTailwind` maps common CSS rules to Tailwind utilities, uses arbitrary utilities for unmapped values, and emits deterministic `classMap` keys/classes (unit tested). |
+| AC-003 | ✅ | `cssToTailwind` maps common CSS rules to Tailwind utilities, uses arbitrary utilities for unmapped values, emits deterministic `classMap` keys/classes, and now includes integration-style validation that inline styles align to correct `domJson` paths after sanitizer removal of script/style/inline handlers. |
 | AC-004 | ✅ | `tailwindSafelist` writes deterministic safelist file content (sorted + unique) and is integrated into plan flow via `createPlanFromHtml` artifact writing. Repeated runs produce byte-identical output (unit + integration test). |
 | AC-005 | ✅ | `scopedStylesheet` emits `@layer components` CSS under strict `#imported-<hash>` wrapper, with hash based on deterministic input (`domJson + classMap + themeKey`) and stored `stylesheetRef` in snapshot block. |
 
