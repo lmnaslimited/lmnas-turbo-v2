@@ -72,9 +72,9 @@ Outputs:
   - Scoped stylesheet generator: correct wrapper prefixing, `@layer components` output.
 - Integration:
   - Snapshot plans include deterministic `classMap` + `stylesheetRef` and safelist outputs.
+  - Validate inline style declarations align to correct `domJson` paths even when sanitizer removes nodes (`script`/`style`/inline handlers).
 
 ## Rollout / Risk notes
 
 - Safelist size growth must be bounded; report safelist line count per plan.
 - CSS selector scoping must not leak styles outside wrapper.
-

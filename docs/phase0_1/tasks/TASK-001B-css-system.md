@@ -31,7 +31,7 @@ Scoped stylesheet generator:
 
 | Step | File paths | Definition of done |
 | --- | --- | --- |
-| TASK-0.1.3 | `packages/content-importer/src/import/cssToTailwind.ts` (+ tests) | Mapper converts defined CSS rules to Tailwind utilities with deterministic `classMap`; satisfies AC-003 |
+| TASK-0.1.3 | `packages/content-importer/src/import/cssToTailwind.ts` (+ tests) | Mapper converts defined CSS rules to Tailwind utilities with deterministic `classMap`; add test file `packages/content-importer/src/__tests__/inlineStyleAlignment.test.ts` covering sanitizer removal + correct mapping of inline styles to `domJson` paths/`classMap` keys; satisfies AC-003 |
 | TASK-0.1.4 | `packages/content-importer/src/import/tailwindSafelist.ts` (+ tests), integration into `packages/content-importer/src/index.ts` and/or apply flow | Safelist file output is deterministic and integrated into plan/apply; satisfies AC-004 |
 | TASK-0.1.5 | `packages/content-importer/src/import/scopedStylesheet.ts` (+ tests) | Generator emits `@layer components` CSS scoped under `#imported-<hash>` and writes/stores deterministic `stylesheetRef`; satisfies AC-005 |
 
@@ -48,4 +48,3 @@ Scoped stylesheet generator:
 | AC-003 | TASK-0.1.3 | Unit tests validate mapping + determinism |
 | AC-004 | TASK-0.1.4 | Safelist file is byte-identical across runs |
 | AC-005 | TASK-0.1.5 | Scoped CSS output matches wrapper rules |
-
