@@ -1,6 +1,12 @@
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import type { ContentPlan } from "./contracts/contentPlan.schema.js";
 import { validateContentPlan } from "./contracts/contentPlan.schema.js";
+import { emitClassMap, parseInlineStyle, type CssDeclarations } from "./import/cssToTailwind.js";
+import { sanitizeDomToJson, type SanitizedDomNode, type SanitizedDomRoot } from "./import/domSanitizer.js";
+import { generateScopedStylesheet } from "./import/scopedStylesheet.js";
+import { writeTailwindSafelistFile } from "./import/tailwindSafelist.js";
 import { preflight } from "./strapi/graphqlClient.js";
 import { createPageRepository, type UpsertOptions, type UpsertResult } from "./strapi/pageRepository.js";
 
@@ -207,7 +213,7 @@ async function createPlanFromHtmlFile(options: PlanOptions): Promise<ContentPlan
   return createPlanFromHtml(options, html, options.html);
 }
 
-function createPlanFromHtml(options: PlanOptions, html: string, sourceValue: string): ContentPlan {
+async function createPlanFromHtml(options: PlanOptions, html: string, sourceValue: string): Promise<ContentPlan> {
   const heading = extractHeading(html);
   const subheading = extractSubheading(html);
   const cta = extractCta(html);
@@ -216,6 +222,20 @@ function createPlanFromHtml(options: PlanOptions, html: string, sourceValue: str
   const canonical = extractCanonical(html) ?? sourceValue;
   const pageType = options.slug === "home" ? "home" : "simple";
   const layoutKey = options.slug === "home" ? "homeLayout" : "simpleLayout";
+  const domJson = sanitizeDomToJson(html, sourceValue);
+  const classMap = emitClassMap(buildCssNodeInputs(html, domJson));
+  const styleTagCss = extractStyleTagCss(html);
+  const scopedStylesheet = generateScopedStylesheet({
+    domJson,
+    classMap,
+    cssText: styleTagCss,
+    themeKey: "default"
+  });
+  await writeImportArtifacts({
+    wrapperId: scopedStylesheet.wrapperId,
+    scopedCss: scopedStylesheet.css,
+    classMap
+  });
 
   const plan: ContentPlan = {
     page: {
@@ -256,6 +276,12 @@ function createPlanFromHtml(options: PlanOptions, html: string, sourceValue: str
             value: cta.href.startsWith("http") ? cta.href : sourceValue
           }
         }
+      },
+      {
+        __component: "blocks.imported-dom-snapshot",
+        domJson,
+        classMap,
+        stylesheetRef: scopedStylesheet.stylesheetRef
       }
     ],
     publish: {
@@ -331,4 +357,103 @@ function truncateText(value: string, max: number): string {
     return value;
   }
   return `${value.slice(0, Math.max(0, max - 3)).trim()}...`;
+}
+
+type DomElementDescriptor = {
+  path: string;
+  className?: string;
+};
+
+function buildCssNodeInputs(html: string, domJson: SanitizedDomRoot): Array<{ path: string; declarations: CssDeclarations; existingClassName?: string }> {
+  const domElements = collectDomElementDescriptors(domJson);
+  const inlineDeclarations = extractInlineStyleDeclarations(html);
+
+  return domElements.map((element, index) => ({
+    path: element.path,
+    declarations: inlineDeclarations[index] ?? {},
+    existingClassName: element.className
+  }));
+}
+
+function collectDomElementDescriptors(domJson: SanitizedDomRoot): DomElementDescriptor[] {
+  const descriptors: DomElementDescriptor[] = [];
+
+  const visit = (nodes: SanitizedDomNode[], parentPath: string) => {
+    nodes.forEach((node, index) => {
+      const pathKey = parentPath ? `${parentPath}.${index}` : `${index}`;
+      if (node.kind !== "element") {
+        return;
+      }
+
+      descriptors.push({
+        path: pathKey,
+        className: node.attributes.class
+      });
+
+      visit(node.children, pathKey);
+    });
+  };
+
+  visit(domJson.children, "");
+  return descriptors;
+}
+
+function extractInlineStyleDeclarations(html: string): CssDeclarations[] {
+  const declarations: CssDeclarations[] = [];
+  const openingTagPattern = /<([a-z][a-z0-9:-]*)\b([^>]*)>/gi;
+  const styleAttributePattern = /\bstyle\s*=\s*(?:"([^"]*)"|'([^']*)')/i;
+
+  let match: RegExpExecArray | null = openingTagPattern.exec(html);
+  while (match) {
+    const tagName = match[1].toLowerCase();
+    if (tagName !== "script" && tagName !== "style") {
+      const attributesSource = match[2] ?? "";
+      const styleMatch = attributesSource.match(styleAttributePattern);
+      const styleValue = styleMatch ? (styleMatch[1] ?? styleMatch[2] ?? "").trim() : "";
+      declarations.push(styleValue ? parseInlineStyle(styleValue) : {});
+    }
+    match = openingTagPattern.exec(html);
+  }
+
+  return declarations;
+}
+
+function extractStyleTagCss(html: string): string {
+  const stylePattern = /<style\b[^>]*>([\s\S]*?)<\/style>/gi;
+  const chunks: string[] = [];
+
+  let match: RegExpExecArray | null = stylePattern.exec(html);
+  while (match) {
+    const css = match[1]?.trim() ?? "";
+    if (css) {
+      chunks.push(css.replace(/\s+/g, " ").trim());
+    }
+    match = stylePattern.exec(html);
+  }
+
+  return chunks.join("\n");
+}
+
+async function writeImportArtifacts(input: { wrapperId: string; scopedCss: string; classMap: Record<string, string> }): Promise<void> {
+  const artifactsRoot = resolveArtifactsRoot();
+  const stylesheetPath = path.join(artifactsRoot, `${input.wrapperId}.css`);
+  const safelistPath = path.join(artifactsRoot, "tailwind.safelist.txt");
+
+  await mkdir(artifactsRoot, { recursive: true });
+  await writeFile(stylesheetPath, input.scopedCss, "utf8");
+
+  const safelistClasses = Object.values(input.classMap)
+    .flatMap((value) => value.split(/\s+/))
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+
+  await writeTailwindSafelistFile(safelistPath, safelistClasses);
+}
+
+function resolveArtifactsRoot(): string {
+  if (process.env.LMNAS_IMPORT_ARTIFACTS_DIR && process.env.LMNAS_IMPORT_ARTIFACTS_DIR.trim().length > 0) {
+    return path.resolve(process.env.LMNAS_IMPORT_ARTIFACTS_DIR);
+  }
+
+  return path.join(os.tmpdir(), "lmnas-content-importer-artifacts");
 }
