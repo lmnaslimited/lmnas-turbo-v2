@@ -1646,6 +1646,67 @@
             },
             {
               "args": [],
+              "name": "domJson",
+              "type": {
+                "kind": "NON_NULL",
+                "name": null,
+                "ofType": {
+                  "kind": "SCALAR",
+                  "name": "JSON",
+                  "ofType": null
+                }
+              }
+            },
+            {
+              "args": [],
+              "name": "classMap",
+              "type": {
+                "kind": "NON_NULL",
+                "name": null,
+                "ofType": {
+                  "kind": "SCALAR",
+                  "name": "JSON",
+                  "ofType": null
+                }
+              }
+            },
+            {
+              "args": [],
+              "name": "stylesheetRef",
+              "type": {
+                "kind": "NON_NULL",
+                "name": null,
+                "ofType": {
+                  "kind": "SCALAR",
+                  "name": "String",
+                  "ofType": null
+                }
+              }
+            }
+          ],
+          "inputFields": null,
+          "kind": "OBJECT",
+          "name": "ComponentBlocksImportedDomSnapshot",
+          "possibleTypes": null
+        },
+        {
+          "enumValues": null,
+          "fields": [
+            {
+              "args": [],
+              "name": "id",
+              "type": {
+                "kind": "NON_NULL",
+                "name": null,
+                "ofType": {
+                  "kind": "SCALAR",
+                  "name": "ID",
+                  "ofType": null
+                }
+              }
+            },
+            {
+              "args": [],
               "name": "heading",
               "type": {
                 "kind": "NON_NULL",
@@ -5642,6 +5703,9 @@
           "kind": "UNION",
           "name": "GenericMorph",
           "possibleTypes": [
+            {
+              "name": "ComponentBlocksImportedDomSnapshot"
+            },
             {
               "name": "ComponentBlocksHero"
             },

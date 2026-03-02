@@ -52,3 +52,39 @@ Behavior:
 - Importer apply defaults writes to `draft`.
 - Use `--publish` only when explicit publish is intended.
 - Content Manager controls normal publish workflow for team operations.
+
+### 7. Fidelity gate fails (`diffRatio > 0.005`)
+Cause:
+- Snapshot plan fidelity result exceeds threshold for one or more themes.
+
+Fix:
+- Re-run fidelity capture:
+  - `pnpm content:fidelity --plan <path> --baseline-url <url> --candidate-url <url>`
+- Review generated artifacts:
+  - `fidelity-report-<slug>.json`
+  - `fidelity-<theme>.png`
+  - `baseline-<theme>.png`
+  - `fidelity-<theme>.diff.json`
+- If controlled bypass is required:
+  - `pnpm content:apply --plan <path> --force`
+
+### 8. Missing Playwright for fidelity capture
+Cause:
+- `content:fidelity` requires `playwright` or `playwright-core`, but neither is installed.
+
+Fix:
+- Install package:
+  - `pnpm add -D playwright`
+- Install browser binaries:
+  - `pnpm exec playwright install chromium`
+- Re-run fidelity command.
+
+### 9. Theme fidelity mismatch
+Cause:
+- Theme not set in plan metadata or additional fidelity themes not passed.
+
+Fix:
+- Generate plan with theme:
+  - `pnpm content:plan --url <url> --slug <slug> --locale <locale> --theme <themeKey> --out <plan>`
+- Run fidelity with extra themes:
+  - `pnpm content:fidelity --plan <plan> --baseline-url <url> --candidate-url <url> --themes dark,light`

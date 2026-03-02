@@ -79,6 +79,11 @@ const GET_PAGE_BY_SLUG_QUERY_V5 = `
           title
           items
         }
+        ... on ComponentBlocksImportedDomSnapshot {
+          domJson
+          classMap
+          stylesheetRef
+        }
       }
       seo {
         metaTitle
@@ -139,9 +144,9 @@ const GET_BLOG_POST_BY_SLUG_QUERY_V5 = `
 `;
 
 function normalizeStrapiBlock(block: Record<string, unknown>): Record<string, unknown> {
-  const component = String(block.__typename || "");
+  const component = String(block.__component || block.__typename || "");
 
-  if (component === "ComponentBlocksHero") {
+  if (component === "ComponentBlocksHero" || component === "blocks.hero") {
     return {
       type: "hero",
       heading: block.heading,
@@ -152,11 +157,20 @@ function normalizeStrapiBlock(block: Record<string, unknown>): Record<string, un
     };
   }
 
-  if (component === "ComponentBlocksFaq") {
+  if (component === "ComponentBlocksFaq" || component === "blocks.faq") {
     return {
       type: "faq",
       title: block.title,
       items: block.items
+    };
+  }
+
+  if (component === "ComponentBlocksImportedDomSnapshot" || component === "blocks.imported-dom-snapshot") {
+    return {
+      type: "imported_dom_snapshot",
+      domJson: block.domJson,
+      classMap: block.classMap,
+      stylesheetRef: block.stylesheetRef
     };
   }
 

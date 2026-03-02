@@ -61,6 +61,15 @@ pnpm content:schema:facts
 pnpm content:plan --url https://lmnas.com/en --slug home --locale en --out /tmp/plan.json
 ```
 
+Auto mode note:
+- Plan generation uses import mode `auto` by default (strict attempt + snapshot fallback per section by confidence score).
+- To enable a theme in plan metadata, pass `--theme <themeKey>`.
+
+Example with theme:
+```bash
+pnpm content:plan --url https://lmnas.com/en --slug home --locale en --theme brand-light --out /tmp/plan.json
+```
+
 4. Validate plan contract
 ```bash
 pnpm content:validate-plan --plan /tmp/plan.json
@@ -91,6 +100,41 @@ pnpm content:apply --plan /tmp/plan.json --force-update
 ```bash
 pnpm content:apply --plan /tmp/plan.json --force-replace
 ```
+
+9. Run fidelity gate before apply (required for snapshot plans)
+```bash
+pnpm content:fidelity --plan /tmp/plan.json --baseline-url https://lmnas.com/en --candidate-url http://localhost:3000/en
+```
+
+10. Run fidelity across additional themes
+```bash
+pnpm content:fidelity --plan /tmp/plan.json --baseline-url https://lmnas.com/en --candidate-url http://localhost:3000/en --themes dark,light
+```
+
+11. Force apply override when fidelity gate fails (controlled bypass)
+```bash
+pnpm content:apply --plan /tmp/plan.json --force
+```
+
+## Playwright Setup for Fidelity Capture
+
+Install package:
+```bash
+pnpm add -D playwright
+```
+
+Install browser:
+```bash
+pnpm exec playwright install chromium
+```
+
+Capture artifacts produced by `content:fidelity`:
+- `fidelity-report-<slug>.json`
+- `fidelity-<theme>.png`
+- `baseline-<theme>.png`
+- `fidelity-<theme>.diff.json`
+
+If Playwright is not installed, `content:fidelity` exits with an explicit setup error and does not mutate apply state.
 
 ## Troubleshooting
 

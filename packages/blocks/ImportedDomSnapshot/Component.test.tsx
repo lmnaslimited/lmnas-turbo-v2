@@ -21,4 +21,48 @@ describe("ImportedDomSnapshotBlock", () => {
     expect(html).toContain("data-stylesheet-ref");
     expect(html).not.toContain("dangerouslySetInnerHTML");
   });
+
+  it("renders void tags (img/br/hr/etc) without children and without crashing", () => {
+    const voidTagBlock = {
+      type: "imported_dom_snapshot" as const,
+      stylesheetRef: "/generated/imported/void-test.css",
+      classMap: {
+        "0": "mt-[18px]"
+      },
+      domJson: {
+        kind: "root" as const,
+        children: [
+          {
+            kind: "element" as const,
+            tag: "img",
+            attributes: {
+              src: "https://example.com/image.png",
+              alt: "Example"
+            },
+            children: [
+              {
+                kind: "text" as const,
+                text: "ignored child text"
+              }
+            ]
+          }
+        ]
+      }
+    };
+
+    const parsed = importedDomSnapshotBlockSchema.safeParse(voidTagBlock);
+    expect(parsed.success).toBe(true);
+
+    const tree = ImportedDomSnapshotBlockComponent({ block: voidTagBlock }) as React.ReactElement<Record<string, unknown>>;
+    const firstChild = (tree.props.children as React.ReactElement<Record<string, unknown>>[])[0];
+    expect(firstChild.type).toBe("img");
+    expect(firstChild.props.children).toBeUndefined();
+    expect(firstChild.props.dangerouslySetInnerHTML).toBeUndefined();
+
+    expect(() => renderToString(<ImportedDomSnapshotBlockComponent block={voidTagBlock} />)).not.toThrow();
+
+    const html = renderToString(<ImportedDomSnapshotBlockComponent block={voidTagBlock} />);
+    expect(html).toContain("<img");
+    expect(html).not.toContain("ignored child text");
+  });
 });

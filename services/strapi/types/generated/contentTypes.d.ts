@@ -510,7 +510,9 @@ export interface ApiPagePage extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
-    blocks: Schema.Attribute.DynamicZone<['blocks.hero', 'blocks.faq']> &
+    blocks: Schema.Attribute.DynamicZone<
+      ['blocks.hero', 'blocks.faq', 'blocks.imported-dom-snapshot']
+    > &
       Schema.Attribute.Required;
     conversionConfig: Schema.Attribute.Component<
       'shared.conversion-config',

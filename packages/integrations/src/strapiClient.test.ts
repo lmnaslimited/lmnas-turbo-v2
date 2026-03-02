@@ -133,6 +133,65 @@ describe("strapiClient", () => {
     expect(receivedVariables[0]?.slug).toBe("home");
   });
 
+  it("maps imported-dom-snapshot blocks from __component payloads", async () => {
+    process.env.STRAPI_URL = "http://localhost:1337";
+
+    server.use(
+      http.post("http://localhost:1337/graphql", async ({ request }) => {
+        const body = (await request.json()) as { query?: string };
+        if (!(body.query ?? "").includes("GetPageBySlug")) {
+          return HttpResponse.json({ data: {} });
+        }
+
+        return HttpResponse.json({
+          data: {
+            pages: [
+              {
+                documentId: "page-home",
+                slug: "home",
+                pageType: "home",
+                layoutKey: "homeLayout",
+                blocks: [
+                  {
+                    __component: "blocks.imported-dom-snapshot",
+                    domJson: {
+                      kind: "root",
+                      children: []
+                    },
+                    classMap: {
+                      "0": "theme-default"
+                    },
+                    stylesheetRef: "/generated/imported/imported-abc123.css"
+                  }
+                ],
+                seo: {
+                  metaTitle: "Title",
+                  metaDescription: "Description",
+                  canonical: "https://lmnas.com",
+                  robots: "index,follow"
+                }
+              }
+            ]
+          }
+        });
+      })
+    );
+
+    const page = await getPageBySlug("home");
+
+    expect(page.blocks[0]).toEqual({
+      type: "imported_dom_snapshot",
+      domJson: {
+        kind: "root",
+        children: []
+      },
+      classMap: {
+        "0": "theme-default"
+      },
+      stylesheetRef: "/generated/imported/imported-abc123.css"
+    });
+  });
+
   it("queries requested slug for nested routes", async () => {
     process.env.STRAPI_URL = "http://localhost:1337";
 

@@ -87,6 +87,74 @@ pnpm test
 - Default plan path: `docs/import-plans/<slug>.<locale>.json`.
 - Custom plan path: pass `--out <path>`.
 
+## 5. Import Mode `auto` (Default)
+
+Import mode auto is always enabled for HTML/URL plan generation.
+No extra mode flag is required.
+
+```bash
+# URL input (auto mode)
+pnpm content:plan --url https://lmnas.com/en --slug home --locale en --out /tmp/plan.json
+
+# HTML input (auto mode + theme key in plan metadata)
+pnpm content:plan --html /tmp/lmnas-home.html --slug home --locale en --theme brand-light --out /tmp/plan.json
+```
+
+Plan outputs include deterministic source metadata:
+- `source.importMode` (per-section `strict|snapshot`, confidence, metrics)
+- `source.fidelity` (pending threshold/report path metadata)
+- `source.theme` (when `--theme` is set; default theme is `default`)
+
+## 6. Fidelity Gate (Before Apply)
+
+Run fidelity capture and diff gate before apply:
+
+```bash
+pnpm content:fidelity \
+  --plan /tmp/plan.json \
+  --baseline-url https://lmnas.com/en \
+  --candidate-url http://localhost:3000/en
+```
+
+Theme fidelity runs:
+- Set plan theme at plan time using `--theme <themeKey>`.
+- Run additional fidelity themes using `--themes` (comma-separated):
+
+```bash
+pnpm content:fidelity \
+  --plan /tmp/plan.json \
+  --baseline-url https://lmnas.com/en \
+  --candidate-url http://localhost:3000/en \
+  --themes dark,light
+```
+
+Apply behavior with gate:
+- `pnpm content:apply --plan /tmp/plan.json` blocks when fidelity fails/missing for snapshot plans.
+- `pnpm content:apply --plan /tmp/plan.json --force` overrides the gate.
+
+## 7. Playwright Setup for Fidelity Capture
+
+Install Playwright package (workspace root):
+
+```bash
+pnpm add -D playwright
+```
+
+Install browser binaries:
+
+```bash
+pnpm exec playwright install chromium
+```
+
+Expected fidelity artifacts (deterministic names):
+- `fidelity-report-<slug>.json`
+- `fidelity-<theme>.png`
+- `baseline-<theme>.png`
+- `fidelity-<theme>.diff.json`
+
+If Playwright is not installed:
+- `content:fidelity` fails with an explicit error instructing you to install `playwright` or `playwright-core`.
+
 Stable output keys:
 - `PLAN_PATH:`
 - `APPLY:`

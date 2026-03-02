@@ -46,6 +46,8 @@ const safeTags = new Set([
   "ul"
 ]);
 
+const VOID_TAGS = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
+
 const passthroughAttributes = new Set([
   "alt",
   "colspan",
@@ -64,10 +66,18 @@ function normalizeTag(tag: string): string {
   return safeTags.has(normalized) ? normalized : "div";
 }
 
+function isVoidTag(tag: string): boolean {
+  return tag === "img" || tag === "br" || tag === "hr" || VOID_TAGS.has(tag);
+}
+
 function buildProps(attributes: Record<string, string>, pathKey: string, classMap: Record<string, string>) {
   const props: Record<string, string> = {};
 
   for (const [attributeName, attributeValue] of Object.entries(attributes)) {
+    if (attributeName === "children" || attributeName === "dangerouslySetInnerHTML") {
+      continue;
+    }
+
     if (attributeName === "class") {
       props.className = attributeValue;
       continue;
@@ -94,6 +104,18 @@ function renderNode(node: SanitizedDomNode, pathKey: string, classMap: Record<st
 
   const tag = normalizeTag(node.tag);
   const props = buildProps(node.attributes, pathKey, classMap);
+
+  if (isVoidTag(tag)) {
+    const voidProps: Record<string, string> = {};
+    for (const [propName, propValue] of Object.entries(props)) {
+      if (propName === "children" || propName === "dangerouslySetInnerHTML") {
+        continue;
+      }
+      voidProps[propName] = propValue;
+    }
+    return React.createElement(tag, { key: pathKey, ...voidProps });
+  }
+
   const children = node.children.map((childNode, index) => renderNode(childNode, `${pathKey}.${index}`, classMap));
 
   return React.createElement(tag, { key: pathKey, ...props }, children);

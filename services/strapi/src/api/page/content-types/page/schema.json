@@ -34,7 +34,7 @@
     },
     "blocks": {
       "type": "dynamiczone",
-      "components": ["blocks.hero", "blocks.faq"],
+      "components": ["blocks.hero", "blocks.faq", "blocks.imported-dom-snapshot"],
       "required": true
     },
     "seo": {
