@@ -35,6 +35,41 @@ const seoSchema = z.object({
 
 const pageTypeSchema = z.enum(["home", "product", "solution", "industry", "simple"]);
 const layoutKeySchema = z.enum(["homeLayout", "productLayout", "solutionLayout", "industryLayout", "simpleLayout"]);
+const sectionModeSchema = z.enum(["strict", "snapshot"]);
+const fidelityStatusSchema = z.enum(["pending", "pass", "fail", "forced"]);
+
+const confidenceMetricsSchema = z.object({
+  recognizedNodeRatio: z.number().min(0).max(1),
+  mappedStyleRatio: z.number().min(0).max(1),
+  unsupportedSelectorPenalty: z.number().min(0).max(0.15),
+  inlineStylePenalty: z.number().min(0).max(0.15)
+});
+
+const importModeSectionSchema = z.object({
+  sectionKey: z.string().min(1),
+  mode: sectionModeSchema,
+  confidence: z.number().min(0).max(1),
+  metrics: confidenceMetricsSchema
+});
+
+const themeFidelityMetricSchema = z.object({
+  diffRatio: z.number().min(0).max(1),
+  withinThreshold: z.boolean(),
+  durationMs: z.number().min(0)
+});
+
+const themeFidelityRunSchema = z.object({
+  themeKey: z.string().min(1),
+  screenshotPath: z.string().min(1),
+  metric: themeFidelityMetricSchema
+});
+
+const fidelitySummarySchema = z.object({
+  themeCount: z.number().int().min(0),
+  failedThemes: z.array(z.string().min(1)),
+  averageDiffRatio: z.number().min(0).max(1),
+  maxDiffRatio: z.number().min(0).max(1)
+});
 
 export const contentPlanSchema = z.object({
   page: z.object({
@@ -57,6 +92,27 @@ export const contentPlanSchema = z.object({
       .object({
         themeKey: z.string().min(1),
         themeScopeClass: z.string().min(1)
+      })
+      .optional(),
+    importMode: z
+      .object({
+        mode: z.literal("auto"),
+        threshold: z.number().min(0).max(1),
+        sections: z.array(importModeSectionSchema).min(1),
+        summary: z.object({
+          strictCount: z.number().int().min(0),
+          snapshotCount: z.number().int().min(0)
+        })
+      })
+      .optional(),
+    fidelity: z
+      .object({
+        threshold: z.number().min(0).max(1),
+        status: fidelityStatusSchema,
+        forced: z.boolean().optional(),
+        artifactPath: z.string().min(1).optional(),
+        runs: z.array(themeFidelityRunSchema).optional(),
+        summary: fidelitySummarySchema.optional()
       })
       .optional()
   })

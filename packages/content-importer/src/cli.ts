@@ -1,6 +1,9 @@
 #!/usr/bin/env node
+import path from "node:path";
 import { writeFile } from "node:fs/promises";
 import { applyImportPlan, createImportPlan, stableStringify, validatePlanFile } from "./index.js";
+import { attachFidelityReportToPlan, buildFidelityArtifactPath, FIDELITY_DIFF_THRESHOLD, runFidelityGate } from "./fidelity/gate.js";
+import { createPlaywrightThemeCapture } from "./fidelity/playwrightCapture.js";
 import { executeOnboard } from "./onboard.js";
 import { preflight } from "./strapi/graphqlClient.js";
 import { generateSchemaArtifacts } from "./strapi/schema/runSchema.js";
@@ -137,6 +140,7 @@ async function runApply(flags: Record<string, string | boolean>): Promise<void> 
   const forceUpdate = flags["force-update"] === true;
   const forceReplace = flags["force-replace"] === true;
   const strictUpsert = flags["strict-upsert"] === true;
+  const forceFidelity = flags.force === true;
   const publishState = flags.publish === true ? "published" : "draft";
 
   if (!planPath) {
@@ -152,16 +156,88 @@ async function runApply(flags: Record<string, string | boolean>): Promise<void> 
     forceUpdate,
     forceReplace,
     strictUpsert,
-    publishState
+    publishState,
+    forceFidelity
   });
 
+  const fidelitySummary = result.fidelityGate
+    ? ` fidelity=${result.fidelityGate.status} threshold=${result.fidelityGate.threshold} failedThemes=${result.fidelityGate.failedThemes.join(",") || "none"}`
+    : " fidelity=skipped";
+
   console.log(
-    `[content-importer] apply complete mode=${result.mode} action=${result.action} existing=${result.existing.found ? "yes" : "no"} publishState=${publishState} finalSlug=${result.finalSlug}`
+    `[content-importer] apply complete mode=${result.mode} action=${result.action} existing=${result.existing.found ? "yes" : "no"} publishState=${publishState} finalSlug=${result.finalSlug}${fidelitySummary}`
   );
 }
 
 async function runOnboard(flags: Record<string, string | boolean>): Promise<void> {
   await executeOnboard(flags);
+}
+
+async function runFidelity(flags: Record<string, string | boolean>): Promise<void> {
+  const planPath = typeof flags.plan === "string" ? flags.plan : undefined;
+  const baselineUrl = typeof flags["baseline-url"] === "string" ? flags["baseline-url"] : undefined;
+  const candidateUrl = typeof flags["candidate-url"] === "string" ? flags["candidate-url"] : undefined;
+
+  if (!planPath || !baselineUrl || !candidateUrl) {
+    throw new Error("Missing required args: --plan, --baseline-url, --candidate-url");
+  }
+
+  const outPlanPath = typeof flags.out === "string" ? flags.out : planPath;
+  const outDir = typeof flags["out-dir"] === "string" ? flags["out-dir"] : path.dirname(outPlanPath);
+  const threshold = parseThresholdFlag(flags.threshold);
+  const force = flags.force === true;
+  const themes = parseThemesFlag(flags.themes);
+  const fullPage = flags["full-page"] === true;
+
+  const plan = await validatePlanFile(planPath);
+  const report = await runFidelityGate({
+    plan,
+    outputDir: outDir,
+    themes,
+    threshold,
+    force,
+    artifactPath: buildFidelityArtifactPath(outDir, plan.page.slug),
+    captureTheme: createPlaywrightThemeCapture({
+      baselineUrl,
+      candidateUrl,
+      fullPage
+    })
+  });
+
+  const updatedPlan = attachFidelityReportToPlan(plan, report);
+  await writeFile(outPlanPath, stableStringify(updatedPlan), "utf8");
+
+  console.log(
+    `[content-importer] fidelity ${report.status.toUpperCase()} threshold=${report.threshold} failedThemes=${report.summary.failedThemes.join(",") || "none"} artifact=${report.artifactPath}`
+  );
+
+  if (report.status === "fail") {
+    throw new Error("[content-importer] fidelity gate failed; re-run with --force to override.");
+  }
+}
+
+function parseThemesFlag(value: string | boolean | undefined): string[] {
+  if (typeof value !== "string") {
+    return [];
+  }
+
+  return value
+    .split(",")
+    .map((theme) => theme.trim())
+    .filter((theme) => theme.length > 0);
+}
+
+function parseThresholdFlag(value: string | boolean | undefined): number {
+  if (typeof value !== "string") {
+    return FIDELITY_DIFF_THRESHOLD;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) {
+    throw new Error(`Invalid --threshold value: ${value}`);
+  }
+
+  return parsed;
 }
 
 async function main(): Promise<void> {
@@ -192,12 +268,17 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (command === "fidelity") {
+    await runFidelity(flags);
+    return;
+  }
+
   if (command === "onboard") {
     await runOnboard(flags);
     return;
   }
 
-  throw new Error("Usage: content-importer <schema|schema:facts|plan|validate-plan|apply|onboard> [--flags]");
+  throw new Error("Usage: content-importer <schema|schema:facts|plan|validate-plan|apply|fidelity|onboard> [--flags]");
 }
 
 main().catch((error) => {

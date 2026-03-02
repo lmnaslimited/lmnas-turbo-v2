@@ -3,7 +3,8 @@ import os from "node:os";
 import path from "node:path";
 import type { ContentPlan } from "./contracts/contentPlan.schema.js";
 import { validateContentPlan } from "./contracts/contentPlan.schema.js";
-import { emitClassMap, parseInlineStyle, type CssDeclarations } from "./import/cssToTailwind.js";
+import { emitClassMap, mapCssDeclarationsToUtilities, parseInlineStyle, type CssDeclarations } from "./import/cssToTailwind.js";
+import { decideSectionMode, STRICT_CONFIDENCE_THRESHOLD } from "./import/confidence.js";
 import { sanitizeDomToJson, type SanitizedDomNode, type SanitizedDomRoot } from "./import/domSanitizer.js";
 import { generateScopedStylesheet } from "./import/scopedStylesheet.js";
 import { writeTailwindSafelistFile } from "./import/tailwindSafelist.js";
@@ -14,6 +15,7 @@ import {
   type ThemeDebtReport
 } from "./import/themeDebtReport.js";
 import { buildThemeScopeClass, normalizeThemeKey } from "./import/themeTokens.js";
+import { FIDELITY_DIFF_THRESHOLD, createPendingFidelityMetadata, enforceFidelityGateForApply, type FidelityApplyGateState } from "./fidelity/gate.js";
 import { preflight } from "./strapi/graphqlClient.js";
 import { createPageRepository, type UpsertOptions, type UpsertResult } from "./strapi/pageRepository.js";
 
@@ -34,6 +36,11 @@ export type ApplyOptions = UpsertOptions & {
   strapiToken?: string;
   graphqlPath?: string;
   publishState?: "draft" | "published";
+  forceFidelity?: boolean;
+};
+
+export type ApplyImportResult = UpsertResult & {
+  fidelityGate?: FidelityApplyGateState;
 };
 
 export async function createImportPlan(options: PlanOptions): Promise<ContentPlan> {
@@ -98,8 +105,9 @@ export async function createImportPlan(options: PlanOptions): Promise<ContentPla
   return validateContentPlan(plan);
 }
 
-export async function applyImportPlan(planInput: unknown, options: ApplyOptions = {}): Promise<UpsertResult> {
+export async function applyImportPlan(planInput: unknown, options: ApplyOptions = {}): Promise<ApplyImportResult> {
   const plan = validateContentPlan(planInput);
+  const fidelityGate = enforceFidelityGateForApply(plan, { force: options.forceFidelity === true });
 
   const env = resolveEnv(options);
   await preflight({ strapiUrl: env.strapiUrl, token: env.strapiToken, graphqlPath: env.graphqlPath });
@@ -117,13 +125,22 @@ export async function applyImportPlan(planInput: unknown, options: ApplyOptions 
         };
 
   const repository = await createPageRepository(env);
-  return repository.upsertPage(writePlan, {
+  const result = await repository.upsertPage(writePlan, {
     forceCreate: options.forceCreate,
     forceUpdate: options.forceUpdate,
     forceReplace: options.forceReplace,
     now: options.now,
     strictUpsert: options.strictUpsert ?? process.env.LMNAS_IMPORTER_STRICT_UPSERT === "true"
   });
+
+  if (!fidelityGate) {
+    return result;
+  }
+
+  return {
+    ...result,
+    fidelityGate
+  };
 }
 
 export async function validatePlanFile(planPath: string): Promise<ContentPlan> {
@@ -241,6 +258,7 @@ async function createPlanFromHtml(options: PlanOptions, html: string, sourceValu
   const layoutKey = options.slug === "home" ? "homeLayout" : "simpleLayout";
   const domJson = sanitizeDomToJson(html, sourceValue);
   const cssNodeInputs = buildCssNodeInputs(html, domJson);
+  const importMode = buildImportModeMetadata(domJson, cssNodeInputs);
   const classMap = emitClassMap(cssNodeInputs);
   const themedClassMap = applyThemeScopeClassToClassMap(classMap, domJson, themeScopeClass);
   const themeDebtEntries = buildThemeDebtEntriesFromCss(
@@ -320,7 +338,9 @@ async function createPlanFromHtml(options: PlanOptions, html: string, sourceValu
       theme: {
         themeKey,
         themeScopeClass
-      }
+      },
+      importMode,
+      fidelity: createPendingFidelityMetadata(resolveArtifactsRoot(), options.slug, FIDELITY_DIFF_THRESHOLD)
     }
   };
 
@@ -392,10 +412,47 @@ function truncateText(value: string, max: number): string {
 
 type DomElementDescriptor = {
   path: string;
+  tag: string;
   className?: string;
 };
 
-function buildCssNodeInputs(html: string, domJson: SanitizedDomRoot): Array<{ path: string; declarations: CssDeclarations; existingClassName?: string }> {
+type CssNodeInputEntry = {
+  path: string;
+  declarations: CssDeclarations;
+  existingClassName?: string;
+};
+
+type ImportModeSectionSummary = {
+  mode: "auto";
+  threshold: number;
+  sections: Array<ReturnType<typeof decideSectionMode>>;
+  summary: {
+    strictCount: number;
+    snapshotCount: number;
+  };
+};
+
+const strictMappableTags = new Set([
+  "a",
+  "article",
+  "button",
+  "div",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "img",
+  "li",
+  "ol",
+  "p",
+  "section",
+  "span",
+  "ul"
+]);
+
+function buildCssNodeInputs(html: string, domJson: SanitizedDomRoot): CssNodeInputEntry[] {
   const domElements = collectDomElementDescriptors(domJson);
   const inlineDeclarations = extractInlineStyleDeclarations(html);
 
@@ -418,6 +475,7 @@ function collectDomElementDescriptors(domJson: SanitizedDomRoot): DomElementDesc
 
       descriptors.push({
         path: pathKey,
+        tag: node.tag,
         className: node.attributes.class
       });
 
@@ -427,6 +485,99 @@ function collectDomElementDescriptors(domJson: SanitizedDomRoot): DomElementDesc
 
   visit(domJson.children, "");
   return descriptors;
+}
+
+function buildImportModeMetadata(domJson: SanitizedDomRoot, cssNodeInputs: CssNodeInputEntry[]): ImportModeSectionSummary {
+  const elementDescriptors = collectDomElementDescriptors(domJson);
+  const sectionPaths = collectSectionPaths(domJson, elementDescriptors);
+
+  const sections = sectionPaths.map((sectionPath) => {
+    const sectionElements = elementDescriptors.filter((descriptor) => isPathWithinSection(descriptor.path, sectionPath));
+    const sectionCss = cssNodeInputs.filter((entry) => isPathWithinSection(entry.path, sectionPath));
+
+    const totalNodes = sectionElements.length;
+    const recognizedNodes = sectionElements.filter((descriptor) => isStrictMappableTag(descriptor.tag)).length;
+
+    let totalStyleDeclarations = 0;
+    let mappedStyleDeclarations = 0;
+    let unsupportedSelectorCount = 0;
+    let strippedInlineStyleCount = 0;
+
+    for (const entry of sectionCss) {
+      const declarationCount = Object.keys(entry.declarations).length;
+      const mappedUtilities = mapCssDeclarationsToUtilities(entry.declarations);
+      const mappedCount = mappedUtilities.length;
+
+      totalStyleDeclarations += declarationCount;
+      mappedStyleDeclarations += Math.min(declarationCount, mappedCount);
+      unsupportedSelectorCount += Math.max(0, declarationCount - mappedCount);
+      if (declarationCount > 0) {
+        strippedInlineStyleCount += 1;
+      }
+    }
+
+    return decideSectionMode(sectionPath, {
+      recognizedNodes,
+      totalNodes,
+      mappedStyleDeclarations,
+      totalStyleDeclarations,
+      unsupportedSelectorCount,
+      strippedInlineStyleCount
+    });
+  });
+
+  const strictCount = sections.filter((section) => section.mode === "strict").length;
+  return {
+    mode: "auto",
+    threshold: STRICT_CONFIDENCE_THRESHOLD,
+    sections,
+    summary: {
+      strictCount,
+      snapshotCount: sections.length - strictCount
+    }
+  };
+}
+
+function collectSectionPaths(domJson: SanitizedDomRoot, elements: DomElementDescriptor[]): string[] {
+  const bodyPath = elements.find((descriptor) => descriptor.tag === "body")?.path;
+  if (bodyPath) {
+    const bodyChildren = elements
+      .filter((descriptor) => descriptor.path !== bodyPath && descriptor.path.startsWith(`${bodyPath}.`))
+      .filter((descriptor) => descriptor.path.split(".").length === bodyPath.split(".").length + 1)
+      .map((descriptor) => descriptor.path)
+      .sort((left, right) => left.localeCompare(right));
+
+    if (bodyChildren.length > 0) {
+      return bodyChildren;
+    }
+  }
+
+  const rootChildren = elements
+    .filter((descriptor) => descriptor.path.split(".").length === 1)
+    .map((descriptor) => descriptor.path)
+    .sort((left, right) => left.localeCompare(right));
+
+  if (rootChildren.length > 0) {
+    return rootChildren;
+  }
+
+  const firstPath = findFirstElementPath(domJson);
+  if (firstPath) {
+    return [firstPath];
+  }
+
+  return ["root"];
+}
+
+function isPathWithinSection(pathKey: string, sectionPath: string): boolean {
+  if (sectionPath === "root") {
+    return true;
+  }
+  return pathKey === sectionPath || pathKey.startsWith(`${sectionPath}.`);
+}
+
+function isStrictMappableTag(tag: string): boolean {
+  return strictMappableTags.has(tag);
 }
 
 function extractInlineStyleDeclarations(html: string): CssDeclarations[] {

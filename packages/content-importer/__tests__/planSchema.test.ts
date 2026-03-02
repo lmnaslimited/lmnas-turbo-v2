@@ -29,6 +29,32 @@ describe("contentPlan schema", () => {
         theme: {
           themeKey: "default",
           themeScopeClass: "theme-default"
+        },
+        importMode: {
+          mode: "auto",
+          threshold: 0.85,
+          sections: [
+            {
+              sectionKey: "0",
+              mode: "strict",
+              confidence: 0.9,
+              metrics: {
+                recognizedNodeRatio: 1,
+                mappedStyleRatio: 1,
+                unsupportedSelectorPenalty: 0,
+                inlineStylePenalty: 0
+              }
+            }
+          ],
+          summary: {
+            strictCount: 1,
+            snapshotCount: 0
+          }
+        },
+        fidelity: {
+          threshold: 0.005,
+          status: "pending",
+          artifactPath: "/tmp/fidelity-report-home.json"
         }
       }
     });
