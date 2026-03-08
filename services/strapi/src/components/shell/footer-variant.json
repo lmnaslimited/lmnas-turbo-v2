@@ -1,0 +1,29 @@
+{
+  "collectionName": "components_shell_footer_variants",
+  "info": {
+    "displayName": "footer-variant"
+  },
+  "options": {},
+  "attributes": {
+    "variantKey": {
+      "type": "string",
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "columns": {
+      "type": "component",
+      "repeatable": true,
+      "component": "shell.footer-column",
+      "required": false
+    },
+    "legalStrip": {
+      "type": "component",
+      "repeatable": false,
+      "component": "shell.footer-legal-strip",
+      "required": false
+    }
+  }
+}

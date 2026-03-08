@@ -7,6 +7,10 @@ const { getPageBySlugMock, draftModeMock } = vi.hoisted(() => {
       slug,
       pageType: "product",
       layoutKey: "productLayout",
+      conversionConfig: {
+        intent: "book",
+        eventName: "page_primary_cta_click"
+      },
       blocks: [],
       seo: {
         metaTitle: "CPQ",
@@ -17,6 +21,14 @@ const { getPageBySlugMock, draftModeMock } = vi.hoisted(() => {
     }))
   };
 });
+
+const { buildShellRenderModelMock } = vi.hoisted(() => ({
+  buildShellRenderModelMock: vi.fn(async () => ({
+    mainNavigation: { key: "main", items: [] },
+    footerNavigation: { key: "footer", items: [] },
+    utilityNavigation: { key: "utility", items: [] }
+  }))
+}));
 
 vi.mock("next/headers", () => ({
   draftMode: draftModeMock
@@ -50,6 +62,10 @@ vi.mock("@lmnas/analytics", () => ({
   track: vi.fn()
 }));
 
+vi.mock("../../lib/shell", () => ({
+  buildShellRenderModel: buildShellRenderModelMock
+}));
+
 import SlugPage from "./page";
 
 describe("site slug route", () => {
@@ -62,5 +78,6 @@ describe("site slug route", () => {
     await SlugPage({ params: Promise.resolve({ slug: ["products", "cpq"] }) });
 
     expect(getPageBySlugMock).toHaveBeenCalledWith("products/cpq", { preview: true });
+    expect(buildShellRenderModelMock).toHaveBeenCalled();
   });
 });

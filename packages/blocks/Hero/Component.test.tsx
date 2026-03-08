@@ -19,6 +19,6 @@ describe("HeroBlock", () => {
         // Check HTML contains elements based on mock data
         expect(html).toContain(mockHeroBlock.heading);
         expect(html).toContain(mockHeroBlock.subheading);
-        expect(html).toContain(mockHeroBlock.ctaLabel);
+        expect(html).toContain(mockHeroBlock.primaryCta.label);
     });
 });

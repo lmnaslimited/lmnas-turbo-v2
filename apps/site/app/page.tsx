@@ -6,6 +6,7 @@ import { getPageBySlug, PageNotFoundError, StrapiUnreachableError } from "@lmnas
 import { LayoutRegistry } from "@lmnas/layouts";
 import { PageRenderer } from "@lmnas/renderer";
 import { buildSeo } from "@lmnas/seo-engine";
+import { buildShellRenderModel } from "../lib/shell";
 
 export default async function HomePage() {
   const { isEnabled: isPreview } = await draftMode();
@@ -23,13 +24,14 @@ export default async function HomePage() {
   }
   const Layout = LayoutRegistry[page.layoutKey];
   const seo = buildSeo(page);
+  const shell = await buildShellRenderModel(page);
   track("page_view", { slug: page.slug, pageType: page.pageType });
 
   return (
-    <Layout title={page.layoutKey}>
-      <main>
-        <h1 style={{ marginTop: 0 }}>Hello Platform</h1>
-        <p>Meta title: {seo.meta.title ?? "n/a"}</p>
+    <Layout title={page.layoutKey} shell={shell}>
+      <main className="lmnas-page-main">
+        <h1 className="lmnas-page-headline">Website Operating System</h1>
+        <p className="lmnas-page-subline">Meta title: {seo.meta.title ?? "n/a"}</p>
         <PageRenderer blocks={page.blocks} preview={isPreview} />
       </main>
     </Layout>

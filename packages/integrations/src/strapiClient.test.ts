@@ -20,11 +20,32 @@ const server = setupServer(
               slug: "home",
               pageType: "home",
               layoutKey: "homeLayout",
+              conversionConfig: {
+                intent: "book",
+                eventName: "page_primary_cta_click"
+              },
+              shellAssignment: {
+                scope: "site",
+                shellVariantId: "shell-default",
+                navbarVariantId: "navbar-default",
+                footerVariantId: "footer-default"
+              },
+              exitBindings: [],
+              themeScope: "theme-default",
               blocks: [
                 {
                   __typename: "ComponentBlocksHero",
                   heading: "Hello",
                   subheading: "Sub",
+                  productMapping: {
+                    product: "lens-cpq",
+                    industry: "complex-manufacturing"
+                  },
+                  primaryCta: {
+                    label: "Go",
+                    href: "/go",
+                    exitId: "book_appointment_primary"
+                  },
                   ctaLabel: "Go",
                   ctaHref: "/go",
                   conversionConfig: {
@@ -151,6 +172,18 @@ describe("strapiClient", () => {
                 slug: "home",
                 pageType: "home",
                 layoutKey: "homeLayout",
+                conversionConfig: {
+                  intent: "book",
+                  eventName: "page_primary_cta_click"
+                },
+                shellAssignment: {
+                  scope: "site",
+                  shellVariantId: "shell-default",
+                  navbarVariantId: "navbar-default",
+                  footerVariantId: "footer-default"
+                },
+                exitBindings: [],
+                themeScope: "theme-default",
                 blocks: [
                   {
                     __component: "blocks.imported-dom-snapshot",
@@ -222,6 +255,18 @@ describe("strapiClient", () => {
                 slug: "home",
                 pageType: "home",
                 layoutKey: "homeLayout",
+                conversionConfig: {
+                  intent: "book",
+                  eventName: "page_primary_cta_click"
+                },
+                shellAssignment: {
+                  scope: "site",
+                  shellVariantId: "shell-default",
+                  navbarVariantId: "navbar-default",
+                  footerVariantId: "footer-default"
+                },
+                exitBindings: [],
+                themeScope: "theme-default",
                 blocks: [],
                 seo: {
                   metaTitle,

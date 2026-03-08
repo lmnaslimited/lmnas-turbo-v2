@@ -251,6 +251,7 @@ async function createPlanFromHtml(options: PlanOptions, html: string, sourceValu
   const heading = extractHeading(html);
   const subheading = extractSubheading(html);
   const cta = extractCta(html);
+  const productMapping = inferProductMapping(options.slug);
   const title = extractTagContent(html, "title") ?? heading;
   const description = extractMetaDescription(html) ?? subheading;
   const canonical = extractCanonical(html) ?? sourceValue;
@@ -310,6 +311,12 @@ async function createPlanFromHtml(options: PlanOptions, html: string, sourceValu
         __component: "blocks.hero",
         heading: truncateText(heading, 255),
         subheading: truncateText(subheading, 255),
+        productMapping,
+        primaryCta: {
+          label: truncateText(cta.label, 255),
+          href: truncateText(cta.href, 255),
+          exitId: "book_appointment_primary"
+        },
         ctaLabel: truncateText(cta.label, 255),
         ctaHref: truncateText(cta.href, 255),
         conversionConfig: {
@@ -408,6 +415,28 @@ function truncateText(value: string, max: number): string {
     return value;
   }
   return `${value.slice(0, Math.max(0, max - 3)).trim()}...`;
+}
+
+function inferProductMapping(slug: string): { product: string; industry: string } {
+  const normalized = slug.toLowerCase();
+  if (normalized.includes("cpq")) {
+    return {
+      product: "lens-cpq",
+      industry: "complex-manufacturing"
+    };
+  }
+
+  if (normalized.includes("crm")) {
+    return {
+      product: "lens-crm",
+      industry: "complex-manufacturing"
+    };
+  }
+
+  return {
+    product: "lens-platform",
+    industry: "complex-manufacturing"
+  };
 }
 
 type DomElementDescriptor = {

@@ -10,7 +10,7 @@ function errorPath(error: { issues?: Array<{ path?: Array<string | number> }> })
 
 function InvalidBlockPreview({ type, message }: { type: string; message: string }) {
   return (
-    <div style={{ border: "1px solid #cc0000", background: "#fff0f0", padding: 12, marginBottom: 12 }}>
+    <div className="lmnas-invalid-block lmnas-invalid-block-preview">
       <strong>Invalid block ({type})</strong>
       <p>{message}</p>
     </div>
@@ -19,10 +19,28 @@ function InvalidBlockPreview({ type, message }: { type: string; message: string 
 
 function InvalidBlockProduction({ type }: { type: string }) {
   return (
-    <div style={{ border: "1px dashed #aaa", padding: 12, marginBottom: 12 }}>
+    <div className="lmnas-invalid-block lmnas-invalid-block-production">
       Block "{type}" was skipped because it is invalid.
     </div>
   );
+}
+
+function assertConversionBlockGovernance(block: Block): void {
+  if (block.type !== "hero") {
+    return;
+  }
+
+  if (!block.productMapping?.product || !block.productMapping?.industry) {
+    throw new Error("hero block is missing productMapping governance fields");
+  }
+
+  if (!block.primaryCta?.label || !block.primaryCta?.href) {
+    throw new Error("hero block is missing primaryCta governance fields");
+  }
+
+  if (!block.conversionConfig?.eventName) {
+    throw new Error("hero block is missing conversionConfig governance fields");
+  }
 }
 
 export function renderValidatedBlock(block: unknown, preview = false): React.ReactElement | null {
@@ -35,6 +53,8 @@ export function renderValidatedBlock(block: unknown, preview = false): React.Rea
     const message = `Validation failed at ${errorPath(parsed.error)}`;
     return preview ? <InvalidBlockPreview type={type} message={message} /> : <InvalidBlockProduction type={type} />;
   }
+
+  assertConversionBlockGovernance(parsed.data as Block);
 
   const Component = registryEntry.component as React.ComponentType<{ block: Block }>;
   return <Component block={parsed.data as Block} />;

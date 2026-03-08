@@ -466,6 +466,39 @@ export interface ApiBlogPostBlogPost extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiExitDefinitionExitDefinition
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'exit_definitions';
+  info: {
+    displayName: 'Exit Definition';
+    pluralName: 'exit-definitions';
+    singularName: 'exit-definition';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    definition: Schema.Attribute.Component<'exits.exit-definition', false> &
+      Schema.Attribute.Required;
+    exitId: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::exit-definition.exit-definition'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiNavigationNavigation extends Struct.CollectionTypeSchema {
   collectionName: 'navigations';
   info: {
@@ -482,7 +515,7 @@ export interface ApiNavigationNavigation extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     items: Schema.Attribute.JSON & Schema.Attribute.Required;
-    key: Schema.Attribute.Enumeration<['main', 'footer']> &
+    key: Schema.Attribute.Enumeration<['main', 'footer', 'utility']> &
       Schema.Attribute.Required &
       Schema.Attribute.Unique;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
@@ -522,6 +555,7 @@ export interface ApiPagePage extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    exitBindings: Schema.Attribute.Component<'exits.exit-binding', true>;
     layoutKey: Schema.Attribute.Enumeration<
       [
         'homeLayout',
@@ -542,12 +576,50 @@ export interface ApiPagePage extends Struct.CollectionTypeSchema {
     publishedAt: Schema.Attribute.DateTime;
     seo: Schema.Attribute.Component<'shared.seo', false> &
       Schema.Attribute.Required;
+    shellAssignment: Schema.Attribute.Component<
+      'shell.shell-assignment',
+      false
+    >;
     slug: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.Unique;
+    themeScope: Schema.Attribute.String;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+  };
+}
+
+export interface ApiShellVariantShellVariant
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'shell_variants';
+  info: {
+    displayName: 'Shell Variant';
+    pluralName: 'shell-variants';
+    singularName: 'shell-variant';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::shell-variant.shell-variant'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    shell: Schema.Attribute.Component<'shell.shell-variant', false> &
+      Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    variantKey: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
   };
 }
 
@@ -1063,8 +1135,10 @@ declare module '@strapi/strapi' {
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
       'api::blog-post.blog-post': ApiBlogPostBlogPost;
+      'api::exit-definition.exit-definition': ApiExitDefinitionExitDefinition;
       'api::navigation.navigation': ApiNavigationNavigation;
       'api::page.page': ApiPagePage;
+      'api::shell-variant.shell-variant': ApiShellVariantShellVariant;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;

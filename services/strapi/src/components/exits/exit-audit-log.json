@@ -1,0 +1,26 @@
+{
+  "collectionName": "components_exits_exit_audit_logs",
+  "info": {
+    "displayName": "exit-audit-log"
+  },
+  "options": {},
+  "attributes": {
+    "exitId": {
+      "type": "string",
+      "required": true
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["success", "failure", "skipped"],
+      "required": true
+    },
+    "reason": {
+      "type": "string",
+      "required": false
+    },
+    "timestamp": {
+      "type": "datetime",
+      "required": true
+    }
+  }
+}

@@ -32,6 +32,22 @@
       "component": "shared.conversion-config",
       "required": true
     },
+    "shellAssignment": {
+      "type": "component",
+      "repeatable": false,
+      "component": "shell.shell-assignment",
+      "required": false
+    },
+    "exitBindings": {
+      "type": "component",
+      "repeatable": true,
+      "component": "exits.exit-binding",
+      "required": false
+    },
+    "themeScope": {
+      "type": "string",
+      "required": false
+    },
     "blocks": {
       "type": "dynamiczone",
       "components": ["blocks.hero", "blocks.faq", "blocks.imported-dom-snapshot"],

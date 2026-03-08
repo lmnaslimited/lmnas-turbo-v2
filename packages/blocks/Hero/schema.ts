@@ -40,12 +40,26 @@ const conversionConfigSchema = z
     });
   });
 
+const ctaSchema = z.object({
+  label: z.string().min(1),
+  href: z.string().min(1),
+  exitId: z.string().min(1).optional()
+});
+
+const productMappingSchema = z.object({
+  product: z.string().min(1),
+  industry: z.string().min(1)
+});
+
 export const heroBlockSchema = z.object({
   type: z.literal("hero"),
   heading: z.string().min(1),
   subheading: z.string().min(1),
-  ctaLabel: z.string().min(1),
-  ctaHref: z.string().min(1),
+  productMapping: productMappingSchema,
+  primaryCta: ctaSchema,
+  secondaryCta: ctaSchema.optional(),
+  ctaLabel: z.string().min(1).optional(),
+  ctaHref: z.string().min(1).optional(),
   conversionConfig: conversionConfigSchema
 });
 

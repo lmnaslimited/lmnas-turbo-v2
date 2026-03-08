@@ -1,0 +1,19 @@
+{
+  "collectionName": "components_shell_footer_legal_strips",
+  "info": {
+    "displayName": "footer-legal-strip"
+  },
+  "options": {},
+  "attributes": {
+    "copyrightText": {
+      "type": "string",
+      "required": true
+    },
+    "legalLinks": {
+      "type": "component",
+      "repeatable": true,
+      "component": "shell.navigation-item",
+      "required": false
+    }
+  }
+}

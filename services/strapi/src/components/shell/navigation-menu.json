@@ -1,0 +1,29 @@
+{
+  "collectionName": "components_shell_navigation_menus",
+  "info": {
+    "displayName": "navigation-menu"
+  },
+  "options": {},
+  "attributes": {
+    "menuKey": {
+      "type": "string",
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "items": {
+      "type": "component",
+      "repeatable": true,
+      "component": "shell.navigation-item",
+      "required": false
+    },
+    "groups": {
+      "type": "component",
+      "repeatable": true,
+      "component": "shell.navigation-group",
+      "required": false
+    }
+  }
+}

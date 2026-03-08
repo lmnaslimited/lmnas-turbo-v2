@@ -3,25 +3,28 @@ import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { PageRenderer, renderValidatedBlock } from "./index";
 
+const validHeroBlock = {
+  type: "hero",
+  heading: "Hello",
+  subheading: "World",
+  productMapping: {
+    product: "lens-cpq",
+    industry: "complex-manufacturing"
+  },
+  primaryCta: {
+    label: "Start",
+    href: "/start",
+    exitId: "book_appointment_primary"
+  },
+  conversionConfig: {
+    intent: "book",
+    eventName: "hero_primary_cta_click"
+  }
+} as const;
+
 describe("renderer", () => {
   it("renders valid blocks without crashing", () => {
-    const html = renderToString(
-      <PageRenderer
-        blocks={[
-          {
-            type: "hero",
-            heading: "Hello",
-            subheading: "World",
-            ctaLabel: "Start",
-            ctaHref: "/start",
-            conversionConfig: {
-              intent: "book",
-              eventName: "hero_primary_cta_click"
-            }
-          }
-        ]}
-      />
-    );
+    const html = renderToString(<PageRenderer blocks={[validHeroBlock]} />);
 
     expect(html).toContain("Hello");
     expect(html).toContain("Start");
@@ -31,15 +34,8 @@ describe("renderer", () => {
     const html = renderToString(
       renderValidatedBlock(
         {
-          type: "hero",
-          heading: "",
-          subheading: "Subheading",
-          ctaLabel: "Start",
-          ctaHref: "/start",
-          conversionConfig: {
-            intent: "book",
-            eventName: "hero_primary_cta_click"
-          }
+          ...validHeroBlock,
+          heading: ""
         },
         true
       )
@@ -54,14 +50,26 @@ describe("renderer", () => {
       <PageRenderer
         blocks={[
           {
-            type: "hero",
-            heading: "",
-            subheading: "Subheading",
-            ctaLabel: "Start",
-            ctaHref: "/start",
-            conversionConfig: {
-              intent: "book",
-              eventName: "hero_primary_cta_click"
+            ...validHeroBlock,
+            heading: ""
+          }
+        ]}
+        preview={false}
+      />
+    );
+
+    expect(html).toContain("was skipped because it is invalid");
+  });
+
+  it("skips conversion blocks when governance fields are invalid", () => {
+    const html = renderToString(
+      <PageRenderer
+        blocks={[
+          {
+            ...validHeroBlock,
+            productMapping: {
+              product: "",
+              industry: ""
             }
           }
         ]}

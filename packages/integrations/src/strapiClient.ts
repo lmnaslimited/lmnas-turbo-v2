@@ -2,8 +2,12 @@ import {
   blogPostSchema,
   navigationSchema,
   pageSchema,
+  parseExitBinding,
+  parseShellAssignment,
   seoSchema,
   type BlogPost,
+  type ConversionConfig,
+  type ExitBinding,
   type Navigation,
   type Page
 } from "@lmnas/contracts";
@@ -16,6 +20,10 @@ type PageAttributes = {
   slug: string;
   pageType: Page["pageType"];
   layoutKey: Page["layoutKey"];
+  conversionConfig: ConversionConfig;
+  shellAssignment?: unknown;
+  exitBindings?: unknown[];
+  themeScope?: string;
   blocks: Array<Record<string, unknown>>;
   seo: Page["seo"];
 };
@@ -58,11 +66,38 @@ const GET_PAGE_BY_SLUG_QUERY_V5 = `
       slug
       pageType
       layoutKey
+      conversionConfig {
+        intent
+        eventName
+        eventCategory
+        campaignId
+        utmDefaults
+        destination
+        benefitKey
+      }
+      shellAssignment {
+        scope
+        shellVariantId
+        pageSlug
+        navbarVariantId
+        footerVariantId
+      }
+      exitBindings {
+        id
+        exitId
+        locationType
+        locationId
+        label
+      }
+      themeScope
       blocks {
         __typename
         ... on ComponentBlocksHero {
           heading
           subheading
+          productMapping
+          primaryCta
+          secondaryCta
           ctaLabel
           ctaHref
           conversionConfig {
@@ -147,12 +182,18 @@ function normalizeStrapiBlock(block: Record<string, unknown>): Record<string, un
   const component = String(block.__component || block.__typename || "");
 
   if (component === "ComponentBlocksHero" || component === "blocks.hero") {
+    const primaryCta = normalizePrimaryCta(block);
+    const productMapping = normalizeProductMapping(block);
+
     return {
       type: "hero",
       heading: block.heading,
       subheading: block.subheading,
-      ctaLabel: block.ctaLabel,
-      ctaHref: block.ctaHref,
+      productMapping,
+      primaryCta,
+      secondaryCta: normalizeSecondaryCta(block),
+      ctaLabel: primaryCta.label,
+      ctaHref: primaryCta.href,
       conversionConfig: block.conversionConfig
     };
   }
@@ -176,6 +217,57 @@ function normalizeStrapiBlock(block: Record<string, unknown>): Record<string, un
 
   return {
     type: "unknown"
+  };
+}
+
+function normalizePrimaryCta(block: Record<string, unknown>): { label: string; href: string; exitId?: string } {
+  const fromStructured = block.primaryCta;
+  if (fromStructured && typeof fromStructured === "object" && !Array.isArray(fromStructured)) {
+    const source = fromStructured as Record<string, unknown>;
+    const label = typeof source.label === "string" && source.label.trim().length > 0 ? source.label : "Learn more";
+    const href = typeof source.href === "string" && source.href.trim().length > 0 ? source.href : "/";
+    const exitId = typeof source.exitId === "string" && source.exitId.trim().length > 0 ? source.exitId : undefined;
+    return { label, href, ...(exitId ? { exitId } : {}) };
+  }
+
+  const label = typeof block.ctaLabel === "string" && block.ctaLabel.trim().length > 0 ? block.ctaLabel : "Learn more";
+  const href = typeof block.ctaHref === "string" && block.ctaHref.trim().length > 0 ? block.ctaHref : "/";
+  return { label, href };
+}
+
+function normalizeSecondaryCta(block: Record<string, unknown>) {
+  const source = block.secondaryCta;
+  if (!source || typeof source !== "object" || Array.isArray(source)) {
+    return undefined;
+  }
+
+  const secondary = source as Record<string, unknown>;
+  if (typeof secondary.label !== "string" || typeof secondary.href !== "string") {
+    return undefined;
+  }
+
+  const normalized = {
+    label: secondary.label,
+    href: secondary.href,
+    ...(typeof secondary.exitId === "string" ? { exitId: secondary.exitId } : {})
+  };
+
+  return normalized;
+}
+
+function normalizeProductMapping(block: Record<string, unknown>): { product: string; industry: string } {
+  const source = block.productMapping;
+  if (source && typeof source === "object" && !Array.isArray(source)) {
+    const mapping = source as Record<string, unknown>;
+    const product = typeof mapping.product === "string" && mapping.product.trim().length > 0 ? mapping.product : "unmapped-product";
+    const industry =
+      typeof mapping.industry === "string" && mapping.industry.trim().length > 0 ? mapping.industry : "unmapped-industry";
+    return { product, industry };
+  }
+
+  return {
+    product: "unmapped-product",
+    industry: "unmapped-industry"
   };
 }
 
@@ -295,12 +387,29 @@ export async function getPageBySlug(slug: string, options: Options = {}): Promis
     }
 
     const normalized = unwrapNode<PageAttributes>(first);
+    const parsedShellAssignment = normalized.shellAssignment ? parseShellAssignment(normalized.shellAssignment) : undefined;
+    const parsedExitBindings: ExitBinding[] = Array.isArray(normalized.exitBindings)
+      ? normalized.exitBindings.map((binding, index) => {
+          if (binding && typeof binding === "object" && !Array.isArray(binding)) {
+            const record = binding as Record<string, unknown>;
+            return parseExitBinding({
+              ...record,
+              id: typeof record.id === "string" ? record.id : String(record.id ?? `exit-binding-${index + 1}`)
+            });
+          }
+          return parseExitBinding(binding);
+        })
+      : [];
 
     return pageSchema.parse({
       id: normalized.id ? Number(normalized.id) : undefined,
       slug: normalized.slug,
       pageType: normalized.pageType,
       layoutKey: normalized.layoutKey,
+      conversionConfig: normalized.conversionConfig,
+      shellAssignment: parsedShellAssignment,
+      exitBindings: parsedExitBindings,
+      themeScope: normalized.themeScope,
       blocks: normalized.blocks.map((block) => normalizeStrapiBlock(block as Record<string, unknown>)),
       seo: normalized.seo
     });
@@ -339,7 +448,7 @@ export async function getPageBySlug(slug: string, options: Options = {}): Promis
   }
 }
 
-export async function getNavigationByKey(key: "main" | "footer", options: Options = {}): Promise<Navigation> {
+export async function getNavigationByKey(key: "main" | "footer" | "utility", options: Options = {}): Promise<Navigation> {
   try {
     const data = (await requestStrapiGraphql<Record<string, unknown>>(
       GET_NAVIGATION_BY_KEY_QUERY_V5,
@@ -362,7 +471,16 @@ export async function getNavigationByKey(key: "main" | "footer", options: Option
       items: normalized.items
     });
   } catch {
-    return key === "main" ? mainNavigationFixture : footerNavigationFixture;
+    if (key === "main") {
+      return mainNavigationFixture;
+    }
+    if (key === "footer") {
+      return footerNavigationFixture;
+    }
+    return {
+      key: "utility",
+      items: []
+    };
   }
 }
 

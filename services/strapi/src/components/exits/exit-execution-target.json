@@ -1,0 +1,19 @@
+{
+  "collectionName": "components_exits_exit_execution_targets",
+  "info": {
+    "displayName": "exit-execution-target"
+  },
+  "options": {},
+  "attributes": {
+    "kind": {
+      "type": "enumeration",
+      "enum": ["none", "url", "n8n_webhook", "api", "modal", "chat_drawer"],
+      "required": true,
+      "default": "none"
+    },
+    "value": {
+      "type": "string",
+      "required": true
+    }
+  }
+}

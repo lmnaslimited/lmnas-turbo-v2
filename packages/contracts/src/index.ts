@@ -1,6 +1,46 @@
+/* eslint-disable no-restricted-imports */
 import { heroBlockSchema, faqBlockSchema, importedDomSnapshotBlockSchema } from "@lmnas/blocks";
 import { z } from "zod";
 import { conversionConfigSchema as sharedConversionConfigSchema } from "./shared";
+import {
+  exitBindingSchema,
+  navigationDestinationSchema,
+  navigationItemSchema as platformNavigationItemSchema,
+  parseExitBinding,
+  parseExitDefinition,
+  parseOnboardingAnalysis,
+  parseOnboardingIntake,
+  parseOnboardingPublishRequest,
+  parseOnboardingPublishResult,
+  parseShellAssignment,
+  shellAssignmentSchema,
+  canonicalBlockFamilySchema,
+  navigationMenuSchema,
+  navigationGroupSchema,
+  navbarVariantSchema,
+  footerVariantSchema,
+  shellVariantSchema,
+  exitStateSchema,
+  exitExecutionTargetSchema,
+  exitPayloadSchemaSchema,
+  exitPolicySchema,
+  exitDefinitionSchema,
+  exitAuditLogSchema,
+  onboardingSourceTypeSchema,
+  onboardingIntakeSchema,
+  onboardingShellCandidateSchema,
+  onboardingBlockProposalSchema,
+  onboardingExitProposalSchema,
+  onboardingThemeNotesSchema,
+  fidelityWarningSchema,
+  onboardingAnalysisSchema,
+  onboardingOverrideSchema,
+  pageAssemblySchema,
+  strapiSyncPayloadSchema,
+  onboardingPublishRequestSchema,
+  onboardingPublishResultSchema
+} from "./platform.contracts";
+
 export { heroContract, faqContract, importedDomSnapshotContract } from "./blocks";
 export type { BlockContract, BlockContractMeta, ContractPageType } from "./blocks";
 export { conversionConfigContract } from "./shared";
@@ -32,6 +72,10 @@ export const pageSchema = z.object({
   slug: z.string().min(1),
   pageType: pageTypeSchema,
   layoutKey: layoutKeySchema,
+  conversionConfig: conversionConfigSchema,
+  shellAssignment: shellAssignmentSchema.optional(),
+  exitBindings: z.array(exitBindingSchema).default([]),
+  themeScope: z.string().min(1).optional(),
   blocks: z.array(blockSchema),
   seo: seoSchema
 });
@@ -40,6 +84,10 @@ export const strapiPageAttributesSchema = z.object({
   slug: z.string(),
   pageType: pageTypeSchema,
   layoutKey: layoutKeySchema,
+  conversionConfig: conversionConfigSchema,
+  shellAssignment: z.unknown().optional(),
+  exitBindings: z.array(z.unknown()).optional(),
+  themeScope: z.string().optional(),
   blocks: z.array(z.unknown()),
   seo: seoSchema
 });
@@ -53,20 +101,16 @@ export const strapiPageResponseSchema = z.object({
   data: z.array(strapiPageItemSchema)
 });
 
-const navigationChildItemSchema = z.object({
-  label: z.string().min(1),
-  href: z.string().min(1)
-});
-
 export const navigationItemSchema = z.object({
   label: z.string().min(1),
-  href: z.string().optional(),
-  children: z.array(navigationChildItemSchema).max(12).optional()
+  href: z.string().min(1).optional(),
+  destination: navigationDestinationSchema.optional(),
+  children: z.array(platformNavigationItemSchema).max(12).optional()
 });
 
 export const navigationSchema = z.object({
   id: z.number().optional(),
-  key: z.enum(["main", "footer"]),
+  key: z.enum(["main", "footer", "utility"]),
   items: z.array(navigationItemSchema).max(50)
 });
 
@@ -89,6 +133,79 @@ export type PageType = z.infer<typeof pageTypeSchema>;
 export type LayoutKey = z.infer<typeof layoutKeySchema>;
 export type Navigation = z.infer<typeof navigationSchema>;
 export type BlogPost = z.infer<typeof blogPostSchema>;
+
+export {
+  canonicalBlockFamilySchema,
+  navigationDestinationSchema,
+  platformNavigationItemSchema,
+  navigationMenuSchema,
+  navigationGroupSchema,
+  navbarVariantSchema,
+  footerVariantSchema,
+  shellVariantSchema,
+  shellAssignmentSchema,
+  exitStateSchema,
+  exitExecutionTargetSchema,
+  exitPayloadSchemaSchema,
+  exitPolicySchema,
+  exitDefinitionSchema,
+  exitBindingSchema,
+  exitAuditLogSchema,
+  onboardingSourceTypeSchema,
+  onboardingIntakeSchema,
+  onboardingShellCandidateSchema,
+  onboardingBlockProposalSchema,
+  onboardingExitProposalSchema,
+  onboardingThemeNotesSchema,
+  fidelityWarningSchema,
+  onboardingAnalysisSchema,
+  onboardingOverrideSchema,
+  pageAssemblySchema,
+  strapiSyncPayloadSchema,
+  onboardingPublishRequestSchema,
+  onboardingPublishResultSchema,
+  parseOnboardingIntake,
+  parseOnboardingAnalysis,
+  parseOnboardingPublishRequest,
+  parseOnboardingPublishResult,
+  parseExitDefinition,
+  parseExitBinding,
+  parseShellAssignment
+};
+
+export type {
+  CanonicalBlockFamily,
+  NavigationDestination,
+  NavigationItem as PlatformNavigationItem,
+  NavigationGroup,
+  NavigationMenu,
+  NavbarVariant,
+  FooterColumn,
+  FooterLegalStrip,
+  FooterVariant,
+  ShellVariant,
+  ShellAssignment,
+  ExitExecutionTarget,
+  ExitDefinition,
+  ExitBinding,
+  ExitPolicy,
+  ExitState,
+  ExitAuditLog,
+  OnboardingIntake,
+  OnboardingShellCandidate,
+  OnboardingBlockProposal,
+  OnboardingExitProposal,
+  OnboardingSourceType,
+  OnboardingThemeNotes,
+  FidelityWarning,
+  OnboardingAnalysis,
+  OnboardingOverride,
+  PageAssembly,
+  StrapiSyncPayload,
+  OnboardingPublishRequest,
+  OnboardingPublishResult
+} from "./platform.contracts";
+
 export {
   contentPlanSchema,
   contentPlanConversionConfigSchema,

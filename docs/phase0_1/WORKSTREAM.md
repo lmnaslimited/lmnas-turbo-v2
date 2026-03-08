@@ -11,6 +11,7 @@ Keep this file open while running RR-flow work.
 | 001C | import-mode-fidelity |  | Tasks | `INT-001` `SPEC-001C` `TASK-001C` `PROOF-001C` |
 | 001D | theme-system |  | Tasks | `INT-001` `SPEC-001D` `TASK-001D` `PROOF-001D` |
 | 001E | docs |  | Tasks | `INT-001` `SPEC-001E` `TASK-001E` `PROOF-001E` |
+| 002 | shell-block-exit-platform-revamp |  | Proof | `INT-002` `SPEC-002` `TASK-002` `PROOF-002` `ADR-002` |
 
 ## Next 3 actions
 

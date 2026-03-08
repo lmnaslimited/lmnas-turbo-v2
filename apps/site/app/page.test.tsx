@@ -9,6 +9,10 @@ const { getPageBySlugMock, draftModeMock } = vi.hoisted(() => {
       slug: "home",
       pageType: "home",
       layoutKey: "homeLayout",
+      conversionConfig: {
+        intent: "book",
+        eventName: "page_primary_cta_click"
+      },
       blocks: [],
       seo: {
         metaTitle: "Home",
@@ -19,6 +23,14 @@ const { getPageBySlugMock, draftModeMock } = vi.hoisted(() => {
     }))
   };
 });
+
+const { buildShellRenderModelMock } = vi.hoisted(() => ({
+  buildShellRenderModelMock: vi.fn(async () => ({
+    mainNavigation: { key: "main", items: [] },
+    footerNavigation: { key: "footer", items: [] },
+    utilityNavigation: { key: "utility", items: [] }
+  }))
+}));
 
 vi.mock("next/headers", () => ({
   draftMode: draftModeMock
@@ -52,6 +64,10 @@ vi.mock("@lmnas/analytics", () => ({
   track: vi.fn()
 }));
 
+vi.mock("../lib/shell", () => ({
+  buildShellRenderModel: buildShellRenderModelMock
+}));
+
 import HomePage from "./page";
 
 describe("site home route", () => {
@@ -64,6 +80,7 @@ describe("site home route", () => {
     await HomePage();
 
     expect(getPageBySlugMock).toHaveBeenCalledWith("home", { preview: true });
+    expect(buildShellRenderModelMock).toHaveBeenCalled();
   });
 
   it("does not import page mock fixtures in site page routes", () => {

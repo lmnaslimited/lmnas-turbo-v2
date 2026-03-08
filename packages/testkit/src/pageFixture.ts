@@ -5,13 +5,32 @@ export const homePageFixture: Page = {
   slug: "home",
   pageType: "home",
   layoutKey: "homeLayout",
+  conversionConfig: {
+    intent: "book",
+    eventName: "page_primary_cta_click"
+  },
+  shellAssignment: {
+    scope: "site",
+    shellVariantId: "shell-default",
+    navbarVariantId: "navbar-default",
+    footerVariantId: "footer-default"
+  },
+  exitBindings: [],
+  themeScope: "theme-default",
   blocks: [
     {
       type: "hero",
       heading: "Welcome to LMNAs",
       subheading: "Composable healthcare web platform",
-      ctaLabel: "Get Started",
-      ctaHref: "/start",
+      productMapping: {
+        product: "lens-cpq",
+        industry: "complex-manufacturing"
+      },
+      primaryCta: {
+        label: "Get Started",
+        href: "/start",
+        exitId: "book_appointment_primary"
+      },
       conversionConfig: {
         intent: "book",
         eventName: "hero_primary_cta_click"

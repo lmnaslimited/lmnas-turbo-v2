@@ -13,7 +13,7 @@
   "attributes": {
     "key": {
       "type": "enumeration",
-      "enum": ["main", "footer"],
+      "enum": ["main", "footer", "utility"],
       "required": true,
       "unique": true
     },

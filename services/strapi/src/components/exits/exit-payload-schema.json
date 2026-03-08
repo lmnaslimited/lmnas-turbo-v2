@@ -1,0 +1,19 @@
+{
+  "collectionName": "components_exits_exit_payload_schemas",
+  "info": {
+    "displayName": "exit-payload-schema"
+  },
+  "options": {},
+  "attributes": {
+    "format": {
+      "type": "enumeration",
+      "enum": ["json-schema", "openapi-ref", "typed-config"],
+      "required": true,
+      "default": "json-schema"
+    },
+    "schema": {
+      "type": "json",
+      "required": true
+    }
+  }
+}

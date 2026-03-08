@@ -13,13 +13,22 @@
       "type": "string",
       "required": true
     },
-    "ctaLabel": {
-      "type": "string",
+    "productMapping": {
+      "type": "json",
       "required": true
     },
-    "ctaHref": {
-      "type": "string",
+    "primaryCta": {
+      "type": "json",
       "required": true
+    },
+    "secondaryCta": {
+      "type": "json"
+    },
+    "ctaLabel": {
+      "type": "string"
+    },
+    "ctaHref": {
+      "type": "string"
     },
     "conversionConfig": {
       "type": "component",

@@ -1,0 +1,215 @@
+:root {
+  --lmnas-bg: #f5f7fb;
+  --lmnas-panel: #ffffff;
+  --lmnas-border: #d5deeb;
+  --lmnas-text: #11203b;
+  --lmnas-muted: #5a6982;
+  --lmnas-accent: #0b66ff;
+  --lmnas-accent-soft: #dce9ff;
+  --lmnas-success: #0f8c52;
+  --lmnas-warning: #b7791f;
+  --lmnas-danger: #b03a2e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Manrope", "Segoe UI", sans-serif;
+  background: radial-gradient(circle at 15% 5%, #ffffff 0%, var(--lmnas-bg) 45%, #ebf0f8 100%);
+  color: var(--lmnas-text);
+}
+
+a {
+  color: var(--lmnas-accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.lmnas-app-root {
+  min-height: 100vh;
+}
+
+.lmnas-shell-frame {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.lmnas-shell-header,
+.lmnas-shell-footer,
+.lmnas-shell-utility,
+.lmnas-shell-content {
+  background: var(--lmnas-panel);
+  border: 1px solid var(--lmnas-border);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.lmnas-shell-nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.lmnas-shell-nav-depth-1,
+.lmnas-shell-nav-depth-2 {
+  margin-top: 10px;
+  margin-left: 10px;
+  border-left: 2px solid var(--lmnas-border);
+  padding-left: 12px;
+}
+
+.lmnas-shell-nav-item {
+  color: var(--lmnas-text);
+}
+
+.lmnas-shell-placeholder {
+  color: var(--lmnas-muted);
+  font-size: 14px;
+}
+
+.lmnas-page-main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lmnas-page-headline {
+  margin: 0;
+  font-size: 28px;
+}
+
+.lmnas-page-subline {
+  margin: 0;
+  color: var(--lmnas-muted);
+}
+
+.lmnas-hero-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--lmnas-border);
+  border-radius: 10px;
+  padding: 16px;
+  background: linear-gradient(145deg, #ffffff 0%, #f2f7ff 100%);
+}
+
+.lmnas-invalid-block {
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 10px;
+}
+
+.lmnas-invalid-block-preview {
+  border: 1px solid var(--lmnas-danger);
+  background: #fff0ef;
+}
+
+.lmnas-invalid-block-production {
+  border: 1px dashed var(--lmnas-muted);
+  background: #f8fafc;
+}
+
+.lmnas-onboarding-shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.lmnas-onboarding-card {
+  background: var(--lmnas-panel);
+  border: 1px solid var(--lmnas-border);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.lmnas-onboarding-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.lmnas-onboarding-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lmnas-onboarding-field input,
+.lmnas-onboarding-field select,
+.lmnas-onboarding-field textarea {
+  border: 1px solid var(--lmnas-border);
+  border-radius: 10px;
+  padding: 10px;
+  font: inherit;
+}
+
+.lmnas-onboarding-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lmnas-onboarding-actions button {
+  border: 1px solid var(--lmnas-border);
+  border-radius: 10px;
+  background: white;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.lmnas-onboarding-actions button[data-primary="true"] {
+  background: var(--lmnas-accent);
+  border-color: var(--lmnas-accent);
+  color: white;
+}
+
+.lmnas-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  border-radius: 999px;
+  border: 1px solid var(--lmnas-border);
+  background: var(--lmnas-accent-soft);
+  padding: 4px 10px;
+}
+
+.lmnas-warning {
+  color: var(--lmnas-warning);
+}
+
+.lmnas-success {
+  color: var(--lmnas-success);
+}
+
+.lmnas-error {
+  color: var(--lmnas-danger);
+}
+
+@media (max-width: 768px) {
+  .lmnas-shell-frame,
+  .lmnas-onboarding-shell {
+    padding: 14px;
+  }
+
+  .lmnas-shell-nav-list {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
