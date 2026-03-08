@@ -1,123 +1,177 @@
-import type { OnboardingBlockProposal, OnboardingExitProposal } from "@lmnas/contracts";
-import { extractAnchors, slugify, stripTags } from "../shared/html";
+import type {
+  OnboardingActionProposal,
+  OnboardingExitProposal,
+  OnboardingWidgetProposal,
+  WidgetType
+} from "@lmnas/contracts";
+import { slugify } from "../shared/html";
 
-const EXIT_LABEL_PATTERNS: Array<{ name: string; match: RegExp }> = [
-  { name: "Book Appointment", match: /book\s+(an\s+)?appointment|book\s+consultation/i },
-  { name: "Request Demo", match: /request\s+demo|book\s+demo/i },
-  { name: "Download Asset", match: /download|brochure|report|asset/i },
-  { name: "Contact Sales", match: /contact\s+sales|talk\s+to\s+sales|speak\s+to\s+expert/i },
-  { name: "Register for Webinar", match: /webinar|register\s+now|join\s+event/i },
-  { name: "Open Chat", match: /chat|talk\s+now|live\s+support/i },
-  { name: "Submit Form", match: /submit|send\s+message|get\s+started/i }
-];
+type ExitShape = Pick<OnboardingExitProposal, "frontendAdapterType" | "backendAdapterType" | "workflowTarget" | "name">;
 
-function resolveExitName(label: string): string {
-  const match = EXIT_LABEL_PATTERNS.find((entry) => entry.match.test(label));
-  return match?.name ?? `Action: ${label}`;
-}
-
-function resolveExitId(exitName: string): string {
-  if (exitName === "Book Appointment") {
-    return "book_appointment_primary";
-  }
-  return slugify(exitName);
-}
-
-function buildWorkflowTarget(name: string, href: string) {
-  if (/download/i.test(name)) {
+function resolveExitShape(action: OnboardingActionProposal): ExitShape {
+  if (action.actionType === "download_asset") {
     return {
-      kind: "url" as const,
-      value: href
+      name: `Download ${action.label}`,
+      frontendAdapterType: "redirect",
+      backendAdapterType: "none",
+      workflowTarget: {
+        kind: "url",
+        value: action.destination.value ?? "/assets/download"
+      }
     };
   }
 
-  if (/chat/i.test(name)) {
+  if (action.actionType === "external_booking") {
     return {
-      kind: "chat_drawer" as const,
-      value: "chat://open"
+      name: `External Booking: ${action.label}`,
+      frontendAdapterType: "redirect",
+      backendAdapterType: "none",
+      workflowTarget: {
+        kind: "url",
+        value: action.destination.value ?? "/book"
+      }
+    };
+  }
+
+  if (action.actionType === "open_widget") {
+    return {
+      name: action.label,
+      frontendAdapterType: "modal",
+      backendAdapterType: "n8n_webhook",
+      workflowTarget: {
+        kind: "n8n_webhook",
+        value: `n8n://workflow/${slugify(action.label)}`
+      }
+    };
+  }
+
+  if (action.actionType === "submit_form") {
+    return {
+      name: `${action.label} Submission`,
+      frontendAdapterType: "form",
+      backendAdapterType: "n8n_webhook",
+      workflowTarget: {
+        kind: "n8n_webhook",
+        value: `n8n://workflow/${slugify(action.label)}_submission`
+      }
+    };
+  }
+
+  if (action.actionType === "workflow") {
+    return {
+      name: action.label,
+      frontendAdapterType: "none",
+      backendAdapterType: "n8n_webhook",
+      workflowTarget: {
+        kind: "n8n_webhook",
+        value: `n8n://workflow/${slugify(action.label)}`
+      }
     };
   }
 
   return {
-    kind: "n8n_webhook" as const,
-    value: `n8n://workflow/${slugify(name)}`
+    name: action.label,
+    frontendAdapterType: "none",
+    backendAdapterType: "none",
+    workflowTarget: {
+      kind: "none",
+      value: "none"
+    }
   };
 }
 
-function detectButtonActions(html: string): Array<{ label: string; selectorHint: string }> {
-  const matches = Array.from(html.matchAll(/<button\b[^>]*>([\s\S]*?)<\/button>/gi));
-  return matches
-    .map((match, index) => ({
-      label: stripTags(match[1]),
-      selectorHint: `button:nth-of-type(${index + 1})`
-    }))
-    .filter((item) => item.label.length > 0);
-}
-
-export function detectExitProposals(html: string, blocks: OnboardingBlockProposal[]): OnboardingExitProposal[] {
-  const anchors = extractAnchors(html);
-  const buttons = detectButtonActions(html);
-
-  const targetBlockId = blocks[0]?.id ?? "page-root";
-
-  const anchorExits = anchors.map((anchor) => {
-    const exitName = resolveExitName(anchor.label);
-    const exitId = resolveExitId(exitName);
-
+function defaultExitForWidget(widgetType: WidgetType): { id: string; name: string } | null {
+  if (widgetType === "booking_popup") {
     return {
-      id: exitId,
-      name: exitName,
-      eventName: `exit_${exitId}_triggered`,
-      selectorHint: anchor.selectorHint,
-      confidence: 0.86,
-      state: "active" as const,
-      frontendAdapterType: "redirect" as const,
-      backendAdapterType: /download/i.test(exitName) ? ("none" as const) : ("n8n_webhook" as const),
-      workflowTarget: buildWorkflowTarget(exitName, anchor.href),
-      suggestedBinding: {
-        locationType: "block" as const,
-        locationId: targetBlockId
-      }
+      id: "book_appointment_primary",
+      name: "Book Appointment"
     };
-  });
-
-  const buttonExits = buttons.map((button) => {
-    const exitName = resolveExitName(button.label);
-    const exitId = resolveExitId(exitName);
-
-    return {
-      id: exitId,
-      name: exitName,
-      eventName: `exit_${exitId}_triggered`,
-      selectorHint: button.selectorHint,
-      confidence: 0.7,
-      state: "active" as const,
-      frontendAdapterType: /chat/i.test(exitName) ? ("chat_drawer" as const) : ("modal" as const),
-      backendAdapterType: "n8n_webhook" as const,
-      workflowTarget: buildWorkflowTarget(exitName, "#"),
-      suggestedBinding: {
-        locationType: "block" as const,
-        locationId: targetBlockId
-      }
-    };
-  });
-
-  const merged = new Map<string, OnboardingExitProposal>();
-  for (const exit of [...anchorExits, ...buttonExits]) {
-    if (!merged.has(exit.id)) {
-      merged.set(exit.id, exit);
-    }
   }
 
-  if (!merged.has("book_appointment_primary")) {
-    merged.set("book_appointment_primary", {
+  if (widgetType === "download_gate") {
+    return {
+      id: "download_asset_primary",
+      name: "Download Asset"
+    };
+  }
+
+  if (widgetType === "chat_launcher") {
+    return {
+      id: "open_chat_primary",
+      name: "Open Chat"
+    };
+  }
+
+  return null;
+}
+
+export function detectExitProposals(actions: OnboardingActionProposal[], widgets: OnboardingWidgetProposal[]): OnboardingExitProposal[] {
+  const proposals = new Map<string, OnboardingExitProposal>();
+
+  for (const action of actions) {
+    if (!["workflow", "submit_form", "open_widget", "external_booking", "download_asset"].includes(action.actionType)) {
+      continue;
+    }
+
+    const exitId = action.suggestedExitId ?? slugify(action.label);
+    if (proposals.has(exitId)) {
+      continue;
+    }
+
+    const shape = resolveExitShape(action);
+    proposals.set(exitId, {
+      id: exitId,
+      name: shape.name,
+      eventName: `exit_${exitId}_triggered`,
+      selectorHint: action.selectorHint,
+      confidence: action.confidence,
+      state: "active",
+      frontendAdapterType: shape.frontendAdapterType,
+      backendAdapterType: shape.backendAdapterType,
+      workflowTarget: shape.workflowTarget,
+      sourceActionId: action.id,
+      suggestedBinding: {
+        locationType: action.sourceSurface === "block" ? "block" : action.sourceSurface === "widget" ? "widget" : "page",
+        locationId: action.sourceItemId ?? "page-root"
+      }
+    });
+  }
+
+  for (const widget of widgets) {
+    const fallback = defaultExitForWidget(widget.widgetType);
+    if (!fallback || proposals.has(fallback.id)) {
+      continue;
+    }
+
+    proposals.set(fallback.id, {
+      id: fallback.id,
+      name: fallback.name,
+      eventName: `exit_${fallback.id}_triggered`,
+      selectorHint: widget.selectorHint,
+      confidence: Math.max(0.42, widget.confidence - 0.22),
+      state: "inactive",
+      frontendAdapterType: "modal",
+      backendAdapterType: "n8n_webhook",
+      workflowTarget: {
+        kind: "n8n_webhook",
+        value: `n8n://workflow/${fallback.id}`
+      },
+      suggestedBinding: {
+        locationType: "widget",
+        locationId: widget.id
+      }
+    });
+  }
+
+  if (!proposals.has("book_appointment_primary")) {
+    proposals.set("book_appointment_primary", {
       id: "book_appointment_primary",
       name: "Book Appointment",
       eventName: "exit_book_appointment_primary_triggered",
       selectorHint: "fallback:book-appointment",
-      confidence: 0.4,
+      confidence: 0.35,
       state: "inactive",
-      frontendAdapterType: "redirect",
+      frontendAdapterType: "modal",
       backendAdapterType: "n8n_webhook",
       workflowTarget: {
         kind: "n8n_webhook",
@@ -130,5 +184,5 @@ export function detectExitProposals(html: string, blocks: OnboardingBlockProposa
     });
   }
 
-  return Array.from(merged.values());
+  return Array.from(proposals.values());
 }

@@ -1,5 +1,42 @@
 import type { Schema, Struct } from '@strapi/strapi';
 
+export interface ActionsActionBinding extends Struct.ComponentSchema {
+  collectionName: 'components_actions_action_bindings';
+  info: {
+    displayName: 'action-binding';
+  };
+  attributes: {
+    actionId: Schema.Attribute.String & Schema.Attribute.Required;
+    actionType: Schema.Attribute.Enumeration<
+      [
+        'link_url',
+        'scroll_to_section',
+        'open_modal',
+        'open_drawer',
+        'open_widget',
+        'submit_form',
+        'download_asset',
+        'external_booking',
+        'workflow',
+      ]
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'link_url'>;
+    exitId: Schema.Attribute.String;
+    label: Schema.Attribute.String & Schema.Attribute.Required;
+    locationId: Schema.Attribute.String & Schema.Attribute.Required;
+    locationType: Schema.Attribute.Enumeration<
+      ['block', 'navbar', 'footer', 'widget', 'page']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'block'>;
+    openInNewTab: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    targetSectionId: Schema.Attribute.String;
+    targetUrl: Schema.Attribute.String;
+    widgetId: Schema.Attribute.String;
+  };
+}
+
 export interface BlocksFaq extends Struct.ComponentSchema {
   collectionName: 'components_blocks_faqs';
   info: {
@@ -68,7 +105,7 @@ export interface ExitsExitBinding extends Struct.ComponentSchema {
     label: Schema.Attribute.String & Schema.Attribute.Required;
     locationId: Schema.Attribute.String & Schema.Attribute.Required;
     locationType: Schema.Attribute.Enumeration<
-      ['block', 'navbar', 'footer', 'page']
+      ['block', 'navbar', 'footer', 'widget', 'page']
     > &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'block'>;
@@ -315,9 +352,60 @@ export interface ShellShellVariant extends Struct.ComponentSchema {
   };
 }
 
+export interface WidgetsWidgetDefinition extends Struct.ComponentSchema {
+  collectionName: 'components_widgets_widget_definitions';
+  info: {
+    displayName: 'widget-definition';
+  };
+  attributes: {
+    defaultExitId: Schema.Attribute.String;
+    description: Schema.Attribute.Text;
+    editableFields: Schema.Attribute.JSON;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    state: Schema.Attribute.Enumeration<['active', 'inactive']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'active'>;
+    widgetId: Schema.Attribute.String & Schema.Attribute.Required;
+    widgetType: Schema.Attribute.Enumeration<
+      [
+        'modal',
+        'drawer',
+        'embedded_form',
+        'subscription_popup',
+        'booking_popup',
+        'download_gate',
+        'chat_launcher',
+        'inline_expand_collapse',
+        'below_fold_widget',
+      ]
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'modal'>;
+  };
+}
+
+export interface WidgetsWidgetVariant extends Struct.ComponentSchema {
+  collectionName: 'components_widgets_widget_variants';
+  info: {
+    displayName: 'widget-variant';
+  };
+  attributes: {
+    config: Schema.Attribute.JSON;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    surface: Schema.Attribute.Enumeration<
+      ['modal', 'drawer', 'inline', 'popup', 'below_fold']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'inline'>;
+    variantId: Schema.Attribute.String & Schema.Attribute.Required;
+    widgetId: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
 declare module '@strapi/strapi' {
   export module Public {
     export interface ComponentSchemas {
+      'actions.action-binding': ActionsActionBinding;
       'blocks.faq': BlocksFaq;
       'blocks.hero': BlocksHero;
       'blocks.imported-dom-snapshot': BlocksImportedDomSnapshot;
@@ -338,6 +426,8 @@ declare module '@strapi/strapi' {
       'shell.navigation-menu': ShellNavigationMenu;
       'shell.shell-assignment': ShellShellAssignment;
       'shell.shell-variant': ShellShellVariant;
+      'widgets.widget-definition': WidgetsWidgetDefinition;
+      'widgets.widget-variant': WidgetsWidgetVariant;
     }
   }
 }

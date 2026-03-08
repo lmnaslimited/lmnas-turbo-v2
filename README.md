@@ -1,81 +1,69 @@
 # LMNAs Website Operating System (Turbo v2)
 
-UI-first, governed website platform for LMNAs built on Next.js + Strapi + n8n.
+UI-first, governed website platform for LMNAs.
+
+Core stack: Next.js + Strapi + n8n + Rudder.
 
 ## Fastest Operator Path
 
-1. Start stack:
-   - `pnpm install`
-   - `cp .env.example .env`
-   - `docker compose up -d`
-   - `pnpm dev`
-2. Open onboarding console:
-   - `http://localhost:3000/platform/onboarding`
-3. Run workflow:
-   - Source intake -> analysis -> confirmation -> publish dry run/apply
+1. Start stack
+- `pnpm install`
+- `cp .env.example .env`
+- `docker compose up -d`
+- `pnpm dev`
 
-## Platform Model
+2. Open onboarding studio
+- `http://localhost:3000/platform/onboarding`
 
-The canonical runtime model has 5 layers:
+3. Use the visual wizard
+- Source Intake
+- Source Preview
+- Detection Review (import/skip)
+- Selection & Mapping
+- Action Mapping
+- Publish Summary
 
-1. Shell Layer
-- Navbar/footer/menus/submenus/variants
+## Platform Objects
 
-2. Block Layer
-- Canonical reusable block families with structured fields
-
-3. Page Assembly Layer
-- Shell assignment + ordered blocks + footer variant
-
-4. Exit Layer
-- Governed business interactions bound by `exitId`
-
-5. Execution Layer
-- Adapter runtime + n8n workflows + Rudder events
+- Shells: navbar/footer/utility/announcement
+- Blocks: reusable content sections
+- Widgets: modal/drawer/form/chat/download/booking surfaces
+- Actions: CTA behavior bindings
+- Exits: backend/business workflow contracts
 
 ## Guardrails
 
 - Constitution v2.1 is authoritative: `docs/architecture/LMNAs_Platform_Operating_Constitution_v2_1.md`
-- Strapi is source of truth for governed content
+- Strapi is source of truth
 - Blocks are pure UI
 - Schema-first contracts
-- Policy A allowlist for block rendering
-- Integrations through adapters
-- n8n central orchestration
-- Rudder unified event stream
+- Integrations via adapters
+- n8n orchestration + Rudder events
+- CLI onboarding is fallback only (CI/debug/batch)
 
 ## Key Routes
 
 - Site: `http://localhost:3000`
-- Onboarding console: `http://localhost:3000/platform/onboarding`
+- Onboarding: `http://localhost:3000/platform/onboarding`
 - Analyze API: `POST /api/platform/onboarding/analyze`
 - Publish API: `POST /api/platform/onboarding/publish`
 - Exit runtime API: `POST /api/platform/exits/execute`
-- Health: `GET /api/health`
 
-## Docs
-
-- Platform vision: `docs/platform/vision.md`
-- Operator guide: `docs/platform/operator-manual.md`
-- Onboarding workflow: `docs/platform/onboarding-workflow.md`
-- Shell system: `docs/platform/shell-system.md`
-- Block model: `docs/platform/block-model.md`
-- Exit architecture: `docs/platform/exit-architecture.md`
-- Theme model: `docs/platform/theme-model.md`
-- Developer implementation: `docs/platform/developer-implementation.md`
-- Migration plan: `docs/platform/migration-plan.md`
-
-## Developer / CI Commands
+## Commands
 
 - `pnpm lint`
 - `pnpm typecheck`
 - `pnpm test`
 - `pnpm build`
 
-## CLI (Fallback, Not Default Operator Flow)
+## Docs
 
-CLI importer remains for debug/CI/batch operations:
-- `pnpm content:onboard`
-- `pnpm content:plan`
-- `pnpm content:apply`
-- `pnpm content:fidelity`
+- `docs/platform/vision.md`
+- `docs/platform/operator-manual.md`
+- `docs/platform/onboarding-workflow.md`
+- `docs/platform/shell-system.md`
+- `docs/platform/block-model.md`
+- `docs/platform/exit-architecture.md`
+- `docs/platform/theme-model.md`
+- `docs/platform/developer-implementation.md`
+- `docs/platform/migration-plan.md`

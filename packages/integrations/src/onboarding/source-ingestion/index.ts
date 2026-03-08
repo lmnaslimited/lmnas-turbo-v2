@@ -1,10 +1,11 @@
 import { parseOnboardingIntake, type OnboardingIntake } from "@lmnas/contracts";
-import { extractTitle } from "../shared/html";
+import { extractTitle, sanitizePreviewHtml } from "../shared/html";
 
 export type IngestedSource = {
   intake: OnboardingIntake;
   sourceRef: string;
   html: string;
+  previewHtml: string;
   title?: string;
 };
 
@@ -55,6 +56,7 @@ export async function ingestSource(input: unknown): Promise<IngestedSource> {
     intake,
     sourceRef: source.sourceRef,
     html: source.html,
+    previewHtml: sanitizePreviewHtml(source.html),
     title
   };
 }

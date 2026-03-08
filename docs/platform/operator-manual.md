@@ -1,60 +1,83 @@
 # Operator Manual
 
-## 1. Import A Section
+This guide is for content managers and marketing operators.
 
-1. Open `/platform/onboarding` in the site app.
-2. Select source type (`url`, `raw_html`, `figma_*`, `stitch_*`).
-3. Paste source payload and set slug/locale/theme.
-4. Click **Analyze Source**.
-5. Confirm block family mapping and exit state mapping.
-6. Run **Publish Dry Run** to preview generated payload.
+## What You Manage
 
-## 2. Import A Full Page
+- Shells: navbar, footer, utility bar, announcement bar
+- Blocks: reusable page sections
+- Widgets: modal, drawer, booking popup, download gate, chat launcher
+- Actions: what a CTA click does
+- Exits: backend/business workflow contracts
 
-1. Use full-page source type (`figma_full_page`, `stitch_full_page`, or full HTML/URL).
-2. Analyze source.
-3. Confirm shell detection (`navbar`, `footer`, announcement bars).
-4. Confirm block ordering and family mapping.
-5. Confirm exit definitions/bindings.
-6. Publish dry run first, then apply when configuration is ready.
+## Daily Workflow
 
-## 3. Choose Navbar/Footer
+1. Open `/platform/onboarding`.
+2. Paste source (URL, HTML, Figma handoff, or Stitch artifact).
+3. Review source preview.
+4. Review detection cards visually.
+5. Import what you want and skip the rest.
+6. Confirm block/widget fields and CTA action behavior.
+7. Run **Preview What Will Be Created**.
+8. If summary looks good, click **Publish to Strapi**.
 
-- Use confirmation fields for `shellVariantId`, `navbarVariantId`, `footerVariantId`.
-- Keep naming stable per page group for reuse.
+## Scenario A: Import One Section
 
-## 4. Assemble Page
+1. Choose `Raw HTML` or `URL`.
+2. Paste section source.
+3. Confirm detected block card.
+4. Keep only the needed block.
+5. Set CTA action (for example: Open widget -> booking popup).
+6. Preview creation summary.
+7. Publish.
 
-- Page assembly is generated as: shell assignment + ordered block IDs + footer/nav variants.
-- Review `strapiPayload.pageAssembly` in publish output.
+Result: section appears in Strapi page assembly and fields are editable.
 
-## 5. Edit Content
+## Scenario B: Import Full Page
 
-- Edit content in Strapi components for shell menus, block fields, and page entries.
-- Do not edit block code for normal copy changes.
+1. Choose full-page source.
+2. Review detected shells (navbar/footer/utility/announcement).
+3. Review detected blocks and widgets visually.
+4. Skip any section not needed.
+5. Confirm CTA actions for each important button/link.
+6. Preview creation summary and warnings.
+7. Publish.
 
-## 6. Manage Menu/Submenu
+Result: shell + block + widget + action objects are created in governed form.
 
-- Maintain menu items inside shell navigation models.
-- Use submenu items for nested navigation.
+## Scenario C: Change CTA Behavior Without Code Changes
 
-## 7. Manage Exits
+1. Open onboarding or Strapi action mapping.
+2. Find CTA action binding.
+3. Change behavior:
+   - URL -> widget
+   - widget -> workflow
+   - workflow target -> different exit
+4. Save/publish.
 
-- Update exit state (`active`/`inactive`) in onboarding confirmation or Strapi exit definitions.
-- Re-route workflow targets via exit definition config.
+Result: behavior changes without editing block component code.
 
-## 8. Preview
+## Menu / Submenu Management
 
-- Use dry run output for payload review.
-- Validate shell/block/exit warnings before apply.
+- Manage menu items in shell navigation models.
+- Add submenu items under navigation groups/items.
+- Preview shell updates before publishing.
 
-## 9. Publish
+## Warnings (Plain Language)
 
-- `dry-run`: generates payload only.
-- `apply`: attempts Strapi apply when environment tokens are configured.
+- “Low confidence block/widget”: confirm mapping before publish.
+- “Workflow review required”: check action-to-exit mapping.
+- “Navbar/footer missing”: choose fallback shell mapping.
+- “Theme debt”: imported styles use arbitrary values; tokenize later.
 
 ## Troubleshooting
 
-- Missing shell candidates: assign fallback shell variant IDs and continue.
-- Low-confidence block mapping: override family manually before publish.
-- Apply unavailable warning: set `STRAPI_URL` and `STRAPI_API_TOKEN`, then rerun.
+- Nothing detected:
+  - Re-run with cleaner source HTML.
+  - Check if source has valid semantic tags.
+- Wrong section type:
+  - Override block family in Selection & Mapping.
+- CTA not doing the right thing:
+  - Re-open Action Mapping and update action type.
+- Publish cannot apply:
+  - `STRAPI_URL` and `STRAPI_API_TOKEN` are not configured.

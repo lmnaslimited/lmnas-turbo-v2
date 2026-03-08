@@ -6,10 +6,16 @@ export function mapBlocksToSchema(
 ): OnboardingBlockProposal[] {
   return blockProposals.map((block) => {
     const overriddenFamily = overrides?.blockFamilyOverrides[block.id];
+    const overriddenFields = overrides?.fieldOverrides[block.id];
+    const segmentation = overrides?.segmentationOverrides[block.id] ?? block.segmentation;
+    const mappedId = overrides?.mapToExisting[block.id] ?? block.id;
 
     return {
       ...block,
-      family: overriddenFamily ?? block.family
+      id: mappedId,
+      family: overriddenFamily ?? block.family,
+      editableFields: overriddenFields ?? block.editableFields,
+      segmentation
     };
   });
 }

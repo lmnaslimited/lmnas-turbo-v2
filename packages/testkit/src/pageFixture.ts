@@ -15,7 +15,10 @@ export const homePageFixture: Page = {
     navbarVariantId: "navbar-default",
     footerVariantId: "footer-default"
   },
+  actionBindings: [],
   exitBindings: [],
+  widgetDefinitions: [],
+  widgetVariants: [],
   themeScope: "theme-default",
   blocks: [
     {

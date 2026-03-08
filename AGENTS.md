@@ -47,25 +47,29 @@ Codex MUST NOT implement Phase 0.1 features unless:
 
 ## Canonical Platform Direction (Mandatory)
 
-- Do NOT drift into WordPress-like page-builder architecture.
-- Do NOT use raw HTML blob rendering as the default platform mode.
-- Default onboarding path MUST be UI-first (`apps/site` onboarding console), not CLI-first.
-- CLI importer remains for CI/debug/batch only.
+Do not drift into WordPress-like or CLI-heavy onboarding.
 
-Platform must preserve separation:
-- Shell Layer: navbar/footer/submenus/variants/assignments
-- Block Layer: canonical reusable block families
-- Page Assembly Layer: shell + ordered blocks + footer composition
-- Exit Layer: governed `exitId` contract bindings
-- Execution Layer: adapter runtime + n8n workflows + Rudder events
+Default onboarding path MUST be UI-first visual wizard in `apps/site/app/platform/onboarding`.
 
-Theme rule:
-- Tailwind/theme belongs to platform/page scope.
-- No block-owned theme engines.
+Platform objects are first-class and separate:
+- Shells: navbar/footer/utility/announcement
+- Blocks: reusable content sections
+- Widgets: reusable interactive surfaces
+- Actions: CTA behavior bindings
+- Exits: backend/business integration contracts
 
-Integration rule:
+Hard rules:
+- Blocks/shells/widgets do not own business logic.
+- CTA behavior must route through `ActionBinding`.
+- Workflow/integration behavior must route through `ExitDefinition` + adapters.
+- Do not expose raw JSON payloads as the primary operator UX.
+- Technical IDs should remain advanced details, not first-step operator burden.
+
+Theme/integration rules:
+- Tailwind/theme belongs to platform/page scope; no block-owned theme engines.
 - Integrations must be specified and implemented through adapters.
-- No business logic in blocks, navbar, or footer components.
+- n8n remains orchestration center.
+- Rudder remains unified event stream.
 
 ## Commands
 
@@ -84,8 +88,8 @@ Integration rule:
 
 ## Website Onboarding conventions
 
-- Operator-facing flow: `apps/site/app/platform/onboarding`
-- Analysis API: `apps/site/app/api/platform/onboarding/analyze/route.ts`
+- Operator flow: `apps/site/app/platform/onboarding`
+- Analyze API: `apps/site/app/api/platform/onboarding/analyze/route.ts`
 - Publish API: `apps/site/app/api/platform/onboarding/publish/route.ts`
 - Exit execution API: `apps/site/app/api/platform/exits/execute/route.ts`
 - Onboarding modules: `packages/integrations/src/onboarding/*`

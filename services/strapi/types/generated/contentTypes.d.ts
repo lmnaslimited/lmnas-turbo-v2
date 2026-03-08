@@ -543,6 +543,7 @@ export interface ApiPagePage extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
+    actionBindings: Schema.Attribute.Component<'actions.action-binding', true>;
     blocks: Schema.Attribute.DynamicZone<
       ['blocks.hero', 'blocks.faq', 'blocks.imported-dom-snapshot']
     > &
@@ -587,6 +588,11 @@ export interface ApiPagePage extends Struct.CollectionTypeSchema {
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    widgetDefinitions: Schema.Attribute.Component<
+      'widgets.widget-definition',
+      true
+    >;
+    widgetVariants: Schema.Attribute.Component<'widgets.widget-variant', true>;
   };
 }
 

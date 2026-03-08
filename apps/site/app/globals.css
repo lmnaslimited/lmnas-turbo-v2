@@ -125,17 +125,69 @@ a:hover {
 .lmnas-onboarding-shell {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 24px 24px 40px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .lmnas-onboarding-card {
   background: var(--lmnas-panel);
+  border: 1px solid #d0daea;
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 8px 28px rgba(15, 35, 72, 0.06);
+}
+
+.lmnas-muted {
+  color: var(--lmnas-muted);
+}
+
+.lmnas-stepper {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(90px, 1fr));
+  gap: 8px;
+}
+
+.lmnas-step {
   border: 1px solid var(--lmnas-border);
-  border-radius: 14px;
-  padding: 16px;
+  border-radius: 12px;
+  background: #f8fbff;
+  color: var(--lmnas-muted);
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  cursor: pointer;
+  min-height: 66px;
+}
+
+.lmnas-step span {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid var(--lmnas-border);
+  font-size: 11px;
+}
+
+.lmnas-step small {
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.lmnas-step-active {
+  border-color: var(--lmnas-accent);
+  background: #edf4ff;
+  color: var(--lmnas-text);
+}
+
+.lmnas-step-done {
+  background: #f2fff8;
 }
 
 .lmnas-onboarding-grid {
@@ -157,6 +209,7 @@ a:hover {
   border-radius: 10px;
   padding: 10px;
   font: inherit;
+  background: #fff;
 }
 
 .lmnas-onboarding-actions {
@@ -171,6 +224,7 @@ a:hover {
   background: white;
   padding: 10px 14px;
   cursor: pointer;
+  font: inherit;
 }
 
 .lmnas-onboarding-actions button[data-primary="true"] {
@@ -190,6 +244,192 @@ a:hover {
   padding: 4px 10px;
 }
 
+.lmnas-chip-shell {
+  background: #edf7ff;
+}
+
+.lmnas-chip-block {
+  background: #f4eeff;
+}
+
+.lmnas-chip-widget {
+  background: #effcf6;
+}
+
+.lmnas-chip-action {
+  background: #fff6e8;
+}
+
+.lmnas-chip-list {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.lmnas-source-type-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.lmnas-source-type {
+  border: 1px solid var(--lmnas-border);
+  border-radius: 12px;
+  background: #f9fbff;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  cursor: pointer;
+}
+
+.lmnas-source-type-active {
+  border-color: var(--lmnas-accent);
+  background: #edf4ff;
+}
+
+.lmnas-preview-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 16px;
+}
+
+.lmnas-preview-frame {
+  width: 100%;
+  min-height: 420px;
+  border: 1px solid var(--lmnas-border);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.lmnas-code-preview {
+  margin: 0;
+  max-height: 420px;
+  overflow: auto;
+  border: 1px solid var(--lmnas-border);
+  border-radius: 12px;
+  padding: 10px;
+  background: #f8fbff;
+  font-size: 12px;
+}
+
+.lmnas-count-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 18px;
+}
+
+.lmnas-detect-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.lmnas-detect-card {
+  border: 1px solid var(--lmnas-border);
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #fff;
+}
+
+.lmnas-detect-card header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.lmnas-detect-card-skipped {
+  opacity: 0.55;
+  background: #fafbfd;
+}
+
+.lmnas-detect-preview {
+  border: 1px dashed var(--lmnas-border);
+  border-radius: 10px;
+  min-height: 88px;
+  max-height: 140px;
+  overflow: auto;
+  padding: 8px;
+  background: #fcfdff;
+}
+
+.lmnas-detect-preview * {
+  margin: 0;
+  font-size: 12px;
+}
+
+.lmnas-detect-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.lmnas-detect-controls button {
+  border: 1px solid var(--lmnas-border);
+  border-radius: 10px;
+  padding: 6px 10px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.lmnas-detect-controls button[data-primary="true"] {
+  background: #eef4ff;
+  border-color: #bcd2ff;
+}
+
+.lmnas-map-row {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--lmnas-border);
+}
+
+.lmnas-action-card {
+  border: 1px solid var(--lmnas-border);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 10px;
+  background: #fff;
+}
+
+.lmnas-action-card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.lmnas-summary-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  margin-top: 12px;
+}
+
+.lmnas-summary-grid article {
+  border: 1px solid var(--lmnas-border);
+  border-radius: 12px;
+  padding: 12px;
+  background: #f9fbff;
+}
+
+.lmnas-summary-grid h3 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.lmnas-summary-grid p {
+  margin: 2px 0 0;
+  color: var(--lmnas-muted);
+}
+
 .lmnas-warning {
   color: var(--lmnas-warning);
 }
@@ -206,6 +446,14 @@ a:hover {
   .lmnas-shell-frame,
   .lmnas-onboarding-shell {
     padding: 14px;
+  }
+
+  .lmnas-stepper {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+  }
+
+  .lmnas-preview-grid {
+    grid-template-columns: 1fr;
   }
 
   .lmnas-shell-nav-list {

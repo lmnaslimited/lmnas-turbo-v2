@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-The current onboarding flow is CLI-heavy and page-snapshot oriented. It does not provide a simple operator experience for extracting reusable shells, canonical blocks, and governed exits from imported sources. This increases developer dependency and creates drift risk against Constitution v2.1 mandates.
+The current onboarding flow is still technical and console-like. It does not provide a simple visual operator experience for extracting reusable shells, canonical blocks, reusable widgets, CTA actions, and governed exits from imported sources. This increases developer dependency and creates drift risk against Constitution v2.1 mandates.
 
 ## Decision
 
@@ -22,10 +22,11 @@ Implementation decisions:
 
 - UI-first onboarding becomes default operator path in `apps/site`.
 - CLI importer remains for CI/debug/batch, not the primary operator flow.
-- Shells (navbar/footer) are modeled as first-class structures, not ordinary blocks.
-- Exits are modeled as contracts with adapter runtime indirection; blocks bind by `exitId`.
+- Shells (navbar/footer/utility/announcement) are modeled as first-class structures, not ordinary blocks.
+- Widgets and actions are modeled as first-class governed objects.
+- Exits are modeled as contracts with adapter runtime indirection; CTA behavior routes through `ActionBinding` before exit resolution.
 - Onboarding pipeline is modularized into detector/mapper/runtime modules under `@lmnas/integrations`.
-- Strapi model scaffolding is expanded for shell/exit structures and page references.
+- Strapi model scaffolding is expanded for shell/widget/action/exit structures and page references.
 
 ## Consequences
 

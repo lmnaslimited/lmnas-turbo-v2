@@ -2,21 +2,21 @@
 
 ## Objective
 
-Move from CLI-first page onboarding to UI-first governed shell/block/exit onboarding.
+Move from CLI-first, technical onboarding to visual UI-first governed shell/block/widget/action/exit onboarding.
 
 ## Phases
 
 1. Governance and contracts
-- Add shell/exit/onboarding contracts.
-- Add Strapi shell/exit schema scaffolding.
+- Add shell/block/widget/action/exit/onboarding contracts.
+- Add Strapi shell/widget/action/exit schema scaffolding.
 
 2. Runtime scaffolding
-- Add detector/mapper/runtime modules.
+- Add detector/mapper/runtime modules for shell/block/widget/action/exit.
 - Add shell-aware layout scaffolding.
-- Add exit runtime skeleton.
+- Add action + exit runtime skeleton.
 
 3. Operator rollout
-- Launch onboarding console in site app.
+- Launch visual onboarding wizard in site app.
 - Keep CLI as debug/CI fallback.
 
 4. Apply hardening
@@ -28,6 +28,8 @@ Move from CLI-first page onboarding to UI-first governed shell/block/exit onboar
 - `pnpm content:onboard` as primary operator flow.
 - CLI-only onboarding for day-to-day content operations.
 - CTA behavior changes through block code edits.
+- Raw JSON dry-run as default operator output.
+- First-step exposure of technical IDs (`shellVariantId`, `navbarVariantId`, `footerVariantId`) in normal flow.
 
 CLI remains supported for:
 - CI checks
@@ -42,6 +44,6 @@ CLI remains supported for:
 ## Rollout Checks
 
 - Validate section import happy path in onboarding UI.
-- Validate full-page shell+block+exit proposals.
-- Validate dry-run payload and warnings.
+- Validate full-page shell+block+widget+action+exit proposals.
+- Validate operator summary view and warnings.
 - Validate apply mode behavior with/without Strapi env vars.

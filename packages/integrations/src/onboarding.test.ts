@@ -14,9 +14,9 @@ const sampleHtml = `
       <p>Accelerate quotes and improve margin quality.</p>
       <a href="/book-appointment">Book Appointment</a>
     </section>
-    <section class="faq">
+    <section class="faq accordion">
       <h2>FAQ</h2>
-      <p>Answers for common questions.</p>
+      <button>Send me the Full Report</button>
     </section>
     <footer>
       <a href="/privacy">Privacy</a>
@@ -26,7 +26,7 @@ const sampleHtml = `
 `;
 
 describe("onboarding pipeline", () => {
-  it("analyzes source and detects shell, block, and exit proposals", async () => {
+  it("analyzes source and detects shell, block, widget, action, and exit proposals", async () => {
     const analysis = await analyzeOnboardingSource({
       sourceType: "raw_html",
       sourceValue: sampleHtml,
@@ -38,7 +38,10 @@ describe("onboarding pipeline", () => {
     expect(analysis.shellCandidates.some((candidate) => candidate.type === "navbar")).toBe(true);
     expect(analysis.shellCandidates.some((candidate) => candidate.type === "footer")).toBe(true);
     expect(analysis.blockProposals.length).toBeGreaterThan(0);
+    expect(analysis.widgetProposals.length).toBeGreaterThan(0);
+    expect(analysis.actionProposals.length).toBeGreaterThan(0);
     expect(analysis.exitProposals.some((proposal) => proposal.id === "book_appointment_primary")).toBe(true);
+    expect(analysis.source.previewHtml.length).toBeGreaterThan(0);
   });
 
   it("produces publish payload in dry-run mode", async () => {
@@ -55,14 +58,27 @@ describe("onboarding pipeline", () => {
       mode: "dry-run",
       overrides: {
         blockFamilyOverrides: {},
-        exitStateOverrides: {}
+        exitStateOverrides: {},
+        itemImportState: {},
+        itemTypeOverrides: {},
+        fieldOverrides: {},
+        mapToExisting: {},
+        segmentationOverrides: {},
+        actionTypeOverrides: {},
+        actionLabelOverrides: {},
+        actionTargetOverrides: {}
       }
     });
 
     expect(result.mode).toBe("dry-run");
     expect(result.applied).toBe(false);
-    expect(result.summary.blockInstances).toBeGreaterThan(0);
-    expect(result.summary.exitDefinitions).toBeGreaterThan(0);
+    expect(result.summary.blocksToCreate).toBeGreaterThan(0);
+    expect(result.summary.widgetsToCreate).toBeGreaterThan(0);
+    expect(result.summary.actionsToCreate).toBeGreaterThan(0);
+    expect(result.summary.exitsRequired).toBeGreaterThan(0);
+    expect(result.previewLinks.length).toBeGreaterThan(0);
+    expect(result.strapiPayload.widgetDefinitions.length).toBeGreaterThan(0);
+    expect(result.strapiPayload.actionBindings.length).toBeGreaterThan(0);
   });
 });
 

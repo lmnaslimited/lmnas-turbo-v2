@@ -7,6 +7,8 @@ LMNAs Website is a governed operating system, not a page dump engine.
 Canonical model:
 - Shell Layer: navbar/footer/menus/variants
 - Block Layer: reusable canonical blocks with structured fields
+- Widget Layer: reusable interactive UI surfaces (modal/drawer/gates/chat)
+- Action Layer: explicit CTA behavior contracts
 - Page Assembly Layer: shell + ordered blocks + footer composition
 - Exit Layer: governed business actions bound by `exitId`
 - Execution Layer: adapter runtime + n8n workflow execution + Rudder events
@@ -21,6 +23,7 @@ Canonical model:
 ## Why This Is Not Raw Snapshot Rendering
 
 - Imports are segmented and classified into shell + block + exit assets.
+- CTA behavior is extracted into action bindings and widget mappings.
 - Editable fields are detected and mapped into Strapi structures.
 - Rendering remains structured and governed by contracts.
 - Fidelity debt is reported explicitly instead of silently accepted.

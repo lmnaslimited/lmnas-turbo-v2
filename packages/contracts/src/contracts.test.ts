@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  actionBindingSchema,
   blogPostSchema,
   heroContract,
   importedDomSnapshotContract,
@@ -129,13 +130,21 @@ describe("contracts", () => {
         locale: "en",
         themeKey: "default"
       },
+      source: {
+        sourceRef: "https://example.com",
+        title: "Example",
+        previewHtml: "<section>Preview</section>"
+      },
       shellCandidates: [
         {
           id: "navbar-candidate-1",
           type: "navbar",
           selectorHint: "<nav>",
           confidence: 0.9,
-          menuItems: []
+          menuItems: [],
+          editableFields: ["navItemLabel"],
+          ctaLabels: ["Book Appointment"],
+          previewHtml: "<nav>...</nav>"
         }
       ],
       blockProposals: [
@@ -145,7 +154,39 @@ describe("contracts", () => {
           selectorHint: "section.hero",
           confidence: 0.8,
           editableFields: ["heading"],
+          ctaLabels: ["Book Appointment"],
+          actionIds: ["action-book"],
+          segmentation: "keep",
           rawHtmlSnippet: "<section class='hero'>...</section>"
+        }
+      ],
+      widgetProposals: [
+        {
+          id: "widget-booking",
+          name: "Booking Popup",
+          widgetType: "booking_popup",
+          selectorHint: "button.book",
+          confidence: 0.78,
+          editableFields: ["heading", "buttonText"],
+          triggerLabels: ["Book Appointment"],
+          associatedActionIds: ["action-book"]
+        }
+      ],
+      actionProposals: [
+        {
+          id: "action-book",
+          label: "Book Appointment",
+          selectorHint: "a[href='/book']",
+          confidence: 0.9,
+          actionType: "open_widget",
+          sourceSurface: "block",
+          sourceItemId: "block-1",
+          destination: {
+            kind: "widget",
+            value: "widget-booking"
+          },
+          suggestedExitId: "book_appointment_primary",
+          summary: "Open booking widget"
         }
       ],
       exitProposals: [
@@ -162,6 +203,7 @@ describe("contracts", () => {
             kind: "n8n_webhook",
             value: "https://n8n.example.com/webhook/book"
           },
+          sourceActionId: "action-book",
           suggestedBinding: {
             locationType: "block",
             locationId: "block-1"
@@ -178,6 +220,18 @@ describe("contracts", () => {
     });
 
     expect(parsed.success).toBe(true);
+  });
+
+  it("requires action targets for action binding contract", () => {
+    const parsed = actionBindingSchema.safeParse({
+      id: "action-binding-1",
+      label: "Book Appointment",
+      actionType: "open_widget",
+      locationType: "block",
+      locationId: "block-1"
+    });
+
+    expect(parsed.success).toBe(false);
   });
 
   it("parses governed exit definition", () => {

@@ -1,12 +1,17 @@
 import type { OnboardingShellCandidate } from "@lmnas/contracts";
-import { extractAnchors, includesAny } from "../shared/html";
+import { extractAnchors, includesAny, sanitizePreviewHtml } from "../shared/html";
 
 const NAV_TERMS = ["navbar", "navigation", "header", "menu"];
 const FOOTER_TERMS = ["footer", "legal", "copyright"];
-const ANNOUNCEMENT_TERMS = ["announcement", "topbar", "utility", "notice"];
+const ANNOUNCEMENT_TERMS = ["announcement", "topbar", "utility", "notice", "promo"];
 
 function collectTagSegments(html: string, tag: string): string[] {
   return Array.from(html.matchAll(new RegExp(`<${tag}\\b[^>]*>[\\s\\S]*?<\\/${tag}>`, "gi"))).map((match) => match[0]);
+}
+
+function collectCtaLabels(htmlSnippet: string): string[] {
+  const anchors = extractAnchors(htmlSnippet);
+  return anchors.map((anchor) => anchor.label).slice(0, 4);
 }
 
 function createShellCandidate(
@@ -30,26 +35,32 @@ function createShellCandidate(
         value: anchor.href
       },
       children: []
-    }))
+    })),
+    editableFields: ["navItemLabel", "navDestination"],
+    ctaLabels: collectCtaLabels(htmlSnippet),
+    previewHtml: sanitizePreviewHtml(htmlSnippet)
   };
 }
 
 function detectAnnouncementBars(html: string): OnboardingShellCandidate[] {
   const candidates: OnboardingShellCandidate[] = [];
-  const attributeMatches = Array.from(html.matchAll(/<(div|section|aside)\b[^>]*(class|id)=["']([^"']+)["'][^>]*>/gi));
+  const matches = Array.from(html.matchAll(/<(div|section|aside)\b[^>]*(class|id)=["']([^"']+)["'][^>]*>([\s\S]*?)<\/\1>/gi));
 
-  for (let index = 0; index < attributeMatches.length; index += 1) {
-    const classLike = attributeMatches[index][3] ?? "";
+  for (let index = 0; index < matches.length; index += 1) {
+    const classLike = matches[index][3] ?? "";
     if (!includesAny(classLike, ANNOUNCEMENT_TERMS)) {
       continue;
     }
 
     candidates.push({
       id: `announcement-candidate-${candidates.length + 1}`,
-      type: "announcement_bar",
-      selectorHint: `<${attributeMatches[index][1]} class='${classLike}'>`,
-      confidence: 0.65,
-      menuItems: []
+      type: includesAny(classLike, ["utility"]) ? "utility_bar" : "announcement_bar",
+      selectorHint: `<${matches[index][1]} class='${classLike}'>`,
+      confidence: 0.66,
+      menuItems: [],
+      editableFields: ["label", "buttonText", "buttonUrl"],
+      ctaLabels: collectCtaLabels(matches[index][0]),
+      previewHtml: sanitizePreviewHtml(matches[index][0])
     });
   }
 
@@ -67,7 +78,7 @@ export function detectShellCandidates(html: string): OnboardingShellCandidate[] 
 
   const headerSegments = collectTagSegments(html, "header").filter((segment) => includesAny(segment, NAV_TERMS));
   headerSegments.forEach((segment, index) => {
-    candidates.push(createShellCandidate(`navbar-header-${index + 1}`, "navbar", "<header>", 0.7, segment));
+    candidates.push(createShellCandidate(`navbar-header-${index + 1}`, "navbar", "<header>", 0.72, segment));
   });
 
   const footerSegments = collectTagSegments(html, "footer");
@@ -84,14 +95,20 @@ export function detectShellCandidates(html: string): OnboardingShellCandidate[] 
       type: "navbar",
       selectorHint: "<body>",
       confidence: 0.35,
-      menuItems: []
+      menuItems: [],
+      editableFields: ["navItemLabel", "navDestination"],
+      ctaLabels: [],
+      previewHtml: "<div>No navigation detected</div>"
     });
     candidates.push({
       id: "footer-fallback-1",
       type: "footer",
       selectorHint: "<body>",
       confidence: 0.3,
-      menuItems: []
+      menuItems: [],
+      editableFields: ["footerLinks", "legalText"],
+      ctaLabels: [],
+      previewHtml: "<div>No footer detected</div>"
     });
   }
 

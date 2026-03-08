@@ -38,10 +38,28 @@
       "component": "shell.shell-assignment",
       "required": false
     },
+    "actionBindings": {
+      "type": "component",
+      "repeatable": true,
+      "component": "actions.action-binding",
+      "required": false
+    },
     "exitBindings": {
       "type": "component",
       "repeatable": true,
       "component": "exits.exit-binding",
+      "required": false
+    },
+    "widgetDefinitions": {
+      "type": "component",
+      "repeatable": true,
+      "component": "widgets.widget-definition",
+      "required": false
+    },
+    "widgetVariants": {
+      "type": "component",
+      "repeatable": true,
+      "component": "widgets.widget-variant",
       "required": false
     },
     "themeScope": {

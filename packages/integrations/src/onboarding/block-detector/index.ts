@@ -1,5 +1,5 @@
 import type { CanonicalBlockFamily, OnboardingBlockProposal } from "@lmnas/contracts";
-import { extractSections, includesAny, stripTags } from "../shared/html";
+import { extractAnchors, extractSections, includesAny, sanitizePreviewHtml, stripTags } from "../shared/html";
 
 type FamilyRule = {
   family: CanonicalBlockFamily;
@@ -49,7 +49,7 @@ function classifyFamily(segment: string): { family: CanonicalBlockFamily; confid
   if (bestMatch.score === 0) {
     return {
       family: "rich_text_section",
-      confidence: 0.4
+      confidence: 0.42
     };
   }
 
@@ -57,6 +57,12 @@ function classifyFamily(segment: string): { family: CanonicalBlockFamily; confid
     family: bestMatch.family,
     confidence: Math.min(0.95, 0.5 + bestMatch.score * 0.1)
   };
+}
+
+function extractCtaLabels(segment: string): string[] {
+  return extractAnchors(segment)
+    .map((anchor) => anchor.label)
+    .slice(0, 6);
 }
 
 export function detectBlockProposals(html: string): OnboardingBlockProposal[] {
@@ -71,7 +77,11 @@ export function detectBlockProposals(html: string): OnboardingBlockProposal[] {
       selectorHint: `section:nth-of-type(${index + 1})`,
       confidence: classification.confidence,
       editableFields: [],
-      rawHtmlSnippet: segment
+      ctaLabels: extractCtaLabels(segment),
+      actionIds: [],
+      segmentation: "keep",
+      rawHtmlSnippet: segment,
+      previewHtml: sanitizePreviewHtml(segment)
     };
   });
 }

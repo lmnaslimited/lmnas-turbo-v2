@@ -5,10 +5,10 @@ export default function PlatformOnboardingPage() {
   return (
     <div className="lmnas-onboarding-shell">
       <section className="lmnas-onboarding-card">
-        <h1>LMNAs Onboarding Console</h1>
+        <h1>LMNAs Visual Onboarding Studio</h1>
         <p>
-          Import sources into governed shell systems, canonical blocks, and exit contracts. This is the default
-          operator path; CLI remains for debug and CI only.
+          Import pages and sections visually into governed shells, blocks, widgets, actions, and exits. This is the
+          default operator path.
         </p>
       </section>
       <OnboardingConsole />

@@ -27,11 +27,13 @@ export function mapShellCandidatesToSchema(params: {
 }): ShellSchemaMapResult {
   const navbarCandidate = pickPrimaryCandidate(params.shellCandidates, "navbar");
   const footerCandidate = pickPrimaryCandidate(params.shellCandidates, "footer");
+  const navbarMappedId = navbarCandidate ? params.overrides?.mapToExisting[navbarCandidate.id] : undefined;
+  const footerMappedId = footerCandidate ? params.overrides?.mapToExisting[footerCandidate.id] : undefined;
 
   const menuId = `menu-${params.slug}`;
   const footerMenuId = `footer-menu-${params.slug}`;
-  const navbarVariantId = params.overrides?.navbarVariantId ?? `navbar-${params.slug}`;
-  const footerVariantId = params.overrides?.footerVariantId ?? `footer-${params.slug}`;
+  const navbarVariantId = params.overrides?.navbarVariantId ?? navbarMappedId ?? `navbar-${params.slug}`;
+  const footerVariantId = params.overrides?.footerVariantId ?? footerMappedId ?? `footer-${params.slug}`;
   const shellVariantId = params.overrides?.shellVariantId ?? `shell-${params.slug}`;
 
   const menus: NavigationMenu[] = [

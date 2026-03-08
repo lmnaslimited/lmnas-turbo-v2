@@ -4,6 +4,12 @@ export type AnchorCandidate = {
   selectorHint: string;
 };
 
+export type ButtonCandidate = {
+  label: string;
+  selectorHint: string;
+  type: string;
+};
+
 export function stripTags(input: string): string {
   return input.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
@@ -14,6 +20,13 @@ export function slugify(input: string): string {
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "")
     .replace(/_{2,}/g, "_");
+}
+
+export function sanitizePreviewHtml(html: string): string {
+  return html
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/\son\w+\s*=\s*['"][^'"]*['"]/gi, "")
+    .replace(/javascript:/gi, "");
 }
 
 export function extractTitle(html: string): string | undefined {
@@ -63,6 +76,28 @@ export function extractAnchors(html: string): AnchorCandidate[] {
       };
     })
     .filter((value): value is AnchorCandidate => Boolean(value));
+}
+
+export function extractButtons(html: string): ButtonCandidate[] {
+  const matches = Array.from(html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/gi));
+
+  return matches
+    .map((match, index) => {
+      const attrs = match[1] ?? "";
+      const buttonType = attrs.match(/type=["']([^"']+)["']/i)?.[1] ?? "button";
+      const label = stripTags(match[2]);
+
+      if (!label) {
+        return undefined;
+      }
+
+      return {
+        label,
+        selectorHint: `button:nth-of-type(${index + 1})`,
+        type: buttonType
+      };
+    })
+    .filter((value): value is ButtonCandidate => Boolean(value));
 }
 
 export function includesAny(input: string, terms: string[]): boolean {

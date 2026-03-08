@@ -1,64 +1,73 @@
 # Developer Implementation
 
-## Technical Architecture
+## Architectural Baseline
 
-Primary orchestration entrypoints:
-- `analyzeOnboardingSource`
-- `publishOnboardingDraft`
+- Constitution v2.1 is the governing guardrail
+- LMOP v1.2 is the product architecture baseline
+- Schema-first contracts are mandatory
 
-Implemented module namespaces in `packages/integrations/src/onboarding`:
-- `source-ingestion`
-- `shell-detector`
-- `block-detector`
-- `field-detector`
-- `exit-detector`
-- `shell-schema-mapper`
-- `block-schema-mapper`
-- `exit-contract-registry`
-- `strapi-sync`
-- `page-assembler`
-- `renderer`
-- `theme-engine`
-- `exit-adapter-runtime`
-- `fidelity-reporter`
-- `onboarding-ui`
+## Core Modules
 
-## Strapi Integration
+- `source-ingestion`: normalize URL/HTML/Figma/Stitch input
+- `shell-detector`: detect navbar/footer/utility/announcement
+- `block-detector`: segment sections and classify block family
+- `widget-detector`: detect reusable interactive surfaces
+- `action-detector`: classify CTA click behavior
+- `field-detector`: infer editable fields
+- `exit-detector`: infer governed exit contracts
+- `shell-schema-mapper`: map shell candidates to canonical shell schemas
+- `block-schema-mapper`: apply block family/field overrides
+- `widget-schema-mapper`: map widget candidates to definition/variant contracts
+- `action-schema-mapper`: map CTA behavior to action bindings
+- `exit-contract-registry`: register/resolve/toggle exit contracts
+- `strapi-sync`: build and publish payloads
+- `page-assembler`: compose shell + blocks + widgets + actions
+- `renderer`: compare source structure and mapped structure
+- `theme-engine`: token-first Tailwind analysis
+- `fidelity-reporter`: plain-language warnings
 
-Current implementation generates governed Strapi sync payloads.
-`apply` mode is scaffolded and gated by Strapi env presence.
+## Contracts
+
+Primary schemas live in `packages/contracts/src/platform.contracts.ts`.
+
+Key objects:
+
+- shell models (`ShellVariant`, `NavbarVariant`, `FooterVariant`, `ShellAssignment`)
+- block proposals
+- widget definitions/variants
+- action bindings
+- exit definitions/bindings
+- onboarding analysis/request/result
 
 ## Frontend Integration
 
-- Operator UI: `apps/site/app/platform/onboarding`
-- API routes:
-  - `api/platform/onboarding/analyze`
-  - `api/platform/onboarding/publish`
-  - `api/platform/exits/execute`
+- Onboarding UI route: `apps/site/app/platform/onboarding`
+- Analyze API: `POST /api/platform/onboarding/analyze`
+- Publish API: `POST /api/platform/onboarding/publish`
+- Exit execution API: `POST /api/platform/exits/execute`
+
+## Strapi Integration
+
+`StrapiSyncPayload` now includes:
+
+- shell variants + menus
+- block instances
+- widget definitions + variants
+- action bindings
+- exit definitions + bindings
+- page assembly
 
 ## Adapter Strategy
 
-Exit runtime uses typed adapter maps:
-- frontend adapter map
-- backend adapter map
+- Frontend adapters resolve UX behaviors (redirect/modal/form/chat)
+- Backend adapters resolve workflow/system integration (`n8n_webhook`, `api`)
+- New exits should be added by contract registration and adapter mapping
 
-Adapters are replaceable without block-level changes.
+## Contract-First Extensibility
 
-## Exit Contract Handling
+For new workflow-heavy actions:
 
-- Exit proposals become `ExitDefinition + ExitBinding` structures.
-- Registry supports `register`, `resolve`, `setState`, `list`.
-- Runtime executes only active exits.
-
-## Shell-Aware Rendering
-
-- Layouts now render through shell frame with nav/footer/utility slots.
-- Page routes fetch shell render model separately from block rendering.
-
-## Contract First
-
-`@lmnas/contracts` now defines:
-- shell contracts
-- exit contracts
-- onboarding analysis/publish contracts
-- page extensions for shell assignment + exit bindings
+1. Add/extend exit contract
+2. Register adapter mapping
+3. Bind action to exit in config
+4. Keep shell/block/widget code unchanged

@@ -5,11 +5,15 @@ const { publishOnboardingDraftMock } = vi.hoisted(() => ({
     mode: "dry-run",
     applied: false,
     summary: {
-      shellVariants: 1,
-      blockInstances: 2,
-      exitDefinitions: 1,
-      exitBindings: 1
+      shellsToCreate: 1,
+      blocksToCreate: 2,
+      widgetsToCreate: 1,
+      actionsToCreate: 2,
+      exitsRequired: 1,
+      editableFieldsCreated: 6,
+      warningsCount: 0
     },
+    previewLinks: ["/home"],
     warnings: [],
     strapiPayload: {
       shellVariants: [],
@@ -17,6 +21,9 @@ const { publishOnboardingDraftMock } = vi.hoisted(() => ({
       footerVariants: [],
       menus: [],
       blockInstances: [],
+      widgetDefinitions: [],
+      widgetVariants: [],
+      actionBindings: [],
       exitDefinitions: [],
       exitBindings: [],
       pageAssembly: {
@@ -29,6 +36,8 @@ const { publishOnboardingDraftMock } = vi.hoisted(() => ({
           footerVariantId: "footer-home"
         },
         blockOrder: ["block-1"],
+        widgetOrder: [],
+        actionBindingIds: [],
         navbarVariantId: "navbar-home",
         footerVariantId: "footer-home"
       }

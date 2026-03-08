@@ -3,12 +3,16 @@ export type { IngestedSource } from "./source-ingestion";
 
 export { detectShellCandidates } from "./shell-detector";
 export { detectBlockProposals } from "./block-detector";
+export { detectWidgetProposals } from "./widget-detector";
+export { detectActionProposals } from "./action-detector";
 export { detectEditableFields } from "./field-detector";
 export { detectExitProposals } from "./exit-detector";
 
 export { mapShellCandidatesToSchema } from "./shell-schema-mapper";
 export type { ShellSchemaMapResult } from "./shell-schema-mapper";
 export { mapBlocksToSchema } from "./block-schema-mapper";
+export { mapWidgetsToSchema } from "./widget-schema-mapper";
+export { mapActionsToSchema } from "./action-schema-mapper";
 
 export { ExitContractRegistry, createExitContractsFromProposals } from "./exit-contract-registry";
 export { buildStrapiSyncPayload, publishStrapiSyncPayload } from "./strapi-sync";

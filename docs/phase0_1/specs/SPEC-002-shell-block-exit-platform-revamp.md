@@ -4,9 +4,9 @@
 
 ## Scope
 
-- Add governed shell/block/exit/onboarding contracts in `@lmnas/contracts`.
+- Add governed shell/block/widget/action/exit/onboarding contracts in `@lmnas/contracts`.
 - Add a modular onboarding analysis pipeline in `@lmnas/integrations` with required module namespaces.
-- Add UI-first onboarding workflow in `apps/site` (intake -> analysis -> confirmation -> publish payload).
+- Add visual UI-first onboarding workflow in `apps/site` (intake -> source preview -> visual detection review -> selection/mapping -> action mapping -> publish summary).
 - Add exit adapter runtime skeleton (frontend/backend adapter resolution by governed exit definitions).
 - Add shell-aware page assembly scaffolding and Strapi schema scaffolding for shell/exit models.
 - Add platform documentation package (`docs/platform/*`) and update root operator/developer guidance docs.
@@ -23,10 +23,11 @@
 Happy path:
 1. Operator opens onboarding console.
 2. Operator submits source (URL/HTML/Figma/Stitch reference).
-3. System analyzes source and proposes shell, block families, fields, exits, and fidelity notes.
-4. Operator confirms/adjusts mappings.
-5. System generates Strapi sync payload and page assembly payload.
-6. Operator publishes (dry-run by default, governed apply when configured).
+3. System analyzes source and proposes shell, blocks, widgets, actions, exits, and fidelity notes.
+4. Operator reviews visual cards and chooses import/skip.
+5. Operator confirms block/widget fields and CTA action mapping.
+6. System generates operator-friendly creation summary and Strapi sync payload.
+7. Operator publishes (preview first, governed apply when configured).
 
 Edge cases:
 - Source unreachable or malformed -> analysis error + guidance.
@@ -41,8 +42,8 @@ Inputs:
 
 Transforms:
 - `source-ingestion` normalizes source
-- detectors infer shell/block/field/exit proposals
-- mappers convert detection output to canonical shell/block/exit structures
+- detectors infer shell/block/widget/action/field/exit proposals
+- mappers convert detection output to canonical shell/block/widget/action/exit structures
 - `theme-engine` and `fidelity-reporter` emit debt/warning signals
 - `strapi-sync` builds publish payload
 
@@ -50,6 +51,7 @@ Outputs:
 - Onboarding analysis model
 - Page assembly model
 - Strapi sync payload (shell variants, block instances, exit definitions/bindings)
+- Strapi sync payload (shell variants, block instances, widget definitions/variants, action bindings, exit definitions/bindings)
 - Publish result with warnings and follow-up actions
 
 ## Interfaces / Contracts impacted
@@ -60,6 +62,8 @@ Outputs:
   - `ShellVariant`, `NavbarVariant`, `FooterVariant`, `NavigationMenu`, `NavigationItem`, `NavigationGroup`, `FooterColumn`, `FooterLegalStrip`, `ShellAssignment`
 - New exit contracts:
   - `ExitDefinition`, `ExitBinding`, `ExitState`, `ExitPolicy`, `ExitExecutionTarget`, `ExitPayloadSchema`, `ExitAuditLog`
+- New widget/action contracts:
+  - `WidgetDefinition`, `WidgetVariant`, `ActionBinding`, `ActionType`
 - New onboarding contracts:
   - intake, analysis, mapping override, publish request/result
 
@@ -68,10 +72,10 @@ Outputs:
 | Path | Change Type | Reason |
 | --- | --- | --- |
 | `packages/contracts/src/index.ts` | modify | Export shell/block/exit/onboarding contracts |
-| `packages/contracts/src/platform.contracts.ts` | create | Canonical schemas/types for shell+exit+onboarding |
+| `packages/contracts/src/platform.contracts.ts` | create | Canonical schemas/types for shell+block+widget+action+exit+onboarding |
 | `packages/contracts/src/contracts.test.ts` | modify | Validate new contracts and conversion fields |
 | `packages/blocks/Hero/*` | modify | Enforce governed conversion fields and exit-aware CTA binding |
-| `packages/integrations/src/onboarding/**` | create | Implement required onboarding modules and orchestration |
+| `packages/integrations/src/onboarding/**` | create | Implement required onboarding modules and orchestration, including widget/action detection and mapping |
 | `packages/integrations/src/index.ts` | modify | Export onboarding + exit runtime APIs |
 | `packages/integrations/src/strapiClient.ts` | modify | Read/write page shell/exit scaffolding fields |
 | `packages/integrations/src/strapiClient.test.ts` | modify | Validate shell/exit mapping behavior |
@@ -84,7 +88,9 @@ Outputs:
 | `apps/site/app/layout.tsx` | modify | Align app shell wrapper with platform shell-first direction |
 | `services/strapi/src/components/shell/*.json` | create | Shell component model scaffolding |
 | `services/strapi/src/components/exits/*.json` | create | Exit component model scaffolding |
-| `services/strapi/src/api/page/content-types/page/schema.json` | modify | Add shell + exit component references |
+| `services/strapi/src/components/widgets/*.json` | create | Widget component model scaffolding |
+| `services/strapi/src/components/actions/*.json` | create | Action component model scaffolding |
+| `services/strapi/src/api/page/content-types/page/schema.json` | modify | Add shell + widget + action + exit component references |
 | `docs/platform/*.md` | create | Required platform/operator/developer docs set |
 | `README.md` | modify | UI-first operator path and new platform model |
 | `AGENTS.md` | modify | Enforce shell/block/exit governance and anti-drift rules |

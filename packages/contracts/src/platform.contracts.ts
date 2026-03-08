@@ -23,6 +23,33 @@ export const canonicalBlockFamilySchema = z.enum([
   "embedded_asset_section"
 ]);
 
+export const widgetTypeSchema = z.enum([
+  "modal",
+  "drawer",
+  "embedded_form",
+  "subscription_popup",
+  "booking_popup",
+  "download_gate",
+  "chat_launcher",
+  "inline_expand_collapse",
+  "below_fold_widget"
+]);
+
+export const actionTypeSchema = z.enum([
+  "link_url",
+  "scroll_to_section",
+  "open_modal",
+  "open_drawer",
+  "open_widget",
+  "submit_form",
+  "download_asset",
+  "external_booking",
+  "workflow"
+]);
+
+export const onboardingItemTypeSchema = z.enum(["shell", "block", "widget", "action", "exit"]);
+export const segmentationModeSchema = z.enum(["keep", "split", "merge"]);
+
 export const navigationDestinationTypeSchema = z.enum(["internal", "external", "asset", "exit"]);
 
 export const navigationDestinationSchema = z
@@ -147,7 +174,7 @@ export const exitDefinitionSchema = z.object({
 export const exitBindingSchema = z.object({
   id: z.string().min(1),
   exitId: z.string().min(1),
-  locationType: z.enum(["block", "navbar", "footer", "page"]),
+  locationType: z.enum(["block", "navbar", "footer", "widget", "page"]),
   locationId: z.string().min(1),
   label: z.string().min(1)
 });
@@ -158,6 +185,71 @@ export const exitAuditLogSchema = z.object({
   timestamp: z.string().min(1),
   reason: z.string().min(1).optional()
 });
+
+export const widgetDefinitionSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  widgetType: widgetTypeSchema,
+  state: exitStateSchema.default("active"),
+  description: z.string().min(1).optional(),
+  editableFields: z.array(z.string().min(1)).default([]),
+  defaultExitId: z.string().min(1).optional()
+});
+
+export const widgetVariantSchema = z.object({
+  id: z.string().min(1),
+  widgetId: z.string().min(1),
+  name: z.string().min(1),
+  surface: z.enum(["modal", "drawer", "inline", "popup", "below_fold"]).default("inline"),
+  config: z.record(z.unknown()).default({})
+});
+
+export const actionBindingSchema = z
+  .object({
+    id: z.string().min(1),
+    label: z.string().min(1),
+    actionType: actionTypeSchema,
+    locationType: z.enum(["block", "navbar", "footer", "widget", "page"]),
+    locationId: z.string().min(1),
+    targetUrl: z.string().min(1).optional(),
+    targetSectionId: z.string().min(1).optional(),
+    widgetId: z.string().min(1).optional(),
+    exitId: z.string().min(1).optional(),
+    openInNewTab: z.boolean().default(false)
+  })
+  .superRefine((value, ctx) => {
+    if (["link_url", "download_asset", "external_booking"].includes(value.actionType) && !value.targetUrl) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["targetUrl"],
+        message: `targetUrl is required for ${value.actionType}`
+      });
+    }
+
+    if (value.actionType === "scroll_to_section" && !value.targetSectionId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["targetSectionId"],
+        message: "targetSectionId is required for scroll_to_section"
+      });
+    }
+
+    if (["open_modal", "open_drawer", "open_widget"].includes(value.actionType) && !value.widgetId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["widgetId"],
+        message: `widgetId is required for ${value.actionType}`
+      });
+    }
+
+    if (["workflow", "submit_form"].includes(value.actionType) && !value.exitId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["exitId"],
+        message: `exitId is required for ${value.actionType}`
+      });
+    }
+  });
 
 export const onboardingSourceTypeSchema = z.enum([
   "stitch_section",
@@ -176,12 +268,21 @@ export const onboardingIntakeSchema = z.object({
   themeKey: z.string().min(1).default("default")
 });
 
+export const onboardingSourcePreviewSchema = z.object({
+  sourceRef: z.string().min(1),
+  title: z.string().min(1).optional(),
+  previewHtml: z.string().min(1)
+});
+
 export const onboardingShellCandidateSchema = z.object({
   id: z.string().min(1),
   type: z.enum(["navbar", "footer", "utility_bar", "announcement_bar"]),
   selectorHint: z.string().min(1),
   confidence: z.number().min(0).max(1),
-  menuItems: z.array(navigationItemSchema).default([])
+  menuItems: z.array(navigationItemSchema).default([]),
+  editableFields: z.array(z.string().min(1)).default([]),
+  ctaLabels: z.array(z.string().min(1)).default([]),
+  previewHtml: z.string().min(1).optional()
 });
 
 export const onboardingBlockProposalSchema = z.object({
@@ -190,7 +291,42 @@ export const onboardingBlockProposalSchema = z.object({
   selectorHint: z.string().min(1),
   confidence: z.number().min(0).max(1),
   editableFields: z.array(z.string().min(1)).default([]),
-  rawHtmlSnippet: z.string().min(1).optional()
+  ctaLabels: z.array(z.string().min(1)).default([]),
+  actionIds: z.array(z.string().min(1)).default([]),
+  segmentation: segmentationModeSchema.default("keep"),
+  rawHtmlSnippet: z.string().min(1).optional(),
+  previewHtml: z.string().min(1).optional()
+});
+
+export const onboardingWidgetProposalSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  widgetType: widgetTypeSchema,
+  selectorHint: z.string().min(1),
+  confidence: z.number().min(0).max(1),
+  editableFields: z.array(z.string().min(1)).default([]),
+  triggerLabels: z.array(z.string().min(1)).default([]),
+  associatedActionIds: z.array(z.string().min(1)).default([]),
+  previewHtml: z.string().min(1).optional()
+});
+
+export const actionDestinationSchema = z.object({
+  kind: z.enum(["url", "section", "widget", "exit", "none"]),
+  value: z.string().min(1).optional()
+});
+
+export const onboardingActionProposalSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  selectorHint: z.string().min(1),
+  confidence: z.number().min(0).max(1),
+  actionType: actionTypeSchema,
+  sourceSurface: z.enum(["shell", "block", "widget", "unknown"]).default("unknown"),
+  sourceItemId: z.string().min(1).optional(),
+  destination: actionDestinationSchema,
+  suggestedExitId: z.string().min(1).optional(),
+  summary: z.string().min(1),
+  previewHtml: z.string().min(1).optional()
 });
 
 export const onboardingExitProposalSchema = z.object({
@@ -203,8 +339,9 @@ export const onboardingExitProposalSchema = z.object({
   frontendAdapterType: z.enum(["redirect", "modal", "form", "chat_drawer", "none"]),
   backendAdapterType: z.enum(["n8n_webhook", "api", "none"]),
   workflowTarget: exitExecutionTargetSchema,
+  sourceActionId: z.string().min(1).optional(),
   suggestedBinding: z.object({
-    locationType: z.enum(["block", "navbar", "footer", "page"]),
+    locationType: z.enum(["block", "navbar", "footer", "widget", "page"]),
     locationId: z.string().min(1)
   })
 });
@@ -224,11 +361,21 @@ export const fidelityWarningSchema = z.object({
 
 export const onboardingAnalysisSchema = z.object({
   intake: onboardingIntakeSchema,
+  source: onboardingSourcePreviewSchema,
   shellCandidates: z.array(onboardingShellCandidateSchema),
   blockProposals: z.array(onboardingBlockProposalSchema),
+  widgetProposals: z.array(onboardingWidgetProposalSchema),
+  actionProposals: z.array(onboardingActionProposalSchema),
   exitProposals: z.array(onboardingExitProposalSchema),
   theme: onboardingThemeNotesSchema,
   fidelityWarnings: z.array(fidelityWarningSchema)
+});
+
+const actionTargetOverrideSchema = z.object({
+  url: z.string().min(1).optional(),
+  sectionId: z.string().min(1).optional(),
+  widgetId: z.string().min(1).optional(),
+  exitId: z.string().min(1).optional()
 });
 
 export const onboardingOverrideSchema = z.object({
@@ -236,7 +383,15 @@ export const onboardingOverrideSchema = z.object({
   navbarVariantId: z.string().min(1).optional(),
   footerVariantId: z.string().min(1).optional(),
   blockFamilyOverrides: z.record(z.string(), canonicalBlockFamilySchema).default({}),
-  exitStateOverrides: z.record(z.string(), exitStateSchema).default({})
+  exitStateOverrides: z.record(z.string(), exitStateSchema).default({}),
+  itemImportState: z.record(z.string(), z.boolean()).default({}),
+  itemTypeOverrides: z.record(z.string(), onboardingItemTypeSchema).default({}),
+  fieldOverrides: z.record(z.string(), z.array(z.string().min(1))).default({}),
+  mapToExisting: z.record(z.string(), z.string().min(1)).default({}),
+  segmentationOverrides: z.record(z.string(), segmentationModeSchema).default({}),
+  actionTypeOverrides: z.record(z.string(), actionTypeSchema).default({}),
+  actionLabelOverrides: z.record(z.string(), z.string().min(1)).default({}),
+  actionTargetOverrides: z.record(z.string(), actionTargetOverrideSchema).default({})
 });
 
 export const pageAssemblySchema = z.object({
@@ -244,6 +399,8 @@ export const pageAssemblySchema = z.object({
   locale: z.string().min(1),
   shellAssignment: shellAssignmentSchema,
   blockOrder: z.array(z.string().min(1)).min(1),
+  widgetOrder: z.array(z.string().min(1)).default([]),
+  actionBindingIds: z.array(z.string().min(1)).default([]),
   footerVariantId: z.string().min(1),
   navbarVariantId: z.string().min(1)
 });
@@ -254,6 +411,9 @@ export const strapiSyncPayloadSchema = z.object({
   footerVariants: z.array(footerVariantSchema),
   menus: z.array(navigationMenuSchema),
   blockInstances: z.array(onboardingBlockProposalSchema),
+  widgetDefinitions: z.array(widgetDefinitionSchema),
+  widgetVariants: z.array(widgetVariantSchema),
+  actionBindings: z.array(actionBindingSchema),
   exitDefinitions: z.array(exitDefinitionSchema),
   exitBindings: z.array(exitBindingSchema),
   pageAssembly: pageAssemblySchema
@@ -263,7 +423,15 @@ export const onboardingPublishRequestSchema = z.object({
   analysis: onboardingAnalysisSchema,
   overrides: onboardingOverrideSchema.default({
     blockFamilyOverrides: {},
-    exitStateOverrides: {}
+    exitStateOverrides: {},
+    itemImportState: {},
+    itemTypeOverrides: {},
+    fieldOverrides: {},
+    mapToExisting: {},
+    segmentationOverrides: {},
+    actionTypeOverrides: {},
+    actionLabelOverrides: {},
+    actionTargetOverrides: {}
   }),
   mode: z.enum(["dry-run", "apply"]).default("dry-run")
 });
@@ -272,16 +440,24 @@ export const onboardingPublishResultSchema = z.object({
   mode: z.enum(["dry-run", "apply"]),
   applied: z.boolean(),
   summary: z.object({
-    shellVariants: z.number().int().min(0),
-    blockInstances: z.number().int().min(0),
-    exitDefinitions: z.number().int().min(0),
-    exitBindings: z.number().int().min(0)
+    shellsToCreate: z.number().int().min(0),
+    blocksToCreate: z.number().int().min(0),
+    widgetsToCreate: z.number().int().min(0),
+    actionsToCreate: z.number().int().min(0),
+    exitsRequired: z.number().int().min(0),
+    editableFieldsCreated: z.number().int().min(0),
+    warningsCount: z.number().int().min(0)
   }),
+  previewLinks: z.array(z.string().min(1)).default([]),
   warnings: z.array(fidelityWarningSchema),
   strapiPayload: strapiSyncPayloadSchema
 });
 
 export type CanonicalBlockFamily = z.infer<typeof canonicalBlockFamilySchema>;
+export type WidgetType = z.infer<typeof widgetTypeSchema>;
+export type ActionType = z.infer<typeof actionTypeSchema>;
+export type OnboardingItemType = z.infer<typeof onboardingItemTypeSchema>;
+export type SegmentationMode = z.infer<typeof segmentationModeSchema>;
 export type NavigationDestination = z.infer<typeof navigationDestinationSchema>;
 export type NavigationItem = z.infer<typeof navigationItemSchema>;
 export type NavigationGroup = z.infer<typeof navigationGroupSchema>;
@@ -298,10 +474,16 @@ export type ExitBinding = z.infer<typeof exitBindingSchema>;
 export type ExitPolicy = z.infer<typeof exitPolicySchema>;
 export type ExitState = z.infer<typeof exitStateSchema>;
 export type ExitAuditLog = z.infer<typeof exitAuditLogSchema>;
+export type WidgetDefinition = z.infer<typeof widgetDefinitionSchema>;
+export type WidgetVariant = z.infer<typeof widgetVariantSchema>;
+export type ActionBinding = z.infer<typeof actionBindingSchema>;
 export type OnboardingSourceType = z.infer<typeof onboardingSourceTypeSchema>;
 export type OnboardingIntake = z.infer<typeof onboardingIntakeSchema>;
+export type OnboardingSourcePreview = z.infer<typeof onboardingSourcePreviewSchema>;
 export type OnboardingShellCandidate = z.infer<typeof onboardingShellCandidateSchema>;
 export type OnboardingBlockProposal = z.infer<typeof onboardingBlockProposalSchema>;
+export type OnboardingWidgetProposal = z.infer<typeof onboardingWidgetProposalSchema>;
+export type OnboardingActionProposal = z.infer<typeof onboardingActionProposalSchema>;
 export type OnboardingExitProposal = z.infer<typeof onboardingExitProposalSchema>;
 export type OnboardingThemeNotes = z.infer<typeof onboardingThemeNotesSchema>;
 export type FidelityWarning = z.infer<typeof fidelityWarningSchema>;
@@ -334,6 +516,18 @@ export function parseExitDefinition(value: unknown): ExitDefinition {
 
 export function parseExitBinding(value: unknown): ExitBinding {
   return exitBindingSchema.parse(value);
+}
+
+export function parseWidgetDefinition(value: unknown): WidgetDefinition {
+  return widgetDefinitionSchema.parse(value);
+}
+
+export function parseWidgetVariant(value: unknown): WidgetVariant {
+  return widgetVariantSchema.parse(value);
+}
+
+export function parseActionBinding(value: unknown): ActionBinding {
+  return actionBindingSchema.parse(value);
 }
 
 export function parseShellAssignment(value: unknown): ShellAssignment {

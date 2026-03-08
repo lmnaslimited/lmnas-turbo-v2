@@ -11,7 +11,7 @@
     },
     "locationType": {
       "type": "enumeration",
-      "enum": ["block", "navbar", "footer", "page"],
+      "enum": ["block", "navbar", "footer", "widget", "page"],
       "required": true,
       "default": "block"
     },

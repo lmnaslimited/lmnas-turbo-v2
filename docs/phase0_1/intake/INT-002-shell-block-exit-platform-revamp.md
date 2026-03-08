@@ -2,7 +2,7 @@
 
 ## Problem / Job-to-be-done
 
-Current onboarding is CLI-heavy and page-centric, which increases operator friction and pushes non-technical users into developer workflows. The platform must shift to a governed, UI-first operating model that imports source designs/pages into reusable shell systems, canonical blocks, and configurable exits.
+Current onboarding is still too technical and console-like for non-technical operators. The platform must shift to a visual, governed, UI-first operating model that imports source designs/pages into reusable shells, canonical blocks, reusable widgets, explicit CTA actions, and configurable exits.
 
 ## User / ICP persona
 
@@ -20,7 +20,7 @@ Current onboarding is CLI-heavy and page-centric, which increases operator frict
 
 - Operator-first onboarding flow (UI-led, CLI secondary)
 - Shell-aware page assembly (navbar/footer variants as first-class systems)
-- Exit-governed behavior model (CTA binds to exit contracts)
+- Action + widget + exit governed behavior model (CTA -> action -> widget/exit)
 - Schema-first contracts for shell/block/exit and onboarding artifacts
 - Strapi model scaffolding and sync payload generation for shell/block/exit
 
@@ -43,13 +43,14 @@ Current onboarding is CLI-heavy and page-centric, which increases operator frict
 
 ## Acceptance Criteria (observable bullets)
 
-- [ ] AC-1: A UI-first onboarding console exists in `apps/site` with source intake, analysis, confirmation, and publish steps.
-- [ ] AC-2: Required onboarding module scaffolds exist and are wired through a single orchestration path (`source-ingestion`, `shell-detector`, `block-detector`, `field-detector`, `exit-detector`, `shell-schema-mapper`, `block-schema-mapper`, `exit-contract-registry`, `strapi-sync`, `page-assembler`, `renderer`, `theme-engine`, `exit-adapter-runtime`, `fidelity-reporter`).
-- [ ] AC-3: Contracts/types for shell/block/exit/onboarding artifacts are added in `@lmnas/contracts`.
-- [ ] AC-4: Shell-aware page assembly model is added to page contracts and consumed by rendering path.
-- [ ] AC-5: Exit runtime skeleton supports registration + activation/deactivation + execution target mapping without block code changes.
-- [ ] AC-6: Strapi schema scaffolding for shell and exit structures is added.
-- [ ] AC-7: Documentation set under `docs/platform/*` is created and `README.md` + `AGENTS.md` are updated to enforce UI-first governed direction.
+- [ ] AC-1: A visual onboarding wizard exists in `apps/site` with six steps (intake, source preview, detection review, selection/mapping, action mapping, publish summary).
+- [ ] AC-2: Detection output is shown as visual cards with import/skip controls, type badges, confidence, editable fields, and CTA/action summaries.
+- [ ] AC-3: Required onboarding modules exist and are wired through a single orchestration path including `widget-detector` and `action-detector`.
+- [ ] AC-4: Contracts/types for shell/block/widget/action/exit/onboarding artifacts are added in `@lmnas/contracts`.
+- [ ] AC-5: Shell-aware page assembly model supports shell + blocks + widgets + action bindings.
+- [ ] AC-6: Exit runtime skeleton supports registration + activation/deactivation + execution target mapping without block code changes.
+- [ ] AC-7: Strapi schema scaffolding for shell/widget/action/exit structures is added.
+- [ ] AC-8: Documentation set under `docs/platform/*` plus `README.md` + `AGENTS.md` reflects operator-first visual workflow and mental model.
 
 ## Telemetry / Analytics (what will be tracked; allow "TBD")
 

@@ -1,43 +1,72 @@
-# UI-Led Onboarding Workflow
+# Onboarding Workflow
 
-## Flow
+## UX Goal
+
+The operator should always understand:
+
+- what was detected
+- how it looks
+- what will be imported
+- what fields become editable
+- what each CTA will do
+- what Strapi objects will be created
+
+## Step-by-Step Wizard
 
 1. Source Intake
-- Operator inputs source type + payload + slug/locale/theme.
+- Input source type (`url`, `raw_html`, `figma_*`, `stitch_*`)
+- Paste source or upload handoff file
+- Enter slug and locale
 
-2. Analysis
-- System runs shell detector, block detector, field detector, exit detector, theme notes, fidelity warnings.
+2. Source Preview
+- View interpreted source in preview panel
+- Verify source quality before mapping
 
-3. Confirmation
-- Operator confirms or overrides:
-  - shell variant IDs
-  - block families
-  - exit states
+3. Detection Review
+- Cards show shells, blocks, widgets, and actions
+- Each card includes preview, confidence, fields, CTA summary
+- Operator chooses Import or Skip for each item
 
-4. Publish-to-Strapi
-- System builds canonical sync payload:
-  - shell variants/menus
-  - block instances
-  - exit definitions/bindings
-  - page assembly model
+4. Selection & Mapping
+- Override block family when needed
+- Edit detected editable fields
+- Map to existing shell/block/widget models when reuse is preferred
+- Set split/merge intent for sections where needed
 
-5. Result
-- System returns summary counts + warnings + generated payload.
+5. Action Mapping
+- For each CTA, choose action:
+  - Link URL
+  - Scroll to section
+  - Open modal/drawer/widget
+  - Submit form
+  - Download asset
+  - External booking
+  - Backend workflow
+- Advanced exit details stay hidden unless workflow-backed action is selected
+
+6. Publish Summary
+- Default dry run = **Preview What Will Be Created**
+- Summary shows counts for shells/blocks/widgets/actions/exits/fields
+- Warnings shown in plain language
+- Developer JSON available only in collapsed details panel
 
 ## Operator Responsibilities
 
-- Provide source and base metadata.
-- Validate detection output.
-- Apply override decisions.
-- Review warnings before publish.
+- Review and curate detected items
+- Confirm CTA behavior
+- Validate warnings before apply
 
 ## Developer Responsibilities
 
-- Maintain contracts and adapter registry.
-- Maintain detector heuristics and mapper logic.
-- Maintain Strapi schemas and sync implementation.
-- Maintain exit adapter runtime integration.
+- Maintain schema contracts and detectors
+- Maintain adapter runtime and exit contracts
+- Maintain Strapi schema compatibility
+- Improve detection precision over time
 
 ## Happy Path
 
-- Input valid source -> analysis success -> confirm mappings -> dry run summary clean -> apply succeeds.
+1. Analyze succeeds
+2. Operator keeps needed cards, skips noise
+3. Action mappings are clear
+4. Preview summary has acceptable warnings
+5. Apply succeeds and entries are available in Strapi

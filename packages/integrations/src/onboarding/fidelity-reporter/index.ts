@@ -1,8 +1,17 @@
-import type { FidelityWarning, OnboardingBlockProposal, OnboardingShellCandidate, OnboardingThemeNotes } from "@lmnas/contracts";
+import type {
+  FidelityWarning,
+  OnboardingActionProposal,
+  OnboardingBlockProposal,
+  OnboardingShellCandidate,
+  OnboardingThemeNotes,
+  OnboardingWidgetProposal
+} from "@lmnas/contracts";
 
 export function buildFidelityWarnings(params: {
   shellCandidates: OnboardingShellCandidate[];
   blockProposals: OnboardingBlockProposal[];
+  widgetProposals: OnboardingWidgetProposal[];
+  actionProposals: OnboardingActionProposal[];
   theme: OnboardingThemeNotes;
 }): FidelityWarning[] {
   const warnings: FidelityWarning[] = [];
@@ -29,6 +38,24 @@ export function buildFidelityWarnings(params: {
       code: "blocks.low_confidence",
       message: `${lowConfidenceBlocks.length} block(s) need operator confirmation due to low confidence mapping.`,
       severity: "warning"
+    });
+  }
+
+  const lowConfidenceWidgets = params.widgetProposals.filter((widget) => widget.confidence < 0.6);
+  if (lowConfidenceWidgets.length > 0) {
+    warnings.push({
+      code: "widgets.low_confidence",
+      message: `${lowConfidenceWidgets.length} widget candidate(s) need confirmation before publish.`,
+      severity: "warning"
+    });
+  }
+
+  const workflowActions = params.actionProposals.filter((action) => action.actionType === "workflow");
+  if (workflowActions.length > 0) {
+    warnings.push({
+      code: "actions.workflow_review",
+      message: `${workflowActions.length} CTA action(s) require workflow mapping review.`,
+      severity: "info"
     });
   }
 
