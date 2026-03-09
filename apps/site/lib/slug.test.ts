@@ -11,4 +11,9 @@ describe("resolveCmsSlug", () => {
     expect(resolveCmsSlug(["products", "cpq"])).toBe("products/cpq");
     expect(resolveCmsSlug(["solutions", "tender-intelligence"])).toBe("solutions/tender-intelligence");
   });
+
+  it("treats locale prefixes as route scope and defaults /<locale> to home", () => {
+    expect(resolveCmsSlug(["en"])).toBe("home");
+    expect(resolveCmsSlug(["en", "products", "cpq"])).toBe("products/cpq");
+  });
 });

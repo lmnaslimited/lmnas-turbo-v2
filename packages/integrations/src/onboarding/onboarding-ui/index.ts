@@ -284,7 +284,8 @@ export async function analyzeOnboardingSource(input: unknown): Promise<Onboardin
     source: {
       sourceRef: ingested.sourceRef,
       title: ingested.title,
-      previewHtml: ingested.previewHtml,
+      referencePreviewHtml: ingested.referencePreviewHtml,
+      productionPreviewHtml: ingested.productionPreviewHtml,
       rawMarkupPreview: ingested.rawMarkupPreview,
       baseUrl: ingested.baseUrl,
       themeScopeClass: ingested.themeScopeClass,
@@ -390,7 +391,7 @@ export async function publishOnboardingDraft(input: unknown): Promise<Onboarding
   });
 
   const assemblyPreviewHtml = buildFinalAssemblyPreviewDocument({
-    sourcePreviewHtml: request.analysis.source.previewHtml,
+    sourcePreviewHtml: request.analysis.source.productionPreviewHtml,
     baseUrl: request.analysis.source.baseUrl,
     themeScopeClass: request.analysis.source.themeScopeClass,
     shellCandidates: namedShellCandidates,
@@ -399,11 +400,28 @@ export async function publishOnboardingDraft(input: unknown): Promise<Onboarding
     actionProposals: namedActions
   });
 
+  const localizedPreviewPath =
+    request.analysis.intake.slug === "home"
+      ? `/${request.analysis.intake.locale}`
+      : `/${request.analysis.intake.locale}/${request.analysis.intake.slug}`;
+
   return publishStrapiSyncPayload({
     mode: request.mode,
     payload,
     warnings: publishWarnings,
-    previewLinks: [`/${request.analysis.intake.slug}`, `/platform/onboarding?slug=${request.analysis.intake.slug}`],
-    assemblyPreviewHtml
+    previewLinks: [
+      localizedPreviewPath,
+      `/${request.analysis.intake.slug}`,
+      `/platform/onboarding?slug=${request.analysis.intake.slug}`
+    ],
+    assemblyPreviewHtml,
+    applyContext: {
+      slug: request.analysis.intake.slug,
+      locale: request.analysis.intake.locale,
+      themeKey: request.analysis.intake.themeKey,
+      sourceType: request.analysis.intake.sourceType,
+      sourceValue: request.analysis.intake.sourceValue,
+      fallbackHtml: request.analysis.source.referencePreviewHtml
+    }
   });
 }

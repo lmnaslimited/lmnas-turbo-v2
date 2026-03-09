@@ -1,4 +1,3 @@
-import { jsx as _jsx } from "react/jsx-runtime";
 import React from "react";
 const safeTags = new Set([
     "a",
@@ -74,6 +73,13 @@ function buildProps(attributes, pathKey, classMap) {
             props.className = attributeValue;
             continue;
         }
+        if (attributeName === "style") {
+            const styleObject = parseStyleAttribute(attributeValue);
+            if (Object.keys(styleObject).length > 0) {
+                props.style = styleObject;
+            }
+            continue;
+        }
         if (attributeName.startsWith("data-") || attributeName.startsWith("aria-") || passthroughAttributes.has(attributeName)) {
             props[attributeName] = attributeValue;
         }
@@ -84,6 +90,27 @@ function buildProps(attributes, pathKey, classMap) {
         props.className = mergedClass;
     }
     return props;
+}
+function parseStyleAttribute(styleText) {
+    const style = {};
+    const declarations = styleText
+        .split(";")
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length > 0);
+    declarations.forEach((entry) => {
+        const separatorIndex = entry.indexOf(":");
+        if (separatorIndex === -1) {
+            return;
+        }
+        const rawProperty = entry.slice(0, separatorIndex).trim();
+        const rawValue = entry.slice(separatorIndex + 1).trim();
+        if (!rawProperty || !rawValue) {
+            return;
+        }
+        const camelProperty = rawProperty.replace(/-([a-z])/g, (_match, char) => char.toUpperCase());
+        style[camelProperty] = rawValue;
+    });
+    return style;
 }
 function renderNode(node, pathKey, classMap) {
     if (node.kind === "text") {
@@ -105,5 +132,7 @@ function renderNode(node, pathKey, classMap) {
     return React.createElement(tag, { key: pathKey, ...props }, children);
 }
 export function ImportedDomSnapshotBlockComponent({ block }) {
-    return (_jsx("section", { "data-block-type": block.type, "data-stylesheet-ref": block.stylesheetRef, children: block.domJson.children.map((node, index) => renderNode(node, `${index}`, block.classMap)) }));
+    const stylesheetImport = React.createElement("style", { key: "imported-snapshot-stylesheet" }, `@import url("${block.stylesheetRef}");`);
+    const nodes = block.domJson.children.map((node, index) => renderNode(node, `${index}`, block.classMap));
+    return (React.createElement("section", { "data-block-type": block.type, "data-stylesheet-ref": block.stylesheetRef }, [stylesheetImport, ...nodes]));
 }

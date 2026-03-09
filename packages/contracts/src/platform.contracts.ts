@@ -279,7 +279,8 @@ export const onboardingSourceStyleProfileSchema = z.object({
 export const onboardingSourcePreviewSchema = z.object({
   sourceRef: z.string().min(1),
   title: z.string().min(1).optional(),
-  previewHtml: z.string().min(1),
+  referencePreviewHtml: z.string().min(1),
+  productionPreviewHtml: z.string().min(1),
   rawMarkupPreview: z.string().min(1).optional(),
   baseUrl: z.string().min(1).optional(),
   themeScopeClass: z.string().min(1).default("theme-default"),
@@ -384,7 +385,11 @@ export const onboardingThemeNotesSchema = z.object({
   themeKey: z.string().min(1),
   tokenFirstMatchRatio: z.number().min(0).max(1),
   arbitraryValueCount: z.number().int().min(0),
-  themeDebtSummary: z.string().min(1)
+  themeDebtSummary: z.string().min(1),
+  hasDarkModeTrigger: z.boolean().default(false),
+  extractedFonts: z.array(z.string().min(1)).default([]),
+  extractedColors: z.record(z.string(), z.string()).default({}),
+  utilityClassUsages: z.array(z.string().min(1)).default([])
 });
 
 export const fidelityWarningSchema = z.object({

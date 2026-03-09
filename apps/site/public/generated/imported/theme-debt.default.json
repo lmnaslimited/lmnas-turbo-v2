@@ -1,0 +1,19 @@
+{
+  "generatedAt": "2026-03-09T13:43:57.230Z",
+  "hardFailures": [
+    {
+      "rawValue": "transparent",
+      "reason": "Invalid color value: transparent",
+      "tokenType": "colors"
+    }
+  ],
+  "nearestMatches": [],
+  "schemaVersion": "theme-debt.v1",
+  "summary": {
+    "hardFailureCount": 1,
+    "softMatchCount": 0,
+    "unknownCount": 0
+  },
+  "themeKey": "default",
+  "unknownTokens": []
+}

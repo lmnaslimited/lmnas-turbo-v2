@@ -41,7 +41,7 @@ describe("onboarding pipeline", () => {
     expect(analysis.widgetProposals.length).toBeGreaterThan(0);
     expect(analysis.actionProposals.length).toBeGreaterThan(0);
     expect(analysis.exitProposals.some((proposal) => proposal.id === "book_appointment_primary")).toBe(true);
-    expect(analysis.source.previewHtml.length).toBeGreaterThan(0);
+    expect(analysis.source.productionPreviewHtml.length).toBeGreaterThan(0);
   });
 
   it("produces publish payload in dry-run mode", async () => {

@@ -1,4 +1,5 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import type { ContentPlan } from "./contracts/contentPlan.schema.js";
@@ -251,6 +252,7 @@ async function createPlanFromHtmlFile(options: PlanOptions): Promise<ContentPlan
 async function createPlanFromHtml(options: PlanOptions, html: string, sourceValue: string): Promise<ContentPlan> {
   const themeKey = normalizeThemeKey(options.theme);
   const themeScopeClass = buildThemeScopeClass(themeKey);
+  const renderableHtml = extractBodyContent(html);
   const heading = extractHeading(html);
   const subheading = extractSubheading(html);
   const cta = extractCta(html);
@@ -260,8 +262,8 @@ async function createPlanFromHtml(options: PlanOptions, html: string, sourceValu
   const canonical = extractCanonical(html) ?? sourceValue;
   const pageType = options.slug === "home" ? "home" : "simple";
   const layoutKey = options.slug === "home" ? "homeLayout" : "simpleLayout";
-  const domJson = sanitizeDomToJson(html, sourceValue);
-  const cssNodeInputs = buildCssNodeInputs(html, domJson);
+  const domJson = sanitizeDomToJson(renderableHtml, sourceValue);
+  const cssNodeInputs = buildCssNodeInputs(renderableHtml, domJson);
   const importMode = buildImportModeMetadata(domJson, cssNodeInputs);
   const classMap = emitClassMap(cssNodeInputs);
   const themedClassMap = applyThemeScopeClassToClassMap(classMap, domJson, themeScopeClass);
@@ -272,7 +274,7 @@ async function createPlanFromHtml(options: PlanOptions, html: string, sourceValu
     themeKey,
     declarations: themeDebtEntries
   });
-  const styleTagCss = extractStyleTagCss(html);
+  const styleTagCss = extractStyleTagCss(renderableHtml);
   const scopedStylesheet = generateScopedStylesheet({
     domJson,
     classMap: themedClassMap,
@@ -355,6 +357,14 @@ async function createPlanFromHtml(options: PlanOptions, html: string, sourceValu
   };
 
   return validateContentPlan(plan);
+}
+
+function extractBodyContent(html: string): string {
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  if (bodyMatch && bodyMatch[1]) {
+    return bodyMatch[1];
+  }
+  return html;
 }
 
 function extractHeading(html: string): string {
@@ -714,6 +724,24 @@ function findFirstElementPath(domJson: SanitizedDomRoot): string | null {
 function resolveArtifactsRoot(): string {
   if (process.env.LMNAS_IMPORT_ARTIFACTS_DIR && process.env.LMNAS_IMPORT_ARTIFACTS_DIR.trim().length > 0) {
     return path.resolve(process.env.LMNAS_IMPORT_ARTIFACTS_DIR);
+  }
+
+  let current = process.cwd();
+  while (true) {
+    if (path.basename(current) === "lmnas-turbo-v2") {
+      return path.join(current, "apps", "site", "public", "generated", "imported");
+    }
+
+    const workspaceMarker = path.join(current, "pnpm-workspace.yaml");
+    if (existsSync(workspaceMarker)) {
+      return path.join(current, "apps", "site", "public", "generated", "imported");
+    }
+
+    const parent = path.dirname(current);
+    if (parent === current) {
+      break;
+    }
+    current = parent;
   }
 
   return path.join(os.tmpdir(), "lmnas-content-importer-artifacts");

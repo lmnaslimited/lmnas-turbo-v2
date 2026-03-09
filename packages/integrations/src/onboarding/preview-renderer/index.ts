@@ -20,8 +20,9 @@ import {
 } from "../shared/html";
 
 export type StyledSourcePreview = {
-  previewHtml: string;
-  rawMarkupPreview: string;
+  referencePreviewHtml: string;
+  productionPreviewHtml: string;
+  rawMarkupPreview?: string;
   baseUrl?: string;
   themeScopeClass: string;
   styleProfile: OnboardingSourceStyleProfile;
@@ -155,7 +156,8 @@ export function buildStyledSourcePreview(params: {
     });
 
   return {
-    previewHtml,
+    referencePreviewHtml: previewHtml,
+    productionPreviewHtml: previewHtml,
     rawMarkupPreview: sanitizedHtml.slice(0, 10000),
     baseUrl,
     themeScopeClass,

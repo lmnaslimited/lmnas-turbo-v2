@@ -78,7 +78,7 @@ export function loadProjectEnv(options?: { mode?: string; forceReload?: boolean 
 
     const values = parseEnvFile(fullPath);
     Object.entries(values).forEach(([key, value]) => {
-      if (process.env[key] === undefined) {
+      if (process.env[key] === undefined || process.env[key]?.trim().length === 0) {
         process.env[key] = value;
       }
     });

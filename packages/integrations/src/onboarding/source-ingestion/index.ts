@@ -6,8 +6,9 @@ export type IngestedSource = {
   intake: OnboardingIntake;
   sourceRef: string;
   html: string;
-  previewHtml: string;
-  rawMarkupPreview: string;
+  referencePreviewHtml: string;
+  productionPreviewHtml: string;
+  rawMarkupPreview?: string;
   styleProfile: OnboardingSourceStyleProfile;
   themeScopeClass: string;
   baseUrl?: string;
@@ -66,7 +67,8 @@ export async function ingestSource(input: unknown): Promise<IngestedSource> {
     intake,
     sourceRef: source.sourceRef,
     html: source.html,
-    previewHtml: styledPreview.previewHtml,
+    referencePreviewHtml: styledPreview.referencePreviewHtml,
+    productionPreviewHtml: styledPreview.productionPreviewHtml,
     rawMarkupPreview: styledPreview.rawMarkupPreview,
     styleProfile: styledPreview.styleProfile,
     themeScopeClass: styledPreview.themeScopeClass,

@@ -19,6 +19,7 @@ describe("ImportedDomSnapshotBlock", () => {
     expect(html).toContain("Imported Snapshot");
     expect(html).toContain("Rendered from sanitized domJson.");
     expect(html).toContain("data-stylesheet-ref");
+    expect(html).toContain('@import url("/generated/imported/001A.css")');
     expect(html).not.toContain("dangerouslySetInnerHTML");
   });
 
@@ -54,10 +55,14 @@ describe("ImportedDomSnapshotBlock", () => {
     expect(parsed.success).toBe(true);
 
     const tree = ImportedDomSnapshotBlockComponent({ block: voidTagBlock }) as React.ReactElement<Record<string, unknown>>;
-    const firstChild = (tree.props.children as React.ReactElement<Record<string, unknown>>[])[0];
-    expect(firstChild.type).toBe("img");
-    expect(firstChild.props.children).toBeUndefined();
-    expect(firstChild.props.dangerouslySetInnerHTML).toBeUndefined();
+    const children = tree.props.children as React.ReactElement<Record<string, unknown>>[];
+    const styleChild = children[0];
+    const firstContentChild = children[1];
+
+    expect(styleChild.type).toBe("style");
+    expect(firstContentChild.type).toBe("img");
+    expect(firstContentChild.props.children).toBeUndefined();
+    expect(firstContentChild.props.dangerouslySetInnerHTML).toBeUndefined();
 
     expect(() => renderToString(<ImportedDomSnapshotBlockComponent block={voidTagBlock} />)).not.toThrow();
 

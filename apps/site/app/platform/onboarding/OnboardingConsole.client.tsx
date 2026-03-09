@@ -255,7 +255,7 @@ function buildFinalAssemblyPreview(params: {
     .map((item) => mergeDisplayName(item, params.displayNameOverrides));
 
   return buildFinalAssemblyPreviewDocument({
-    sourcePreviewHtml: params.analysis.source.previewHtml,
+    sourcePreviewHtml: params.analysis.source.productionPreviewHtml,
     baseUrl: params.analysis.source.baseUrl,
     themeScopeClass: params.analysis.source.themeScopeClass,
     shellCandidates: shells,
@@ -284,6 +284,7 @@ export function OnboardingConsole() {
   const [error, setError] = useState<string | null>(null);
   const [sourceViewport, setSourceViewport] = useState<(typeof VIEWPORT_OPTIONS)[number]["key"]>("desktop");
   const [sourceZoom, setSourceZoom] = useState(100);
+  const [previewMode, setPreviewMode] = useState<"reference" | "production" | "difference">("production");
   const [focusedItemId, setFocusedItemId] = useState<string | null>(null);
 
   const [itemImportState, setItemImportState] = useState<Record<string, boolean>>({});
@@ -532,7 +533,7 @@ export function OnboardingConsole() {
 
     return buildDetectionThumbnailDocument({
       snippetHtml: snippet ?? "<div>No preview</div>",
-      sourcePreviewHtml: analysis.source.previewHtml,
+      sourcePreviewHtml: analysis.source.productionPreviewHtml,
       baseUrl: analysis.source.baseUrl,
       themeScopeClass: analysis.source.themeScopeClass
     });
@@ -550,21 +551,49 @@ export function OnboardingConsole() {
               </p>
             ) : null}
           </div>
-          <div className="flex items-center gap-3">
-            <div className="inline-flex rounded-lg border border-lmnas-border bg-lmnas-panel overflow-hidden">
-              {VIEWPORT_OPTIONS.map((option) => (
+          <div className="flex flex-col items-end gap-3">
+            <div className="flex items-center gap-3">
+              <div className="inline-flex rounded-lg border border-lmnas-border bg-lmnas-panel p-0.5">
                 <button
-                  key={option.key}
                   type="button"
-                  className={`px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer ${sourceViewport === option.key
-                    ? "bg-lmnas-accent text-white"
-                    : "text-lmnas-muted hover:text-lmnas-text hover:bg-lmnas-panel-hover"
+                  onClick={() => setPreviewMode("reference")}
+                  className={`rounded-md px-3 py-1 text-xs font-semibold tracking-wide transition-all ${previewMode === "reference" ? "bg-lmnas-panel-hover text-white shadow-sm" : "text-lmnas-muted hover:text-lmnas-text"
                     }`}
-                  onClick={() => setSourceViewport(option.key)}
                 >
-                  {option.label}
+                  Reference Design
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => setPreviewMode("production")}
+                  className={`rounded-md px-3 py-1 text-xs font-semibold tracking-wide transition-all ${previewMode === "production" ? "bg-lmnas-accent text-white shadow-sm" : "text-lmnas-muted hover:text-lmnas-text"
+                    }`}
+                >
+                  Production Render
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewMode("difference")}
+                  className={`rounded-md px-3 py-1 text-xs font-semibold tracking-wide transition-all ${previewMode === "difference" ? "bg-lmnas-purple text-white shadow-sm" : "text-lmnas-muted hover:text-lmnas-text"
+                    }`}
+                >
+                  Difference Overlay
+                </button>
+              </div>
+              <div className="inline-flex rounded-lg border border-lmnas-border bg-lmnas-panel overflow-hidden">
+                {VIEWPORT_OPTIONS.map((option) => (
+                  <button
+                    key={option.key}
+                    type="button"
+                    className={`px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer ${sourceViewport === option.key
+                      ? "bg-lmnas-accent text-white"
+                      : "text-lmnas-muted hover:text-lmnas-text hover:bg-lmnas-panel-hover"
+                      }`}
+                    onClick={() => setSourceViewport(option.key)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </div>
             <label className="flex items-center gap-2 text-xs text-lmnas-muted">
               Zoom
@@ -582,23 +611,48 @@ export function OnboardingConsole() {
             </label>
           </div>
         </header>
-        <div className="overflow-auto bg-lmnas-bg p-3" style={{ maxHeight: "760px" }}>
+        <div className="overflow-auto bg-lmnas-bg p-3 relative" style={{ maxHeight: "760px" }}>
           <div
+            className="relative"
             style={{
               width: `${activeSourceWidth}px`,
               transform: `scale(${sourceZoom / 100})`,
               transformOrigin: "top left"
             }}
           >
-            <iframe
-              ref={sourceFrameRef}
-              className="w-full rounded-xl border border-lmnas-border bg-white"
-              style={{ minHeight: "720px", height: "720px" }}
-              srcDoc={injectProjectStyles(analysis?.source.previewHtml ?? "", projectStyles)}
-              sandbox="allow-scripts allow-same-origin"
-              title="Source preview"
-              data-testid="source-preview-frame"
-            />
+            {previewMode === "difference" ? (
+              <>
+                <iframe
+                  ref={sourceFrameRef}
+                  className="w-full rounded-xl border border-lmnas-border bg-white relative z-10"
+                  style={{ minHeight: "720px", height: "720px" }}
+                  srcDoc={analysis?.source.referencePreviewHtml ?? ""}
+                  sandbox="allow-scripts allow-same-origin"
+                  title="Source preview (Reference)"
+                />
+                <iframe
+                  className="w-full rounded-xl border border-lmnas-border bg-white absolute top-0 left-0 z-20 pointer-events-none mix-blend-difference opacity-70 filter invert"
+                  style={{ minHeight: "720px", height: "720px" }}
+                  srcDoc={injectProjectStyles(analysis?.source.productionPreviewHtml ?? "", projectStyles)}
+                  sandbox="allow-scripts allow-same-origin"
+                  title="Source preview (Production)"
+                />
+              </>
+            ) : (
+              <iframe
+                ref={sourceFrameRef}
+                className="w-full rounded-xl border border-lmnas-border bg-white"
+                style={{ minHeight: "720px", height: "720px" }}
+                srcDoc={
+                  previewMode === "reference"
+                    ? (analysis?.source.referencePreviewHtml ?? "")
+                    : injectProjectStyles(analysis?.source.productionPreviewHtml ?? "", projectStyles)
+                }
+                sandbox="allow-scripts allow-same-origin"
+                title="Source preview"
+                data-testid="source-preview-frame"
+              />
+            )}
           </div>
         </div>
       </article>
@@ -834,7 +888,7 @@ export function OnboardingConsole() {
                 ) : null}
                 <details>
                   <summary className="cursor-pointer text-xs font-semibold text-lmnas-muted hover:text-lmnas-text-secondary transition-colors">Advanced markup view</summary>
-                  <pre className="mt-2 max-h-[420px] overflow-auto rounded-xl border border-lmnas-border bg-lmnas-bg p-3 text-xs text-lmnas-text-secondary font-mono">{analysis.source.rawMarkupPreview ?? analysis.source.previewHtml.slice(0, 9000)}</pre>
+                  <pre className="mt-2 max-h-[420px] overflow-auto rounded-xl border border-lmnas-border bg-lmnas-bg p-3 text-xs text-lmnas-text-secondary font-mono">{analysis.source.rawMarkupPreview ?? analysis.source.productionPreviewHtml.slice(0, 9000)}</pre>
                 </details>
               </article>
             </div>
@@ -1127,6 +1181,39 @@ export function OnboardingConsole() {
             ))}
           </div>
 
+          <article className="rounded-2xl border border-lmnas-border bg-lmnas-bg-elevated p-5 mb-5 shadow-inner">
+            <h3 className="text-sm font-bold text-lmnas-text mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-lg text-lmnas-accent-bright">verified</span>
+              Fidelity & Theme Analysis
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="rounded-xl bg-lmnas-panel border border-lmnas-border p-4 text-center">
+                <h4 className="text-3xl font-black text-lmnas-accent mb-1">{Math.round(analysis.theme.tokenFirstMatchRatio * 100)}%</h4>
+                <p className="text-xs font-semibold text-lmnas-text-secondary uppercase tracking-wider">Fidelity Score</p>
+                <div className="mt-2 text-[10px] text-lmnas-muted uppercase">{analysis.theme.tokenFirstMatchRatio > 0.8 ? "Excellent Match" : "Needs Review"}</div>
+              </div>
+              <div className="rounded-xl bg-lmnas-panel border border-lmnas-border p-4 flex flex-col justify-center">
+                <div className="flex justify-between items-center mb-1 text-xs">
+                  <span className="text-lmnas-text font-medium">Arbitrary Values</span>
+                  <span className="font-mono text-lmnas-warning font-bold">{analysis.theme.arbitraryValueCount}</span>
+                </div>
+                <div className="flex justify-between items-center mb-1 text-xs">
+                  <span className="text-lmnas-text font-medium">Dark Mode Target</span>
+                  <span className={`font-bold ${analysis.theme.hasDarkModeTrigger ? 'text-lmnas-success' : 'text-lmnas-muted'}`}>{analysis.theme.hasDarkModeTrigger ? "Detected" : "None"}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-lmnas-text font-medium">Unique Fonts</span>
+                  <span className="font-mono text-lmnas-purple font-bold">{analysis.theme.extractedFonts.length}</span>
+                </div>
+              </div>
+              <div className="rounded-xl bg-lmnas-warning-soft border border-lmnas-warning/30 p-4">
+                <p className="text-xs text-lmnas-warning leading-relaxed font-medium">
+                  <strong>Theme Debt:</strong> {analysis.theme.themeDebtSummary}
+                </p>
+              </div>
+            </div>
+          </article>
+
           {publishResult ? (
             <div className={`rounded-xl border p-3 mb-5 ${publishResult.applied ? "border-lmnas-success/30 bg-lmnas-success-soft" : "border-lmnas-warning/30 bg-lmnas-warning-soft"}`}>
               <p className={`text-sm font-semibold ${publishResult.applied ? "text-lmnas-success" : "text-lmnas-warning"}`}>
@@ -1140,18 +1227,31 @@ export function OnboardingConsole() {
           )}
 
           <article className="rounded-2xl border border-lmnas-border bg-lmnas-bg-elevated overflow-hidden mb-5">
-            <header className="flex items-center gap-2 border-b border-lmnas-border px-4 py-3">
-              <h3 className="text-sm font-bold text-lmnas-text">Final Assembly Preview</h3>
+            <header className="flex items-center gap-2 border-b border-lmnas-border px-4 py-3 bg-lmnas-panel">
+              <h3 className="text-sm font-bold text-lmnas-text">Side-By-Side Fidelity Comparison</h3>
             </header>
-            <div className="p-3 bg-lmnas-bg">
-              <iframe
-                className="w-full rounded-xl border border-lmnas-border bg-white"
-                style={{ minHeight: "600px", height: "600px" }}
-                srcDoc={injectProjectStyles(publishResult?.assemblyPreviewHtml ?? assemblyPreviewFromSelection, projectStyles)}
-                sandbox="allow-scripts allow-same-origin"
-                title="Assembly preview"
-                data-testid="assembly-preview-frame"
-              />
+            <div className="grid grid-cols-1 xl:grid-cols-2 divide-y xl:divide-y-0 xl:divide-x divide-lmnas-border">
+              <div className="p-3 bg-lmnas-bg flex flex-col">
+                <p className="text-xs font-semibold text-lmnas-muted uppercase tracking-wider mb-2 text-center">Reference Design (Original)</p>
+                <iframe
+                  className="w-full rounded-xl border border-lmnas-border bg-white flex-1"
+                  style={{ minHeight: "600px", height: "600px" }}
+                  srcDoc={analysis.source.referencePreviewHtml}
+                  sandbox="allow-scripts allow-same-origin"
+                  title="Reference preview"
+                />
+              </div>
+              <div className="p-3 bg-lmnas-bg flex flex-col">
+                <p className="text-xs font-semibold text-lmnas-text-secondary/80 uppercase tracking-wider mb-2 text-center">Authoritative Production Render</p>
+                <iframe
+                  className="w-full rounded-xl border border-lmnas-border bg-white flex-1"
+                  style={{ minHeight: "600px", height: "600px" }}
+                  srcDoc={injectProjectStyles(publishResult?.assemblyPreviewHtml ?? assemblyPreviewFromSelection, projectStyles)}
+                  sandbox="allow-scripts allow-same-origin"
+                  title="Assembly preview"
+                  data-testid="assembly-preview-frame"
+                />
+              </div>
             </div>
           </article>
 

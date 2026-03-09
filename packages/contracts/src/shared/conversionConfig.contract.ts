@@ -3,13 +3,15 @@ import { z } from "zod";
 const conversionIntentSchema = z.enum(["book", "run_benefit", "download", "subscribe"]);
 const eventCategorySchema = z.enum(["conversion", "engagement", "navigation", "experiment"]);
 const destinationTypeSchema = z.enum(["url", "benefit", "asset", "form"]);
+const nullableOptional = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess((value) => (value === null ? undefined : value), schema.optional());
 
 const utmDefaultsSchema = z.object({
-  source: z.string().min(1).optional(),
-  medium: z.string().min(1).optional(),
-  campaign: z.string().min(1).optional(),
-  content: z.string().min(1).optional(),
-  term: z.string().min(1).optional()
+  source: nullableOptional(z.string().min(1)),
+  medium: nullableOptional(z.string().min(1)),
+  campaign: nullableOptional(z.string().min(1)),
+  content: nullableOptional(z.string().min(1)),
+  term: nullableOptional(z.string().min(1))
 });
 
 const destinationSchema = z.object({
@@ -21,11 +23,11 @@ export const conversionConfigSchema = z
   .object({
     intent: conversionIntentSchema,
     eventName: z.string().min(1),
-    eventCategory: eventCategorySchema.optional(),
-    campaignId: z.string().min(1).optional(),
-    utmDefaults: utmDefaultsSchema.optional(),
-    destination: destinationSchema.optional(),
-    benefitKey: z.string().min(1).optional()
+    eventCategory: nullableOptional(eventCategorySchema),
+    campaignId: nullableOptional(z.string().min(1)),
+    utmDefaults: nullableOptional(utmDefaultsSchema),
+    destination: nullableOptional(destinationSchema),
+    benefitKey: nullableOptional(z.string().min(1))
   })
   .superRefine((value, ctx) => {
     const needsBenefitKey = value.intent === "run_benefit" || value.destination?.type === "benefit";

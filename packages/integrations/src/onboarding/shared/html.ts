@@ -29,7 +29,6 @@ export function escapeHtmlAttribute(value: string): string {
 }
 
 const TRUSTED_CDN_PATTERNS = [
-  /cdn\.tailwindcss\.com/i,
   /fonts\.googleapis\.com/i,
   /fonts\.gstatic\.com/i,
   /cdnjs\.cloudflare\.com/i,
@@ -43,18 +42,18 @@ function isTrustedCdnScript(scriptTag: string): boolean {
     return TRUSTED_CDN_PATTERNS.some((pattern) => pattern.test(srcMatch[1]));
   }
 
-  // Preserve inline scripts that only configure tailwind
+  // Strip inline scripts that configure tailwind
   const idMatch = scriptTag.match(/\bid\s*=\s*["']([^"']+)["']/i);
   if (idMatch && idMatch[1].includes("tailwind")) {
-    return true;
+    return false;
   }
 
-  // Preserve inline scripts that contain only tailwind.config assignment
+  // Strip inline scripts that contain only tailwind.config assignment
   const bodyMatch = scriptTag.match(/<script\b[^>]*>([\s\S]*?)<\/script>/i);
   if (bodyMatch) {
     const body = bodyMatch[1].trim();
     if (/^tailwind\.config\s*=\s*\{/.test(body) && !/<script/i.test(body)) {
-      return true;
+      return false;
     }
   }
 

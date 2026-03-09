@@ -71,7 +71,7 @@ function isVoidTag(tag: string): boolean {
 }
 
 function buildProps(attributes: Record<string, string>, pathKey: string, classMap: Record<string, string>) {
-  const props: Record<string, string> = {};
+  const props: Record<string, unknown> = {};
 
   for (const [attributeName, attributeValue] of Object.entries(attributes)) {
     if (attributeName === "children" || attributeName === "dangerouslySetInnerHTML") {
@@ -80,6 +80,14 @@ function buildProps(attributes: Record<string, string>, pathKey: string, classMa
 
     if (attributeName === "class") {
       props.className = attributeValue;
+      continue;
+    }
+
+    if (attributeName === "style") {
+      const styleObject = parseStyleAttribute(attributeValue);
+      if (Object.keys(styleObject).length > 0) {
+        props.style = styleObject;
+      }
       continue;
     }
 
@@ -97,6 +105,32 @@ function buildProps(attributes: Record<string, string>, pathKey: string, classMa
   return props;
 }
 
+function parseStyleAttribute(styleText: string): React.CSSProperties {
+  const style: Record<string, string> = {};
+  const declarations = styleText
+    .split(";")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+
+  declarations.forEach((entry) => {
+    const separatorIndex = entry.indexOf(":");
+    if (separatorIndex === -1) {
+      return;
+    }
+
+    const rawProperty = entry.slice(0, separatorIndex).trim();
+    const rawValue = entry.slice(separatorIndex + 1).trim();
+    if (!rawProperty || !rawValue) {
+      return;
+    }
+
+    const camelProperty = rawProperty.replace(/-([a-z])/g, (_match, char: string) => char.toUpperCase());
+    style[camelProperty] = rawValue;
+  });
+
+  return style as React.CSSProperties;
+}
+
 function renderNode(node: SanitizedDomNode, pathKey: string, classMap: Record<string, string>): React.ReactNode {
   if (node.kind === "text") {
     return node.text;
@@ -106,7 +140,7 @@ function renderNode(node: SanitizedDomNode, pathKey: string, classMap: Record<st
   const props = buildProps(node.attributes, pathKey, classMap);
 
   if (isVoidTag(tag)) {
-    const voidProps: Record<string, string> = {};
+    const voidProps: Record<string, unknown> = {};
     for (const [propName, propValue] of Object.entries(props)) {
       if (propName === "children" || propName === "dangerouslySetInnerHTML") {
         continue;
@@ -122,9 +156,12 @@ function renderNode(node: SanitizedDomNode, pathKey: string, classMap: Record<st
 }
 
 export function ImportedDomSnapshotBlockComponent({ block }: { block: ImportedDomSnapshotBlock }) {
+  const stylesheetImport = React.createElement("style", { key: "imported-snapshot-stylesheet" }, `@import url("${block.stylesheetRef}");`);
+  const nodes = block.domJson.children.map((node, index) => renderNode(node, `${index}`, block.classMap));
+
   return (
     <section data-block-type={block.type} data-stylesheet-ref={block.stylesheetRef}>
-      {block.domJson.children.map((node, index) => renderNode(node, `${index}`, block.classMap))}
+      {[stylesheetImport, ...nodes]}
     </section>
   );
 }

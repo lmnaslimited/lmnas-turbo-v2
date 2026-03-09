@@ -305,6 +305,7 @@ async function requestStrapiGraphql<T>(query: string, variables: Record<string, 
   loadProjectEnv();
   const strapiUrl = process.env.STRAPI_URL || "http://localhost:1337";
   const token = process.env.STRAPI_API_TOKEN;
+  const bypassCache = preview || process.env.NODE_ENV !== "production";
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= 3; attempt += 1) {
@@ -316,8 +317,8 @@ async function requestStrapiGraphql<T>(query: string, variables: Record<string, 
           ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
         body: JSON.stringify({ query, variables }),
-        cache: preview ? "no-store" : "force-cache",
-        ...(preview ? {} : { next: { revalidate: 60 } })
+        cache: bypassCache ? "no-store" : "force-cache",
+        ...(bypassCache ? {} : { next: { revalidate: 60 } })
       });
 
       if (!response.ok) {
@@ -411,7 +412,7 @@ export async function getPageBySlug(slug: string, options: Options = {}): Promis
       conversionConfig: normalized.conversionConfig,
       shellAssignment: parsedShellAssignment,
       exitBindings: parsedExitBindings,
-      themeScope: normalized.themeScope,
+      themeScope: typeof normalized.themeScope === "string" ? normalized.themeScope : undefined,
       blocks: normalized.blocks.map((block) => normalizeStrapiBlock(block as Record<string, unknown>)),
       seo: normalized.seo
     });

@@ -54,26 +54,37 @@ function renderNavigationItems(items: Navigation["items"], depth = 0): React.Rea
 }
 
 function ShellFrame({ shell, children }: { shell?: ShellRenderModel; children: React.ReactNode }) {
-  const hasUtility = shell?.utilityNavigation && shell.utilityNavigation.items.length > 0;
+  const mainNavigation = shell?.mainNavigation;
+  const footerNavigation = shell?.footerNavigation;
+  const utilityNavigation = shell?.utilityNavigation;
+
+  const hasMain = Boolean(mainNavigation && mainNavigation.items.length > 0);
+  const hasFooter = Boolean(footerNavigation && footerNavigation.items.length > 0);
+  const hasUtility = Boolean(utilityNavigation && utilityNavigation.items.length > 0);
+  const hasAnyShell = hasMain || hasFooter || hasUtility;
+
+  if (!hasAnyShell) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="lmnas-shell-frame">
       {hasUtility ? (
         <div className="lmnas-shell-utility" aria-label="Utility navigation">
-          {renderNavigationItems(shell.utilityNavigation!.items)}
+          {renderNavigationItems(utilityNavigation!.items)}
         </div>
       ) : null}
       <header className="lmnas-shell-header">
-        {shell?.mainNavigation ? (
-          <nav aria-label="Main navigation">{renderNavigationItems(shell.mainNavigation.items)}</nav>
+        {hasMain ? (
+          <nav aria-label="Main navigation">{renderNavigationItems(mainNavigation!.items)}</nav>
         ) : (
           <div className="lmnas-shell-placeholder">No navbar assigned</div>
         )}
       </header>
       <main className="lmnas-shell-content">{children}</main>
       <footer className="lmnas-shell-footer">
-        {shell?.footerNavigation ? (
-          <nav aria-label="Footer navigation">{renderNavigationItems(shell.footerNavigation.items)}</nav>
+        {hasFooter ? (
+          <nav aria-label="Footer navigation">{renderNavigationItems(footerNavigation!.items)}</nav>
         ) : (
           <div className="lmnas-shell-placeholder">No footer assigned</div>
         )}

@@ -108,8 +108,16 @@ function normalizeSrcSetValue(value: string, sourceUrl: string): string | null {
 
 function sanitizeAttribute(name: string, value: string, sourceUrl: string): [string, string] | null {
   const normalizedName = name.toLowerCase();
-  if (normalizedName.startsWith("on") || normalizedName === "style") {
+  if (normalizedName.startsWith("on")) {
     return null;
+  }
+
+  if (normalizedName === "style") {
+    const sanitizedStyle = sanitizeInlineStyleValue(value, sourceUrl);
+    if (!sanitizedStyle) {
+      return null;
+    }
+    return [normalizedName, sanitizedStyle];
   }
 
   if (normalizedName === "srcset") {
@@ -138,6 +146,53 @@ function sanitizeAttribute(name: string, value: string, sourceUrl: string): [str
 
   const normalizedValue = value.trim();
   return [normalizedName, normalizedValue];
+}
+
+function sanitizeInlineStyleValue(value: string, sourceUrl: string): string | null {
+  const declarations = value
+    .split(";")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+
+  const sanitized: string[] = [];
+
+  for (const declaration of declarations) {
+    const separatorIndex = declaration.indexOf(":");
+    if (separatorIndex === -1) {
+      continue;
+    }
+
+    const property = declaration.slice(0, separatorIndex).trim().toLowerCase();
+    const rawValue = declaration.slice(separatorIndex + 1).trim();
+    if (!property || !rawValue) {
+      continue;
+    }
+
+    if (/expression\s*\(/i.test(rawValue) || /javascript:/i.test(rawValue)) {
+      continue;
+    }
+
+    const normalizedValue = rawValue.replace(/url\(([^)]+)\)/gi, (_match, rawUrl: string) => {
+      const cleaned = rawUrl.trim().replace(/^['"]|['"]$/g, "");
+      const normalizedUrl = normalizeUrlValue(cleaned, sourceUrl);
+      if (!normalizedUrl) {
+        return "url()";
+      }
+      return `url("${normalizedUrl}")`;
+    });
+
+    if (normalizedValue.includes("url()")) {
+      continue;
+    }
+
+    sanitized.push(`${property}: ${normalizedValue}`);
+  }
+
+  if (sanitized.length === 0) {
+    return null;
+  }
+
+  return sanitized.join("; ");
 }
 
 function parseOpenTag(token: string, sourceUrl: string): ParsedOpenTag | null {

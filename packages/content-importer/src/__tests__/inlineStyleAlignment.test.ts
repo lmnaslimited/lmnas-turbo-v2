@@ -87,7 +87,7 @@ function hasText(nodes: SanitizedDomRoot["children"], text: string): boolean {
 }
 
 describe("inline style alignment in snapshot pipeline", () => {
-  it("aligns inline styles to domJson paths after sanitizer removes script/style/inline handlers", async () => {
+  it("aligns inline styles to domJson paths after sanitizer removes script/style tags and handlers", async () => {
     const dir = await createTempDir();
     process.env.LMNAS_IMPORT_ARTIFACTS_DIR = dir;
 
@@ -131,13 +131,14 @@ describe("inline style alignment in snapshot pipeline", () => {
       throw new Error("Expected div/p/span/a nodes for alignment assertions");
     }
 
-    expect(divEntry.attributes.style).toBeUndefined();
+    expect(divEntry.attributes.style).toContain("margin-top: 18px");
     expect(divEntry.attributes.onclick).toBeUndefined();
-    expect(pEntry.attributes.style).toBeUndefined();
+    expect(pEntry.attributes.style).toContain("font-weight: 700");
     expect(pEntry.attributes.onclick).toBeUndefined();
-    expect(spanEntry.attributes.style).toBeUndefined();
+    expect(spanEntry.attributes.style).toContain("color: #112233");
     expect(spanEntry.attributes.onclick).toBeUndefined();
-    expect(anchorEntry.attributes.style).toBeUndefined();
+    expect(anchorEntry.attributes.style).toContain("margin-top: 18px");
+    expect(anchorEntry.attributes.style).toContain("color: #445566");
     expect(anchorEntry.attributes.onclick).toBeUndefined();
 
     expect(classMap[divEntry.path]).toContain("mt-[18px]");

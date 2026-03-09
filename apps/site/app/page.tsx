@@ -23,17 +23,13 @@ export default async function HomePage() {
     throw error;
   }
   const Layout = LayoutRegistry[page.layoutKey];
-  const seo = buildSeo(page);
+  buildSeo(page);
   const shell = await buildShellRenderModel(page);
   track("page_view", { slug: page.slug, pageType: page.pageType });
 
   return (
     <Layout title={page.layoutKey} shell={shell}>
-      <main className="lmnas-page-main">
-        <h1 className="lmnas-page-headline">Website Operating System</h1>
-        <p className="lmnas-page-subline">Meta title: {seo.meta.title ?? "n/a"}</p>
-        <PageRenderer blocks={page.blocks} preview={isPreview} />
-      </main>
+      <PageRenderer blocks={page.blocks} preview={isPreview} />
     </Layout>
   );
 }

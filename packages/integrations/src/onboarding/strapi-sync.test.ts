@@ -34,6 +34,15 @@ beforeEach(() => {
   vi.restoreAllMocks();
 });
 
+const applyContext = {
+  slug: "home",
+  locale: "en",
+  themeKey: "default",
+  sourceType: "raw_html" as const,
+  sourceValue: "<html><body><h1>Home</h1></body></html>",
+  fallbackHtml: "<html><body><h1>Fallback</h1></body></html>"
+};
+
 describe("publishStrapiSyncPayload", () => {
   it("reports missing env keys for apply", async () => {
     process.env.STRAPI_URL = "";
@@ -43,7 +52,8 @@ describe("publishStrapiSyncPayload", () => {
       mode: "apply",
       payload: basePayload,
       warnings: [],
-      previewLinks: ["/home"]
+      previewLinks: ["/home"],
+      applyContext
     });
 
     expect(result.applied).toBe(false);
@@ -68,7 +78,8 @@ describe("publishStrapiSyncPayload", () => {
       mode: "apply",
       payload: basePayload,
       warnings: [],
-      previewLinks: ["/home"]
+      previewLinks: ["/home"],
+      applyContext
     });
 
     expect(result.applied).toBe(false);
@@ -90,14 +101,53 @@ describe("publishStrapiSyncPayload", () => {
       mode: "apply",
       payload: basePayload,
       warnings: [],
-      previewLinks: ["/home"]
+      previewLinks: ["/home"],
+      applyContext
     });
 
     expect(result.applied).toBe(false);
     expect(result.warnings.some((warning) => warning.code === "strapi.unreachable")).toBe(true);
   });
 
-  it("applies when Strapi responds successfully", async () => {
+  it("publishes by running apply writer when Strapi responds successfully", async () => {
+    process.env.STRAPI_URL = "http://localhost:1337";
+    process.env.STRAPI_API_TOKEN = "valid-token";
+
+    const applyWriter = vi.fn(async () => ({
+      mode: "upsert" as const,
+      action: "updated" as const,
+      finalSlug: "home",
+      status: "published" as const,
+      existing: {
+        found: true,
+        count: 1,
+        status: "published" as const
+      }
+    }));
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        status: 200
+      }))
+    );
+
+    const result = await publishStrapiSyncPayload({
+      mode: "apply",
+      payload: basePayload,
+      warnings: [],
+      previewLinks: ["/home"],
+      applyContext,
+      applyWriter
+    });
+
+    expect(result.applied).toBe(true);
+    expect(result.applyReadiness.canApply).toBe(true);
+    expect(applyWriter).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports apply failure when writer throws", async () => {
     process.env.STRAPI_URL = "http://localhost:1337";
     process.env.STRAPI_API_TOKEN = "valid-token";
 
@@ -113,10 +163,14 @@ describe("publishStrapiSyncPayload", () => {
       mode: "apply",
       payload: basePayload,
       warnings: [],
-      previewLinks: ["/home"]
+      previewLinks: ["/home"],
+      applyContext,
+      applyWriter: vi.fn(async () => {
+        throw new Error("mutation_failed");
+      })
     });
 
-    expect(result.applied).toBe(true);
-    expect(result.applyReadiness.canApply).toBe(true);
+    expect(result.applied).toBe(false);
+    expect(result.warnings.some((warning) => warning.code === "strapi.apply_failed")).toBe(true);
   });
 });
