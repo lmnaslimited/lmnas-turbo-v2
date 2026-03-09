@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   buildDetectionThumbnailDocument,
   buildFinalAssemblyPreviewDocument
@@ -18,6 +18,62 @@ import type {
   OnboardingWidgetProposal,
   SegmentationMode
 } from "@lmnas/contracts";
+
+/* ─── Project Styles: inject the host page's compiled Tailwind CSS into preview iframes ─── */
+
+function useProjectStyles(): string {
+  const [styles, setStyles] = useState("");
+
+  useEffect(() => {
+    const parts: string[] = [];
+    const origin = window.location.origin;
+
+    // Collect <link rel="stylesheet"> tags (production builds)
+    document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]').forEach((link) => {
+      const href = link.getAttribute("href");
+      if (href) {
+        const abs = href.startsWith("/") ? `${origin}${href}` : href;
+        parts.push(`<link rel="stylesheet" href="${abs}">`);
+      }
+    });
+
+    // Collect <style> tags injected by Next.js HMR (dev mode)
+    document.querySelectorAll<HTMLStyleElement>("style").forEach((el) => {
+      const text = el.textContent;
+      if (text && text.length > 50) {
+        parts.push(`<style>${text}</style>`);
+      }
+    });
+
+    setStyles(parts.join("\n"));
+  }, []);
+
+  return styles;
+}
+
+function injectProjectStyles(html: string, projectStyles: string): string {
+  if (!html || !projectStyles) return html;
+
+  let result = html;
+
+  // Strip Tailwind CDN <script> tags
+  result = result.replace(/<script\b[^>]*src=["'][^"']*cdn\.tailwindcss\.com[^"']*["'][^>]*>\s*<\/script>/gi, "");
+
+  // Strip inline tailwind.config scripts
+  result = result.replace(/<script\b[^>]*id=["']tailwind-config["'][^>]*>[\s\S]*?<\/script>/gi, "");
+  result = result.replace(/<script\b[^>]*>[\s\S]*?tailwind\.config\s*=[\s\S]*?<\/script>/gi, "");
+
+  // Inject project styles into <head>
+  if (/<head[^>]*>/i.test(result)) {
+    result = result.replace(/<head([^>]*)>/i, `<head$1>${projectStyles}`);
+  } else if (/<html[^>]*>/i.test(result)) {
+    result = result.replace(/<html([^>]*)>/i, `<html$1><head>${projectStyles}</head>`);
+  } else {
+    result = `<html><head>${projectStyles}</head><body>${result}</body></html>`;
+  }
+
+  return result;
+}
 
 const SOURCE_TYPES: Array<{ value: OnboardingSourceType; label: string; hint: string }> = [
   { value: "url", label: "Website URL", hint: "Paste a live page URL" },
@@ -117,23 +173,12 @@ function parseFieldCsv(input: string): string[] {
 }
 
 function chipStyleForType(type: string): string {
-  if (type === "shell") {
-    return "lmnas-chip lmnas-chip-shell";
-  }
-
-  if (type === "block") {
-    return "lmnas-chip lmnas-chip-block";
-  }
-
-  if (type === "widget") {
-    return "lmnas-chip lmnas-chip-widget";
-  }
-
-  if (type === "action") {
-    return "lmnas-chip lmnas-chip-action";
-  }
-
-  return "lmnas-chip";
+  const base = "inline-flex items-center gap-1.5 text-xs font-semibold rounded-full px-2.5 py-1 border";
+  if (type === "shell") return `${base} bg-lmnas-shell-bg border-lmnas-accent/20 text-lmnas-accent-bright`;
+  if (type === "block") return `${base} bg-lmnas-block-bg border-lmnas-purple/20 text-lmnas-purple`;
+  if (type === "widget") return `${base} bg-lmnas-widget-bg border-lmnas-emerald/20 text-lmnas-emerald`;
+  if (type === "action") return `${base} bg-lmnas-action-bg border-lmnas-amber/20 text-lmnas-amber`;
+  return `${base} bg-lmnas-accent-soft border-lmnas-border text-lmnas-text-secondary`;
 }
 
 function buildDetectableItems(analysis: OnboardingAnalysis | null): DetectableItem[] {
@@ -221,6 +266,7 @@ function buildFinalAssemblyPreview(params: {
 }
 
 export function OnboardingConsole() {
+  const projectStyles = useProjectStyles();
   const [step, setStep] = useState(0);
   const [intake, setIntake] = useState<IntakeFormState>({
     sourceType: "raw_html",
@@ -452,12 +498,27 @@ export function OnboardingConsole() {
   }
 
   function renderCardControls(id: string) {
+    const isImporting = itemImportState[id] !== false;
     return (
-      <div className="lmnas-detect-controls">
-        <button type="button" onClick={() => setImportState(id, true)} data-primary={itemImportState[id] !== false ? "true" : undefined}>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setImportState(id, true)}
+          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${isImporting
+            ? "bg-lmnas-accent/15 border border-lmnas-accent/30 text-lmnas-accent-bright"
+            : "bg-lmnas-bg-elevated border border-lmnas-border text-lmnas-muted hover:bg-lmnas-panel-hover"
+            }`}
+        >
           Import
         </button>
-        <button type="button" onClick={() => setImportState(id, false)} data-primary={itemImportState[id] === false ? "true" : undefined}>
+        <button
+          type="button"
+          onClick={() => setImportState(id, false)}
+          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${!isImporting
+            ? "bg-lmnas-danger-soft border border-lmnas-danger/30 text-lmnas-danger"
+            : "bg-lmnas-bg-elevated border border-lmnas-border text-lmnas-muted hover:bg-lmnas-panel-hover"
+            }`}
+        >
           Skip
         </button>
       </div>
@@ -479,28 +540,33 @@ export function OnboardingConsole() {
 
   function renderSourcePane(title: string) {
     return (
-      <article className="lmnas-source-pane">
-        <header className="lmnas-source-pane-header">
+      <article className="rounded-2xl border border-lmnas-border bg-lmnas-bg-elevated overflow-hidden">
+        <header className="flex items-center justify-between gap-4 border-b border-lmnas-border px-4 py-3">
           <div>
-            <h3>{title}</h3>
+            <h3 className="text-sm font-bold text-lmnas-text">{title}</h3>
             {analysis ? (
-              <p className="lmnas-muted">
-                {analysis.source.sourceRef} | Theme scope: {analysis.source.themeScopeClass}
+              <p className="mt-0.5 text-xs text-lmnas-muted">
+                {analysis.source.sourceRef} &middot; Theme: {analysis.source.themeScopeClass}
               </p>
             ) : null}
           </div>
-          <div className="lmnas-source-controls">
-            {VIEWPORT_OPTIONS.map((option) => (
-              <button
-                key={option.key}
-                type="button"
-                data-primary={sourceViewport === option.key ? "true" : undefined}
-                onClick={() => setSourceViewport(option.key)}
-              >
-                {option.label}
-              </button>
-            ))}
-            <label>
+          <div className="flex items-center gap-3">
+            <div className="inline-flex rounded-lg border border-lmnas-border bg-lmnas-panel overflow-hidden">
+              {VIEWPORT_OPTIONS.map((option) => (
+                <button
+                  key={option.key}
+                  type="button"
+                  className={`px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer ${sourceViewport === option.key
+                    ? "bg-lmnas-accent text-white"
+                    : "text-lmnas-muted hover:text-lmnas-text hover:bg-lmnas-panel-hover"
+                    }`}
+                  onClick={() => setSourceViewport(option.key)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <label className="flex items-center gap-2 text-xs text-lmnas-muted">
               Zoom
               <input
                 data-testid="source-zoom-input"
@@ -510,13 +576,14 @@ export function OnboardingConsole() {
                 step={5}
                 value={sourceZoom}
                 onChange={(event) => setSourceZoom(Number(event.target.value))}
+                className="w-24 accent-lmnas-accent"
               />
+              <span className="text-lmnas-text-secondary w-8 text-right">{sourceZoom}%</span>
             </label>
           </div>
         </header>
-        <div className="lmnas-source-canvas-wrap">
+        <div className="overflow-auto bg-lmnas-bg p-3" style={{ maxHeight: "760px" }}>
           <div
-            className="lmnas-source-canvas"
             style={{
               width: `${activeSourceWidth}px`,
               transform: `scale(${sourceZoom / 100})`,
@@ -525,9 +592,10 @@ export function OnboardingConsole() {
           >
             <iframe
               ref={sourceFrameRef}
-              className="lmnas-preview-frame lmnas-preview-frame-source"
-              srcDoc={analysis?.source.previewHtml}
-              sandbox=""
+              className="w-full rounded-xl border border-lmnas-border bg-white"
+              style={{ minHeight: "720px", height: "720px" }}
+              srcDoc={injectProjectStyles(analysis?.source.previewHtml ?? "", projectStyles)}
+              sandbox="allow-scripts allow-same-origin"
               title="Source preview"
               data-testid="source-preview-frame"
             />
@@ -624,196 +692,239 @@ export function OnboardingConsole() {
 
   return (
     <>
-      <section className="lmnas-onboarding-card">
-        <div className="lmnas-stepper">
-          {STEPS.map((stepName, index) => (
-            <button
-              key={stepName}
-              type="button"
-              className={`lmnas-step ${index === step ? "lmnas-step-active" : ""} ${index < step ? "lmnas-step-done" : ""}`}
-              onClick={() => {
-                if (!analysis && index > 0) {
-                  return;
-                }
-                setStep(index);
-              }}
-            >
-              <span>{index + 1}</span>
-              <small>{stepName}</small>
-            </button>
-          ))}
+      <section className="rounded-2xl border border-lmnas-border bg-lmnas-panel p-4 shadow-lg shadow-black/10">
+        <div className="grid grid-cols-6 gap-2">
+          {STEPS.map((stepName, index) => {
+            const isActive = index === step;
+            const isDone = index < step;
+            return (
+              <button
+                key={stepName}
+                type="button"
+                className={`relative flex flex-col items-start gap-1.5 rounded-xl px-3 py-3 text-left transition-all duration-200 cursor-pointer min-h-[66px] ${isActive
+                  ? "bg-lmnas-accent/10 border border-lmnas-accent/40 text-lmnas-text shadow-md shadow-lmnas-accent/10"
+                  : isDone
+                    ? "bg-lmnas-success-soft border border-lmnas-success/20 text-lmnas-success"
+                    : "bg-lmnas-bg-elevated border border-lmnas-border text-lmnas-muted hover:bg-lmnas-panel-hover"
+                  }`}
+                onClick={() => {
+                  if (!analysis && index > 0) return;
+                  setStep(index);
+                }}
+              >
+                <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold ${isActive
+                  ? "bg-lmnas-accent text-white"
+                  : isDone
+                    ? "bg-lmnas-success/20 text-lmnas-success"
+                    : "bg-lmnas-border-subtle text-lmnas-muted"
+                  }`}>
+                  {isDone ? "✓" : index + 1}
+                </span>
+                <small className="text-[11px] leading-tight font-medium">{stepName}</small>
+              </button>
+            );
+          })}
         </div>
       </section>
 
       {error ? (
-        <section className="lmnas-onboarding-card">
-          <p className="lmnas-error">{error}</p>
+        <section className="rounded-2xl border border-lmnas-danger/30 bg-lmnas-danger-soft p-4">
+          <p className="text-sm font-medium text-lmnas-danger">{error}</p>
         </section>
       ) : null}
 
       {step === 0 ? (
-        <section className="lmnas-onboarding-card">
-          <h2>1. Source Intake</h2>
-          <p className="lmnas-muted">Paste URL/HTML or upload a design artifact. Operator flow stays visual by default.</p>
+        <section className="rounded-2xl border border-lmnas-border bg-lmnas-panel p-6 shadow-lg shadow-black/10">
+          <h2 className="text-xl font-bold text-lmnas-text mb-1">1. Source Intake</h2>
+          <p className="text-sm text-lmnas-muted mb-5">Paste URL/HTML or upload a design artifact. Operator flow stays visual by default.</p>
 
-          <div className="lmnas-source-type-grid">
+          <div className="grid grid-cols-2 gap-3 mb-5 sm:grid-cols-3 lg:grid-cols-6">
             {SOURCE_TYPES.map((sourceType) => (
               <button
                 key={sourceType.value}
                 type="button"
-                className={`lmnas-source-type ${intake.sourceType === sourceType.value ? "lmnas-source-type-active" : ""}`}
+                className={`flex flex-col items-start gap-1 rounded-xl p-3 text-left transition-all cursor-pointer border ${intake.sourceType === sourceType.value
+                  ? "bg-lmnas-accent/10 border-lmnas-accent/40 shadow-md shadow-lmnas-accent/10"
+                  : "bg-lmnas-bg-elevated border-lmnas-border hover:bg-lmnas-panel-hover hover:border-lmnas-border-subtle"
+                  }`}
                 onClick={() => updateIntake("sourceType", sourceType.value)}
               >
-                <strong>{sourceType.label}</strong>
-                <small>{sourceType.hint}</small>
+                <strong className="text-xs font-bold text-lmnas-text">{sourceType.label}</strong>
+                <small className="text-[11px] text-lmnas-muted leading-tight">{sourceType.hint}</small>
               </button>
             ))}
           </div>
 
-          <div className="lmnas-onboarding-grid">
-            <label className="lmnas-onboarding-field">
-              <span>Page slug</span>
-              <input value={intake.slug} onChange={(event) => updateIntake("slug", event.target.value)} />
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-lmnas-text-secondary uppercase tracking-wider">Page slug</span>
+              <input className="rounded-lg border border-lmnas-border bg-lmnas-bg-elevated px-3 py-2.5 text-sm text-lmnas-text placeholder:text-lmnas-muted focus:border-lmnas-accent focus:outline-none focus:ring-1 focus:ring-lmnas-accent/30" value={intake.slug} onChange={(event) => updateIntake("slug", event.target.value)} />
             </label>
-            <label className="lmnas-onboarding-field">
-              <span>Locale</span>
-              <input value={intake.locale} onChange={(event) => updateIntake("locale", event.target.value)} />
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-lmnas-text-secondary uppercase tracking-wider">Locale</span>
+              <input className="rounded-lg border border-lmnas-border bg-lmnas-bg-elevated px-3 py-2.5 text-sm text-lmnas-text placeholder:text-lmnas-muted focus:border-lmnas-accent focus:outline-none focus:ring-1 focus:ring-lmnas-accent/30" value={intake.locale} onChange={(event) => updateIntake("locale", event.target.value)} />
             </label>
           </div>
 
-          <label className="lmnas-onboarding-field">
-            <span>Source content</span>
+          <label className="flex flex-col gap-1.5 mb-4">
+            <span className="text-xs font-semibold text-lmnas-text-secondary uppercase tracking-wider">Source content</span>
             <textarea
               rows={10}
+              className="rounded-lg border border-lmnas-border bg-lmnas-bg-elevated px-3 py-2.5 text-sm text-lmnas-text font-mono placeholder:text-lmnas-muted focus:border-lmnas-accent focus:outline-none focus:ring-1 focus:ring-lmnas-accent/30 resize-y"
               value={intake.sourceValue}
               onChange={(event) => updateIntake("sourceValue", event.target.value)}
               data-testid="source-content-input"
             />
           </label>
 
-          <label className="lmnas-onboarding-field">
-            <span>Upload handoff file (optional)</span>
+          <label className="flex flex-col gap-1.5 mb-4">
+            <span className="text-xs font-semibold text-lmnas-text-secondary uppercase tracking-wider">Upload handoff file (optional)</span>
             <input
               type="file"
               accept=".html,.txt,.json"
+              className="text-sm text-lmnas-muted file:mr-3 file:rounded-lg file:border-0 file:bg-lmnas-accent/10 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-lmnas-accent-bright file:cursor-pointer hover:file:bg-lmnas-accent/20"
               onChange={(event) => {
                 const file = event.target.files?.[0];
-                if (file) {
-                  void importSourceFile(file);
-                }
+                if (file) void importSourceFile(file);
               }}
             />
           </label>
 
-          <details>
-            <summary>Advanced import options</summary>
-            <label className="lmnas-onboarding-field">
-              <span>Theme key</span>
-              <input value={intake.themeKey} onChange={(event) => updateIntake("themeKey", event.target.value)} />
+          <details className="mb-5 group">
+            <summary className="cursor-pointer text-xs font-semibold text-lmnas-muted hover:text-lmnas-text-secondary transition-colors">Advanced import options</summary>
+            <label className="flex flex-col gap-1.5 mt-3">
+              <span className="text-xs font-semibold text-lmnas-text-secondary uppercase tracking-wider">Theme key</span>
+              <input className="rounded-lg border border-lmnas-border bg-lmnas-bg-elevated px-3 py-2.5 text-sm text-lmnas-text focus:border-lmnas-accent focus:outline-none focus:ring-1 focus:ring-lmnas-accent/30" value={intake.themeKey} onChange={(event) => updateIntake("themeKey", event.target.value)} />
             </label>
           </details>
 
-          <div className="lmnas-onboarding-actions">
-            <button data-primary="true" onClick={runAnalysis} disabled={!canAnalyze || isAnalyzing} data-testid="analyze-source-button">
-              {isAnalyzing ? "Analyzing..." : "Analyze Source"}
+          <div className="flex gap-3">
+            <button
+              className="rounded-xl bg-lmnas-accent px-6 py-3 text-sm font-bold text-white shadow-lg shadow-lmnas-accent/20 transition-all hover:brightness-110 hover:shadow-xl hover:shadow-lmnas-accent/30 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              onClick={runAnalysis}
+              disabled={!canAnalyze || isAnalyzing}
+              data-testid="analyze-source-button"
+            >
+              {isAnalyzing ? "Analyzing\u2026" : "Analyze Source"}
             </button>
           </div>
         </section>
       ) : null}
 
       {step === 1 ? (
-        <section className="lmnas-onboarding-card">
-          <h2>2. Source Preview</h2>
+        <section className="rounded-2xl border border-lmnas-border bg-lmnas-panel p-6 shadow-lg shadow-black/10">
+          <h2 className="text-xl font-bold text-lmnas-text mb-1">2. Source Preview</h2>
           {analysis ? (
-            <div className="lmnas-studio-layout">
+            <div className="grid gap-4" style={{ gridTemplateColumns: "minmax(0,1.5fr) minmax(320px,1fr)" }}>
               {renderSourcePane("Styled Source Preview")}
-              <article className="lmnas-side-pane">
-                <h3>Detection Readiness</h3>
-                <div className="lmnas-chip-list">
-                  <span className="lmnas-chip">Stylesheets {analysis.source.styleProfile.linkedStylesheetCount}</span>
-                  <span className="lmnas-chip">Style tags {analysis.source.styleProfile.inlineStyleTagCount}</span>
-                  <span className="lmnas-chip">Applied {analysis.source.styleProfile.appliedStrategy}</span>
+              <article className="rounded-2xl border border-lmnas-border bg-lmnas-bg-elevated p-4">
+                <h3 className="text-sm font-bold text-lmnas-text mb-3">Detection Readiness</h3>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-full px-2.5 py-1 border bg-lmnas-accent-soft border-lmnas-border text-lmnas-text-secondary">Stylesheets {analysis.source.styleProfile.linkedStylesheetCount}</span>
+                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-full px-2.5 py-1 border bg-lmnas-accent-soft border-lmnas-border text-lmnas-text-secondary">Style tags {analysis.source.styleProfile.inlineStyleTagCount}</span>
+                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-full px-2.5 py-1 border bg-lmnas-accent-soft border-lmnas-border text-lmnas-text-secondary">Applied {analysis.source.styleProfile.appliedStrategy}</span>
                 </div>
                 {analysis.source.styleProfile.fidelityNotes.length > 0 ? (
-                  <div>
-                    <h4>Fidelity Notes</h4>
+                  <div className="mb-3">
+                    <h4 className="text-xs font-bold text-lmnas-warning mb-2">Fidelity Notes</h4>
                     {analysis.source.styleProfile.fidelityNotes.map((note) => (
-                      <p key={note} className="lmnas-warning">
-                        {note}
-                      </p>
+                      <p key={note} className="text-xs text-lmnas-warning/80 mb-1 leading-relaxed">{note}</p>
                     ))}
                   </div>
                 ) : null}
                 <details>
-                  <summary>Advanced markup view</summary>
-                  <pre className="lmnas-code-preview">{analysis.source.rawMarkupPreview ?? analysis.source.previewHtml.slice(0, 9000)}</pre>
+                  <summary className="cursor-pointer text-xs font-semibold text-lmnas-muted hover:text-lmnas-text-secondary transition-colors">Advanced markup view</summary>
+                  <pre className="mt-2 max-h-[420px] overflow-auto rounded-xl border border-lmnas-border bg-lmnas-bg p-3 text-xs text-lmnas-text-secondary font-mono">{analysis.source.rawMarkupPreview ?? analysis.source.previewHtml.slice(0, 9000)}</pre>
                 </details>
               </article>
             </div>
           ) : (
-            <p className="lmnas-warning">Run analysis first.</p>
+            <p className="text-sm text-lmnas-warning">Run analysis first.</p>
           )}
         </section>
       ) : null}
 
       {step === 2 && analysis ? (
-        <section className="lmnas-onboarding-card">
-          <h2>3. Detection Review</h2>
-          <p className="lmnas-muted">Click any card to highlight source. Click highlighted source to focus the matching card.</p>
+        <section className="rounded-2xl border border-lmnas-border bg-lmnas-panel p-6 shadow-lg shadow-black/10">
+          <h2 className="text-xl font-bold text-lmnas-text mb-1">3. Detection Review</h2>
+          <p className="text-sm text-lmnas-muted mb-4">Click any card to highlight source. Click highlighted source to focus the matching card.</p>
 
-          <div className="lmnas-count-strip">
-            <span className="lmnas-chip">Shells {selectedCounts.shells}</span>
-            <span className="lmnas-chip">Blocks {selectedCounts.blocks}</span>
-            <span className="lmnas-chip">Widgets {selectedCounts.widgets}</span>
-            <span className="lmnas-chip">Actions {selectedCounts.actions}</span>
-            <span className="lmnas-chip">Exits {selectedCounts.exits}</span>
+          <div className="flex flex-wrap gap-2 mb-5">
+            <span className={chipStyleForType("shell")}>Shells {selectedCounts.shells}</span>
+            <span className={chipStyleForType("block")}>Blocks {selectedCounts.blocks}</span>
+            <span className={chipStyleForType("widget")}>Widgets {selectedCounts.widgets}</span>
+            <span className={chipStyleForType("action")}>Actions {selectedCounts.actions}</span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-full px-2.5 py-1 border bg-lmnas-accent-soft border-lmnas-border text-lmnas-text-secondary">Exits {selectedCounts.exits}</span>
           </div>
 
-          <div className="lmnas-studio-layout">
+          <div className="grid gap-4" style={{ gridTemplateColumns: "minmax(0,1.5fr) minmax(340px,1fr)" }}>
             {renderSourcePane("Source With Detection Highlights")}
-            <article className="lmnas-side-pane">
-              <h3>Detected Items</h3>
-              <div className="lmnas-detect-grid">
+            <article className="rounded-2xl border border-lmnas-border bg-lmnas-bg-elevated p-4 overflow-y-auto" style={{ maxHeight: "900px" }}>
+              <h3 className="text-sm font-bold text-lmnas-text mb-3">Detected Items</h3>
+              <div className="flex flex-col gap-3 mb-6">
                 {detectableItems.map((item) => (
                   <article
                     key={item.id}
-                    className={`lmnas-detect-card ${focusedItemId === item.id ? "lmnas-detect-card-focused" : ""} ${
-                      itemImportState[item.id] === false ? "lmnas-detect-card-skipped" : ""
-                    }`}
+                    className={`rounded-xl border p-3 flex flex-col gap-2 cursor-pointer transition-all ${focusedItemId === item.id
+                      ? "border-lmnas-accent bg-lmnas-accent/5 shadow-md shadow-lmnas-accent/10"
+                      : itemImportState[item.id] === false
+                        ? "border-lmnas-border bg-lmnas-bg opacity-50"
+                        : "border-lmnas-border bg-lmnas-panel hover:border-lmnas-border-subtle hover:bg-lmnas-panel-hover"
+                      }`}
                     data-testid={`detection-card-${item.id}`}
                     onClick={() => focusItem(item.id)}
                   >
-                    <header>
+                    <header className="flex items-center justify-between gap-2">
                       <span className={chipStyleForType(item.type)}>{item.type}</span>
-                      <span className="lmnas-chip">{Math.round(item.confidence * 100)}%</span>
+                      <span className="text-xs font-bold text-lmnas-text-secondary">{Math.round(item.confidence * 100)}%</span>
                     </header>
-                    <iframe className="lmnas-detect-preview-frame" srcDoc={buildCardPreview(item.previewHtml)} sandbox="" title={`${item.id} preview`} />
-                    <p>
-                      <strong>{displayNameOverrides[item.id] ?? item.label}</strong>
-                    </p>
-                    <p className="lmnas-muted">{item.previewSelector ?? "No selector available"}</p>
+                    <iframe
+                      className="w-full rounded-lg border border-lmnas-border bg-white"
+                      style={{ minHeight: "100px", height: "100px" }}
+                      srcDoc={injectProjectStyles(buildCardPreview(item.previewHtml), projectStyles)}
+                      sandbox="allow-scripts allow-same-origin"
+                      title={`${item.id} preview`}
+                    />
+                    <p className="text-sm font-semibold text-lmnas-text">{displayNameOverrides[item.id] ?? item.label}</p>
+                    <p className="text-xs text-lmnas-muted font-mono">{item.previewSelector ?? "No selector"}</p>
                     {renderCardControls(item.id)}
-                    <button type="button" onClick={() => focusItem(item.id)}>
-                      Jump to source
+                    <button
+                      type="button"
+                      className="text-xs text-lmnas-accent-bright hover:underline text-left cursor-pointer"
+                      onClick={() => focusItem(item.id)}
+                    >
+                      Jump to source &rarr;
                     </button>
                   </article>
                 ))}
               </div>
 
-              <h3>Action Traceability</h3>
+              <h3 className="text-sm font-bold text-lmnas-text mb-3 pt-3 border-t border-lmnas-border">Action Traceability</h3>
               {analysis.actionProposals
                 .filter((action) => itemImportState[action.id] !== false)
                 .map((action: OnboardingActionProposal) => (
-                  <div key={action.id} className="lmnas-map-row">
-                    <p>
-                      <strong>{displayNameFor(action, action.label)}</strong> ({action.actionType})
+                  <div key={action.id} className="rounded-xl border border-lmnas-border bg-lmnas-panel p-3 mb-2">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-sm font-semibold text-lmnas-text">{displayNameFor(action, action.label)}</span>
+                      <span className={chipStyleForType("action")}>{action.actionType}</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <span className="text-xs text-lmnas-muted">Parent:</span>
+                      <span className="inline-flex items-center rounded-md bg-lmnas-purple-soft px-2 py-0.5 text-xs font-semibold text-lmnas-purple border border-lmnas-purple/20">
+                        {action.sourceItemLabel ?? action.sourceItemId ?? "Not mapped"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-lmnas-muted mb-2">
+                      CTA: <span className="text-lmnas-text-secondary">{action.ctaKind}</span>
+                      {action.ctaHref ? <span className="text-lmnas-accent-bright ml-1">{action.ctaHref}</span> : null}
+                      <span className="ml-1 font-mono">{action.selectorHint}</span>
                     </p>
-                    <p className="lmnas-muted">Parent: {action.sourceItemLabel ?? action.sourceItemId ?? "Not mapped"}</p>
-                    <p className="lmnas-muted">
-                      CTA: {action.ctaKind} {action.ctaHref ? `| ${action.ctaHref}` : ""} | {action.selectorHint}
-                    </p>
-                    <button type="button" onClick={() => focusItem(action.id)}>
-                      Highlight CTA
+                    <button
+                      type="button"
+                      className="text-xs text-lmnas-accent-bright hover:underline cursor-pointer"
+                      onClick={() => focusItem(action.id)}
+                    >
+                      Highlight CTA &rarr;
                     </button>
                   </div>
                 ))}
@@ -823,110 +934,67 @@ export function OnboardingConsole() {
       ) : null}
 
       {step === 3 && analysis ? (
-        <section className="lmnas-onboarding-card">
-          <h2>4. Selection & Mapping</h2>
-          <p className="lmnas-muted">Choose what to import, rename items, and confirm editable Strapi fields.</p>
+        <section className="rounded-2xl border border-lmnas-border bg-lmnas-panel p-6 shadow-lg shadow-black/10">
+          <h2 className="text-xl font-bold text-lmnas-text mb-1">4. Selection &amp; Mapping</h2>
+          <p className="text-sm text-lmnas-muted mb-5">Choose what to import, rename items, and confirm editable Strapi fields.</p>
 
           {analysis.blockProposals
             .filter((block) => itemImportState[block.id] !== false)
             .map((block: OnboardingBlockProposal) => (
-              <div key={block.id} className="lmnas-onboarding-grid lmnas-map-row">
-                <label className="lmnas-onboarding-field">
-                  <span>Display name</span>
-                  <input
-                    value={displayNameFor(block, block.id)}
-                    onChange={(event) => setDisplayNameOverrides((previous) => ({ ...previous, [block.id]: event.target.value }))}
-                  />
-                </label>
-                <label className="lmnas-onboarding-field">
-                  <span>Block family</span>
-                  <select
-                    value={blockFamilyOverrides[block.id] ?? block.family}
-                    onChange={(event) => setBlockFamilyOverrides((previous) => ({ ...previous, [block.id]: event.target.value as CanonicalBlockFamily }))}
-                  >
-                    {BLOCK_FAMILIES.map((family) => (
-                      <option key={family} value={family}>
-                        {family}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="lmnas-onboarding-field">
-                  <span>Classify as</span>
-                  <select
-                    value={itemTypeOverrides[block.id] ?? "block"}
-                    onChange={(event) => setItemTypeOverrides((previous) => ({ ...previous, [block.id]: event.target.value as OnboardingItemType }))}
-                  >
-                    {ITEM_TYPE_OPTIONS.map((itemType) => (
-                      <option key={itemType} value={itemType}>
-                        {itemType}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="lmnas-onboarding-field">
-                  <span>Editable fields</span>
-                  <input value={(fieldOverrides[block.id] ?? block.editableFields).join(", ")} onChange={(event) => setFieldOverrideFromText(block.id, event.target.value)} />
-                </label>
-                <label className="lmnas-onboarding-field">
-                  <span>Split / Merge</span>
-                  <select
-                    value={segmentationOverrides[block.id] ?? block.segmentation}
-                    onChange={(event) => setSegmentationOverrides((previous) => ({ ...previous, [block.id]: event.target.value as SegmentationMode }))}
-                  >
-                    {SEGMENTATION_OPTIONS.map((mode) => (
-                      <option key={mode} value={mode}>
-                        {mode}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="lmnas-onboarding-field">
-                  <span>Map to existing block</span>
-                  <input
-                    value={mapToExisting[block.id] ?? ""}
-                    onChange={(event) => setMapToExisting((previous) => ({ ...previous, [block.id]: event.target.value }))}
-                    placeholder="Existing Block Template ID"
-                  />
-                </label>
+              <div key={block.id} className="rounded-xl border border-lmnas-border bg-lmnas-bg-elevated p-4 mb-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className={chipStyleForType("block")}>block</span>
+                  <span className="text-sm font-bold text-lmnas-text">{displayNameFor(block, block.id)}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+                  {[
+                    { label: "Display name", el: <input className="rounded-lg border border-lmnas-border bg-lmnas-panel px-3 py-2 text-sm text-lmnas-text focus:border-lmnas-accent focus:outline-none" value={displayNameFor(block, block.id)} onChange={(e) => setDisplayNameOverrides((p) => ({ ...p, [block.id]: e.target.value }))} /> },
+                    { label: "Block family", el: <select className="rounded-lg border border-lmnas-border bg-lmnas-panel px-3 py-2 text-sm text-lmnas-text focus:border-lmnas-accent focus:outline-none" value={blockFamilyOverrides[block.id] ?? block.family} onChange={(e) => setBlockFamilyOverrides((p) => ({ ...p, [block.id]: e.target.value as CanonicalBlockFamily }))}>{BLOCK_FAMILIES.map((f) => <option key={f} value={f}>{f}</option>)}</select> },
+                    { label: "Classify as", el: <select className="rounded-lg border border-lmnas-border bg-lmnas-panel px-3 py-2 text-sm text-lmnas-text focus:border-lmnas-accent focus:outline-none" value={itemTypeOverrides[block.id] ?? "block"} onChange={(e) => setItemTypeOverrides((p) => ({ ...p, [block.id]: e.target.value as OnboardingItemType }))}>{ITEM_TYPE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}</select> },
+                    { label: "Editable fields", el: <input className="rounded-lg border border-lmnas-border bg-lmnas-panel px-3 py-2 text-sm text-lmnas-text focus:border-lmnas-accent focus:outline-none" value={(fieldOverrides[block.id] ?? block.editableFields).join(", ")} onChange={(e) => setFieldOverrideFromText(block.id, e.target.value)} /> },
+                    { label: "Split / Merge", el: <select className="rounded-lg border border-lmnas-border bg-lmnas-panel px-3 py-2 text-sm text-lmnas-text focus:border-lmnas-accent focus:outline-none" value={segmentationOverrides[block.id] ?? block.segmentation} onChange={(e) => setSegmentationOverrides((p) => ({ ...p, [block.id]: e.target.value as SegmentationMode }))}>{SEGMENTATION_OPTIONS.map((m) => <option key={m} value={m}>{m}</option>)}</select> },
+                    { label: "Map to existing", el: <input className="rounded-lg border border-lmnas-border bg-lmnas-panel px-3 py-2 text-sm text-lmnas-text focus:border-lmnas-accent focus:outline-none" value={mapToExisting[block.id] ?? ""} onChange={(e) => setMapToExisting((p) => ({ ...p, [block.id]: e.target.value }))} placeholder="Existing Block Template ID" /> }
+                  ].map(({ label, el }) => (
+                    <label key={label} className="flex flex-col gap-1">
+                      <span className="text-xs font-semibold text-lmnas-text-secondary uppercase tracking-wider">{label}</span>
+                      {el}
+                    </label>
+                  ))}
+                </div>
               </div>
             ))}
 
           {analysis.widgetProposals
             .filter((widget) => itemImportState[widget.id] !== false)
             .map((widget: OnboardingWidgetProposal) => (
-              <div key={widget.id} className="lmnas-onboarding-grid lmnas-map-row">
-                <label className="lmnas-onboarding-field">
-                  <span>Widget display name</span>
-                  <input
-                    value={displayNameFor(widget, widget.name)}
-                    onChange={(event) => setDisplayNameOverrides((previous) => ({ ...previous, [widget.id]: event.target.value }))}
-                  />
-                </label>
-                <label className="lmnas-onboarding-field">
-                  <span>Editable fields</span>
-                  <input
-                    value={(fieldOverrides[widget.id] ?? widget.editableFields).join(", ")}
-                    onChange={(event) => setFieldOverrideFromText(widget.id, event.target.value)}
-                  />
-                </label>
-                <label className="lmnas-onboarding-field">
-                  <span>Map to existing widget</span>
-                  <input
-                    value={mapToExisting[widget.id] ?? ""}
-                    onChange={(event) => setMapToExisting((previous) => ({ ...previous, [widget.id]: event.target.value }))}
-                    placeholder="Existing Widget Definition ID"
-                  />
-                </label>
+              <div key={widget.id} className="rounded-xl border border-lmnas-border bg-lmnas-bg-elevated p-4 mb-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className={chipStyleForType("widget")}>widget</span>
+                  <span className="text-sm font-bold text-lmnas-text">{displayNameFor(widget, widget.name)}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-xs font-semibold text-lmnas-text-secondary uppercase tracking-wider">Display name</span>
+                    <input className="rounded-lg border border-lmnas-border bg-lmnas-panel px-3 py-2 text-sm text-lmnas-text focus:border-lmnas-accent focus:outline-none" value={displayNameFor(widget, widget.name)} onChange={(e) => setDisplayNameOverrides((p) => ({ ...p, [widget.id]: e.target.value }))} />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-xs font-semibold text-lmnas-text-secondary uppercase tracking-wider">Editable fields</span>
+                    <input className="rounded-lg border border-lmnas-border bg-lmnas-panel px-3 py-2 text-sm text-lmnas-text focus:border-lmnas-accent focus:outline-none" value={(fieldOverrides[widget.id] ?? widget.editableFields).join(", ")} onChange={(e) => setFieldOverrideFromText(widget.id, e.target.value)} />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-xs font-semibold text-lmnas-text-secondary uppercase tracking-wider">Map to existing</span>
+                    <input className="rounded-lg border border-lmnas-border bg-lmnas-panel px-3 py-2 text-sm text-lmnas-text focus:border-lmnas-accent focus:outline-none" value={mapToExisting[widget.id] ?? ""} onChange={(e) => setMapToExisting((p) => ({ ...p, [widget.id]: e.target.value }))} placeholder="Existing Widget ID" />
+                  </label>
+                </div>
               </div>
             ))}
         </section>
       ) : null}
 
       {step === 4 && analysis ? (
-        <section className="lmnas-onboarding-card">
-          <h2>5. Action Mapping</h2>
-          <p className="lmnas-muted">Map CTA behavior in human language first. Advanced exit internals stay collapsed.</p>
+        <section className="rounded-2xl border border-lmnas-border bg-lmnas-panel p-6 shadow-lg shadow-black/10">
+          <h2 className="text-xl font-bold text-lmnas-text mb-1">5. Action Mapping</h2>
+          <p className="text-sm text-lmnas-muted mb-5">Map CTA behavior in human language first. Advanced exit internals stay collapsed.</p>
 
           {analysis.actionProposals
             .filter((action) => itemImportState[action.id] !== false)
@@ -934,88 +1002,78 @@ export function OnboardingConsole() {
               const type = actionTypeOverrides[action.id] ?? action.actionType;
               const target = actionTargetOverrides[action.id] ?? {};
               const defaultExitId = target.exitId ?? action.suggestedExitId ?? action.destination.value ?? `${action.id}_exit`;
+              const inputCls = "rounded-lg border border-lmnas-border bg-lmnas-bg-elevated px-3 py-2 text-sm text-lmnas-text focus:border-lmnas-accent focus:outline-none";
 
               return (
-                <article key={action.id} className="lmnas-action-card">
-                  <header>
-                    <strong>{displayNameFor(action, action.label)}</strong>
-                    <span className="lmnas-chip">{action.summary}</span>
+                <article key={action.id} className="rounded-xl border border-lmnas-border bg-lmnas-bg-elevated p-4 mb-3">
+                  <header className="flex items-center justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-lmnas-text">{displayNameFor(action, action.label)}</span>
+                      <span className={chipStyleForType("action")}>{action.summary}</span>
+                    </div>
                   </header>
-                  <p className="lmnas-muted">Parent: {action.sourceItemLabel ?? action.sourceItemId ?? "Not mapped"}</p>
-                  <p className="lmnas-muted">
-                    CTA trace: {action.ctaKind} | {action.selectorHint}
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <span className="text-xs text-lmnas-muted">Parent:</span>
+                    <span className="inline-flex items-center rounded-md bg-lmnas-purple-soft px-2 py-0.5 text-xs font-semibold text-lmnas-purple border border-lmnas-purple/20">
+                      {action.sourceItemLabel ?? action.sourceItemId ?? "Not mapped"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-lmnas-muted mb-2">
+                    CTA: <span className="text-lmnas-text-secondary">{action.ctaKind}</span>
+                    <span className="ml-1 font-mono text-lmnas-muted">{action.selectorHint}</span>
                   </p>
-                  <button type="button" onClick={() => focusItem(action.id)}>
-                    Jump to source
+                  <button type="button" className="text-xs text-lmnas-accent-bright hover:underline cursor-pointer mb-3" onClick={() => focusItem(action.id)}>
+                    Jump to source &rarr;
                   </button>
 
-                  <div className="lmnas-onboarding-grid">
-                    <label className="lmnas-onboarding-field">
-                      <span>Display label</span>
-                      <input
-                        value={actionLabelOverrides[action.id] ?? action.label}
-                        onChange={(event) => setActionLabelOverrides((previous) => ({ ...previous, [action.id]: event.target.value }))}
-                      />
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <label className="flex flex-col gap-1">
+                      <span className="text-xs font-semibold text-lmnas-text-secondary uppercase tracking-wider">Display label</span>
+                      <input className={inputCls} value={actionLabelOverrides[action.id] ?? action.label} onChange={(e) => setActionLabelOverrides((p) => ({ ...p, [action.id]: e.target.value }))} />
                     </label>
-                    <label className="lmnas-onboarding-field">
-                      <span>Action</span>
-                      <select value={type} onChange={(event) => setActionTypeOverrides((previous) => ({ ...previous, [action.id]: event.target.value as ActionType }))}>
-                        {ACTION_TYPE_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
+                    <label className="flex flex-col gap-1">
+                      <span className="text-xs font-semibold text-lmnas-text-secondary uppercase tracking-wider">Action</span>
+                      <select className={inputCls} value={type} onChange={(e) => setActionTypeOverrides((p) => ({ ...p, [action.id]: e.target.value as ActionType }))}>
+                        {ACTION_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                       </select>
                     </label>
                   </div>
 
                   {["link_url", "download_asset", "external_booking"].includes(type) ? (
-                    <label className="lmnas-onboarding-field">
-                      <span>Target URL</span>
-                      <input
-                        value={target.url ?? action.destination.value ?? ""}
-                        onChange={(event) => setActionTarget(action.id, { url: event.target.value })}
-                        placeholder="https://... or /page"
-                      />
+                    <label className="flex flex-col gap-1 mb-2">
+                      <span className="text-xs font-semibold text-lmnas-text-secondary uppercase tracking-wider">Target URL</span>
+                      <input className={inputCls} value={target.url ?? action.destination.value ?? ""} onChange={(e) => setActionTarget(action.id, { url: e.target.value })} placeholder="https://... or /page" />
                     </label>
                   ) : null}
 
                   {type === "scroll_to_section" ? (
-                    <label className="lmnas-onboarding-field">
-                      <span>Target section ID</span>
-                      <input
-                        value={target.sectionId ?? action.destination.value ?? ""}
-                        onChange={(event) => setActionTarget(action.id, { sectionId: event.target.value })}
-                        placeholder="hero-section"
-                      />
+                    <label className="flex flex-col gap-1 mb-2">
+                      <span className="text-xs font-semibold text-lmnas-text-secondary uppercase tracking-wider">Target section ID</span>
+                      <input className={inputCls} value={target.sectionId ?? action.destination.value ?? ""} onChange={(e) => setActionTarget(action.id, { sectionId: e.target.value })} placeholder="hero-section" />
                     </label>
                   ) : null}
 
                   {["open_modal", "open_drawer", "open_widget"].includes(type) ? (
-                    <label className="lmnas-onboarding-field">
-                      <span>Widget to open</span>
-                      <select value={target.widgetId ?? action.destination.value ?? ""} onChange={(event) => setActionTarget(action.id, { widgetId: event.target.value })}>
+                    <label className="flex flex-col gap-1 mb-2">
+                      <span className="text-xs font-semibold text-lmnas-text-secondary uppercase tracking-wider">Widget to open</span>
+                      <select className={inputCls} value={target.widgetId ?? action.destination.value ?? ""} onChange={(e) => setActionTarget(action.id, { widgetId: e.target.value })}>
                         <option value="">Select widget</option>
-                        {[...selectedWidgetIds].map((widgetId) => (
-                          <option key={widgetId} value={widgetId}>
-                            {widgetId}
-                          </option>
-                        ))}
+                        {[...selectedWidgetIds].map((wId) => <option key={wId} value={wId}>{wId}</option>)}
                       </select>
                     </label>
                   ) : null}
 
                   {["workflow", "submit_form"].includes(type) ? (
                     <>
-                      <label className="lmnas-onboarding-field">
-                        <span>Workflow exit ID</span>
-                        <input value={defaultExitId} onChange={(event) => setActionTarget(action.id, { exitId: event.target.value })} />
+                      <label className="flex flex-col gap-1 mb-2">
+                        <span className="text-xs font-semibold text-lmnas-text-secondary uppercase tracking-wider">Workflow exit ID</span>
+                        <input className={inputCls} value={defaultExitId} onChange={(e) => setActionTarget(action.id, { exitId: e.target.value })} />
                       </label>
-                      <details>
-                        <summary>Advanced exit details</summary>
-                        <label className="lmnas-onboarding-field">
-                          <span>Exit state</span>
-                          <select value={exitStateOverrides[defaultExitId] ?? "active"} onChange={(event) => setExitStateOverrides((previous) => ({ ...previous, [defaultExitId]: event.target.value as "active" | "inactive" }))}>
+                      <details className="group">
+                        <summary className="cursor-pointer text-xs font-semibold text-lmnas-muted hover:text-lmnas-text-secondary transition-colors">Advanced exit details</summary>
+                        <label className="flex flex-col gap-1 mt-2">
+                          <span className="text-xs font-semibold text-lmnas-text-secondary uppercase tracking-wider">Exit state</span>
+                          <select className={inputCls} value={exitStateOverrides[defaultExitId] ?? "active"} onChange={(e) => setExitStateOverrides((p) => ({ ...p, [defaultExitId]: e.target.value as "active" | "inactive" }))}>
                             <option value="active">active</option>
                             <option value="inactive">inactive</option>
                           </select>
@@ -1030,84 +1088,100 @@ export function OnboardingConsole() {
       ) : null}
 
       {step === 5 && analysis ? (
-        <section className="lmnas-onboarding-card">
-          <h2>6. Publish Summary</h2>
-          <p className="lmnas-muted">Preview what will be created, review warnings, then publish to Strapi.</p>
+        <section className="rounded-2xl border border-lmnas-border bg-lmnas-panel p-6 shadow-lg shadow-black/10">
+          <h2 className="text-xl font-bold text-lmnas-text mb-1">6. Publish Summary</h2>
+          <p className="text-sm text-lmnas-muted mb-5">Preview what will be created, review warnings, then publish to Strapi.</p>
 
-          <div className="lmnas-onboarding-actions lmnas-sticky-actions">
-            <button onClick={() => publish("dry-run")} disabled={isPublishing} data-primary="true" data-testid="preview-create-button">
-              {isPublishing ? "Building preview..." : "Preview What Will Be Created"}
+          <div className="flex gap-3 mb-6">
+            <button
+              className="rounded-xl bg-lmnas-accent px-6 py-3 text-sm font-bold text-white shadow-lg shadow-lmnas-accent/20 transition-all hover:brightness-110 hover:shadow-xl disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              onClick={() => publish("dry-run")}
+              disabled={isPublishing}
+              data-testid="preview-create-button"
+            >
+              {isPublishing ? "Building preview\u2026" : "Preview What Will Be Created"}
             </button>
-            <button onClick={() => publish("apply")} disabled={isPublishing} data-testid="publish-apply-button">
+            <button
+              className="rounded-xl bg-lmnas-success/15 border border-lmnas-success/30 px-6 py-3 text-sm font-bold text-lmnas-success shadow-lg shadow-lmnas-success/10 transition-all hover:bg-lmnas-success/25 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              onClick={() => publish("apply")}
+              disabled={isPublishing}
+              data-testid="publish-apply-button"
+            >
               Publish to Strapi
             </button>
           </div>
 
-          <div className="lmnas-summary-grid">
-            <article>
-              <h3>{publishResult?.summary.shellsToCreate ?? selectedCounts.shells}</h3>
-              <p>Shells</p>
-            </article>
-            <article>
-              <h3>{publishResult?.summary.blocksToCreate ?? selectedCounts.blocks}</h3>
-              <p>Blocks</p>
-            </article>
-            <article>
-              <h3>{publishResult?.summary.widgetsToCreate ?? selectedCounts.widgets}</h3>
-              <p>Widgets</p>
-            </article>
-            <article>
-              <h3>{publishResult?.summary.actionsToCreate ?? selectedCounts.actions}</h3>
-              <p>Actions</p>
-            </article>
-            <article>
-              <h3>{publishResult?.summary.exitsRequired ?? selectedCounts.exits}</h3>
-              <p>Exits</p>
-            </article>
-            <article>
-              <h3>{publishResult?.summary.editableFieldsCreated ?? 0}</h3>
-              <p>Editable Strapi fields</p>
-            </article>
+          <div className="grid grid-cols-3 gap-3 mb-6 lg:grid-cols-6">
+            {[
+              { label: "Shells", count: publishResult?.summary.shellsToCreate ?? selectedCounts.shells, color: "lmnas-accent" },
+              { label: "Blocks", count: publishResult?.summary.blocksToCreate ?? selectedCounts.blocks, color: "lmnas-purple" },
+              { label: "Widgets", count: publishResult?.summary.widgetsToCreate ?? selectedCounts.widgets, color: "lmnas-emerald" },
+              { label: "Actions", count: publishResult?.summary.actionsToCreate ?? selectedCounts.actions, color: "lmnas-amber" },
+              { label: "Exits", count: publishResult?.summary.exitsRequired ?? selectedCounts.exits, color: "lmnas-accent-bright" },
+              { label: "Fields", count: publishResult?.summary.editableFieldsCreated ?? 0, color: "lmnas-text-secondary" }
+            ].map(({ label, count, color }) => (
+              <article key={label} className="rounded-xl border border-lmnas-border bg-lmnas-bg-elevated p-4 text-center">
+                <h3 className={`text-2xl font-extrabold text-${color}`}>{count}</h3>
+                <p className="text-xs text-lmnas-muted mt-1">{label}</p>
+              </article>
+            ))}
           </div>
 
           {publishResult ? (
-            <p className={publishResult.applied ? "lmnas-success" : "lmnas-warning"}>
-              {publishResult.applied
-                ? "Publish apply succeeded against Strapi."
-                : publishResult.applyReadiness.operatorMessage}
-            </p>
+            <div className={`rounded-xl border p-3 mb-5 ${publishResult.applied ? "border-lmnas-success/30 bg-lmnas-success-soft" : "border-lmnas-warning/30 bg-lmnas-warning-soft"}`}>
+              <p className={`text-sm font-semibold ${publishResult.applied ? "text-lmnas-success" : "text-lmnas-warning"}`}>
+                {publishResult.applied
+                  ? "Publish apply succeeded against Strapi."
+                  : publishResult.applyReadiness.operatorMessage}
+              </p>
+            </div>
           ) : (
-            <p className="lmnas-muted">Run preview to validate creation plan and environment readiness.</p>
+            <p className="text-sm text-lmnas-muted mb-5">Run preview to validate creation plan and environment readiness.</p>
           )}
 
-          <article className="lmnas-final-preview-panel">
-            <h3>Final Assembly Preview</h3>
-            <iframe
-              className="lmnas-preview-frame lmnas-preview-frame-assembly"
-              srcDoc={publishResult?.assemblyPreviewHtml ?? assemblyPreviewFromSelection}
-              sandbox=""
-              title="Assembly preview"
-              data-testid="assembly-preview-frame"
-            />
+          <article className="rounded-2xl border border-lmnas-border bg-lmnas-bg-elevated overflow-hidden mb-5">
+            <header className="flex items-center gap-2 border-b border-lmnas-border px-4 py-3">
+              <h3 className="text-sm font-bold text-lmnas-text">Final Assembly Preview</h3>
+            </header>
+            <div className="p-3 bg-lmnas-bg">
+              <iframe
+                className="w-full rounded-xl border border-lmnas-border bg-white"
+                style={{ minHeight: "600px", height: "600px" }}
+                srcDoc={injectProjectStyles(publishResult?.assemblyPreviewHtml ?? assemblyPreviewFromSelection, projectStyles)}
+                sandbox="allow-scripts allow-same-origin"
+                title="Assembly preview"
+                data-testid="assembly-preview-frame"
+              />
+            </div>
           </article>
 
           {publishResult?.warnings.length ? (
-            <article>
-              <h3>Warnings Requiring Review</h3>
+            <article className="mb-5">
+              <h3 className="text-sm font-bold text-lmnas-text mb-2">Warnings Requiring Review</h3>
               {publishResult.warnings.map((warning) => (
-                <p key={warning.code} className={warning.severity === "error" ? "lmnas-error" : warning.severity === "warning" ? "lmnas-warning" : "lmnas-muted"}>
-                  <strong>{warning.code}</strong>: {warning.message}
-                </p>
+                <div
+                  key={warning.code}
+                  className={`rounded-lg border p-3 mb-2 ${warning.severity === "error"
+                    ? "border-lmnas-danger/30 bg-lmnas-danger-soft"
+                    : warning.severity === "warning"
+                      ? "border-lmnas-warning/30 bg-lmnas-warning-soft"
+                      : "border-lmnas-border bg-lmnas-bg-elevated"
+                    }`}
+                >
+                  <p className={`text-sm ${warning.severity === "error" ? "text-lmnas-danger" : warning.severity === "warning" ? "text-lmnas-warning" : "text-lmnas-muted"}`}>
+                    <strong className="font-bold">{warning.code}</strong>: {warning.message}
+                  </p>
+                </div>
               ))}
             </article>
           ) : null}
 
           {publishResult?.previewLinks.length ? (
-            <article>
-              <h3>Preview Links</h3>
+            <article className="mb-5">
+              <h3 className="text-sm font-bold text-lmnas-text mb-2">Preview Links</h3>
               {publishResult.previewLinks.map((link) => (
-                <p key={link}>
-                  <a href={link} target="_blank" rel="noreferrer">
+                <p key={link} className="text-sm mb-1">
+                  <a href={link} target="_blank" rel="noreferrer" className="text-lmnas-accent-bright hover:underline">
                     {link}
                   </a>
                 </p>
@@ -1116,26 +1190,31 @@ export function OnboardingConsole() {
           ) : null}
 
           {publishResult ? (
-            <details>
-              <summary>Developer details (JSON)</summary>
-              <pre>{JSON.stringify(publishResult, null, 2)}</pre>
+            <details className="group">
+              <summary className="cursor-pointer text-xs font-semibold text-lmnas-muted hover:text-lmnas-text-secondary transition-colors">Developer details (JSON)</summary>
+              <pre className="mt-2 max-h-[500px] overflow-auto rounded-xl border border-lmnas-border bg-lmnas-bg p-3 text-xs text-lmnas-text-secondary font-mono">{JSON.stringify(publishResult, null, 2)}</pre>
             </details>
           ) : null}
         </section>
       ) : null}
 
-      <section className="lmnas-onboarding-card">
-        <div className="lmnas-onboarding-actions">
-          <button type="button" onClick={() => setStep((previous) => Math.max(0, previous - 1))} disabled={step === 0}>
-            Back
+      <section className="rounded-2xl border border-lmnas-border bg-lmnas-panel p-4 shadow-lg shadow-black/10">
+        <div className="flex justify-between gap-3">
+          <button
+            type="button"
+            className="rounded-xl bg-lmnas-bg-elevated border border-lmnas-border px-6 py-2.5 text-sm font-semibold text-lmnas-text-secondary transition-all hover:bg-lmnas-panel-hover disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+            onClick={() => setStep((previous) => Math.max(0, previous - 1))}
+            disabled={step === 0}
+          >
+            &larr; Back
           </button>
           <button
             type="button"
-            data-primary="true"
+            className="rounded-xl bg-lmnas-accent px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-lmnas-accent/20 transition-all hover:brightness-110 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
             onClick={() => setStep((previous) => Math.min(STEPS.length - 1, previous + 1))}
             disabled={step >= STEPS.length - 1 || (!analysis && step >= 0)}
           >
-            Next
+            Next &rarr;
           </button>
         </div>
       </section>

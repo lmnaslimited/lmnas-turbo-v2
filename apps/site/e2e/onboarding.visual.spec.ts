@@ -52,7 +52,8 @@ test("visual onboarding flow renders styled preview, traceability, and final ass
   const sourceFrame = page.frameLocator("[data-testid='source-preview-frame']");
   await expect(sourceFrame.locator("text=Build faster with LMNAs")).toBeVisible();
 
-  const sourcePane = page.locator(".lmnas-source-pane").first();
+  // Source preview pane screenshot (now uses Tailwind utility classes)
+  const sourcePane = page.locator("article").filter({ has: page.locator("[data-testid='source-preview-frame']") }).first();
   await expect(sourcePane).toHaveScreenshot("source-preview-pane.png");
 
   await page.getByRole("button", { name: /Detection Review/i }).click();
@@ -64,8 +65,11 @@ test("visual onboarding flow renders styled preview, traceability, and final ass
 
   const actionCard = page.locator("[data-testid^='detection-card-action_']").first();
   await actionCard.click();
-  await expect(page.locator(".lmnas-detect-card-focused")).toBeVisible();
-  await expect(page.locator(".lmnas-side-pane")).toHaveScreenshot("detection-review-pane.png");
+  // Focused card now uses Tailwind class (border-lmnas-accent) instead of lmnas-detect-card-focused
+  await expect(actionCard).toHaveClass(/border-lmnas-accent/);
+  // Detection review side pane screenshot
+  const detectionSidePane = page.locator("article").filter({ has: page.getByText("Detected Items") }).first();
+  await expect(detectionSidePane).toHaveScreenshot("detection-review-pane.png");
 
   await page.getByRole("button", { name: /Publish Summary/i }).click();
   await expect(page.getByRole("heading", { name: "6. Publish Summary" })).toBeVisible();
@@ -73,7 +77,9 @@ test("visual onboarding flow renders styled preview, traceability, and final ass
 
   const assemblyFrame = page.frameLocator("[data-testid='assembly-preview-frame']");
   await expect(assemblyFrame.locator("text=Build faster with LMNAs")).toBeVisible();
-  await expect(page.locator(".lmnas-final-preview-panel")).toHaveScreenshot("final-assembly-preview.png");
+  // Final assembly preview screenshot
+  const assemblyPanel = page.locator("article").filter({ has: page.locator("[data-testid='assembly-preview-frame']") }).first();
+  await expect(assemblyPanel).toHaveScreenshot("final-assembly-preview.png");
 });
 
 test("@real apply mode succeeds when local Strapi stack is reachable", async ({ page }) => {

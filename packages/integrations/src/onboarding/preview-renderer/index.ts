@@ -7,8 +7,13 @@ import type {
 } from "@lmnas/contracts";
 import {
   buildThemeScopeClass,
+  extractFontLinks,
+  extractIconFontLinks,
   extractStyleAssetsFromHtml,
+  extractTailwindCdnScript,
+  extractTailwindInlineConfig,
   hasFullHtmlDocument,
+  hasTailwindUtilityClasses,
   sanitizePreviewHtml,
   stripTags,
   wrapSnippetAsPreviewDocument
@@ -93,28 +98,61 @@ export function buildStyledSourcePreview(params: {
     );
   }
 
-  const previewOverlayStyles = [
-    "<meta charset='utf-8'/>",
-    "<meta name='viewport' content='width=device-width, initial-scale=1'/>",
-    baseUrl ? `<base href="${baseUrl}">` : "",
-    "<style>",
-    "body{margin:0;font-family:Manrope,Segoe UI,sans-serif;}",
-    ".lmnas-source-item{outline:2px solid transparent;outline-offset:2px;cursor:pointer;transition:outline-color .15s ease;}",
-    ".lmnas-source-item:hover{outline-color:#5aa2ff;}",
-    ".lmnas-source-item-active{outline-color:#0b66ff !important;box-shadow:0 0 0 2px rgba(11,102,255,.2);}",
-    "</style>"
-  ]
-    .filter(Boolean)
-    .join("");
+  const fontLinks = extractFontLinks(sanitizedHtml);
+  const iconFontLinks = extractIconFontLinks(sanitizedHtml);
+  const tailwindCdn = extractTailwindCdnScript(sanitizedHtml);
+  const tailwindConfig = extractTailwindInlineConfig(sanitizedHtml);
+  const needsTailwind = !tailwindCdn && hasTailwindUtilityClasses(sanitizedHtml);
 
-  const previewHtml = hasFullHtmlDocument(sanitizedHtml)
+  if (tailwindCdn) {
+    styleProfile.fidelityNotes.push("Source includes Tailwind CDN. Using project's Tailwind setup for preview.");
+  } else if (needsTailwind) {
+    styleProfile.fidelityNotes.push("Source uses Tailwind utility classes. Using project's Tailwind setup for preview.");
+  }
+
+  if (fontLinks.length > 0) {
+    styleProfile.fidelityNotes.push(`${fontLinks.length} Google Font(s) detected and preserved.`);
+  }
+
+  const allFontLinks = Array.from(new Set([...fontLinks, ...iconFontLinks]));
+
+  // For full HTML documents, only inject the minimal preview-interaction overlay
+  // – the source already has its own Tailwind CDN, config, fonts, etc.
+  // For fragment/snippet HTML (no <html>/<body>), inject all resources via wrapSnippetAsPreviewDocument.
+  const isFullDocument = hasFullHtmlDocument(sanitizedHtml);
+
+  const previewOverlayStyles = isFullDocument
+    ? [
+      "<style>",
+      ".lmnas-source-item{outline:2px solid transparent;outline-offset:2px;cursor:pointer;transition:outline-color .15s ease;}",
+      ".lmnas-source-item:hover{outline-color:#5aa2ff;}",
+      ".lmnas-source-item-active{outline-color:#0b66ff !important;box-shadow:0 0 0 2px rgba(11,102,255,.2);}",
+      "</style>"
+    ].join("")
+    : [
+      "<meta charset='utf-8'/>",
+      "<meta name='viewport' content='width=device-width, initial-scale=1'/>",
+      baseUrl ? `<base href="${baseUrl}">` : "",
+      ...allFontLinks,
+      tailwindConfig ?? "",
+      "<style>",
+      "body{margin:0;font-family:Manrope,Segoe UI,sans-serif;}",
+      ".lmnas-source-item{outline:2px solid transparent;outline-offset:2px;cursor:pointer;transition:outline-color .15s ease;}",
+      ".lmnas-source-item:hover{outline-color:#5aa2ff;}",
+      ".lmnas-source-item-active{outline-color:#0b66ff !important;box-shadow:0 0 0 2px rgba(11,102,255,.2);}",
+      "</style>"
+    ]
+      .filter(Boolean)
+      .join("");
+
+  const previewHtml = isFullDocument
     ? ensureBodyThemeClass(injectHeadElements(sanitizedHtml, previewOverlayStyles), themeScopeClass)
     : wrapSnippetAsPreviewDocument({
-        snippetHtml: sanitizedHtml,
-        sourceHtmlForStyles: sanitizedHtml,
-        baseUrl,
-        themeScopeClass
-      });
+      snippetHtml: sanitizedHtml,
+      sourceHtmlForStyles: sanitizedHtml,
+      baseUrl,
+      themeScopeClass
+    });
 
   return {
     previewHtml,
@@ -177,31 +215,31 @@ export function buildFinalAssemblyPreviewDocument(params: {
   const widgetsHtml =
     params.widgetProposals.length > 0
       ? [
-          "<aside class='lmnas-assembly-widgets'>",
-          "<h4>Widgets</h4>",
-          "<ul>",
-          ...params.widgetProposals.map(
-            (widget) =>
-              `<li><strong>${widget.displayName ?? widget.name}</strong> <span>(${widget.widgetType})</span></li>`
-          ),
-          "</ul>",
-          "</aside>"
-        ].join("")
+        "<aside class='lmnas-assembly-widgets'>",
+        "<h4>Widgets</h4>",
+        "<ul>",
+        ...params.widgetProposals.map(
+          (widget) =>
+            `<li><strong>${widget.displayName ?? widget.name}</strong> <span>(${widget.widgetType})</span></li>`
+        ),
+        "</ul>",
+        "</aside>"
+      ].join("")
       : "";
 
   const actionsHtml =
     params.actionProposals.length > 0
       ? [
-          "<aside class='lmnas-assembly-actions'>",
-          "<h4>Actions</h4>",
-          "<ul>",
-          ...params.actionProposals.map(
-            (action) =>
-              `<li><strong>${action.displayName ?? action.label}</strong>: ${action.summary} (${action.actionType})</li>`
-          ),
-          "</ul>",
-          "</aside>"
-        ].join("")
+        "<aside class='lmnas-assembly-actions'>",
+        "<h4>Actions</h4>",
+        "<ul>",
+        ...params.actionProposals.map(
+          (action) =>
+            `<li><strong>${action.displayName ?? action.label}</strong>: ${action.summary} (${action.actionType})</li>`
+        ),
+        "</ul>",
+        "</aside>"
+      ].join("")
       : "";
 
   const snippet = [
