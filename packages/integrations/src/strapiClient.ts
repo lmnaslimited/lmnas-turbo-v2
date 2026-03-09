@@ -12,6 +12,7 @@ import {
   type Page
 } from "@lmnas/contracts";
 import { blogPostFixture, footerNavigationFixture, mainNavigationFixture } from "@lmnas/testkit";
+import { loadProjectEnv } from "./env/bootstrap";
 
 type Options = { preview?: boolean };
 type PublicationStatusV5 = "PUBLISHED" | "DRAFT";
@@ -301,6 +302,7 @@ function pickCollectionNodes<T>(payload: Record<string, unknown>, key: string): 
 }
 
 async function requestStrapiGraphql<T>(query: string, variables: Record<string, unknown>, preview = false): Promise<T> {
+  loadProjectEnv();
   const strapiUrl = process.env.STRAPI_URL || "http://localhost:1337";
   const token = process.env.STRAPI_API_TOKEN;
   let lastError: unknown;

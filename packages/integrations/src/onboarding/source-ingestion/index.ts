@@ -1,11 +1,16 @@
-import { parseOnboardingIntake, type OnboardingIntake } from "@lmnas/contracts";
-import { extractTitle, sanitizePreviewHtml } from "../shared/html";
+import { parseOnboardingIntake, type OnboardingIntake, type OnboardingSourceStyleProfile } from "@lmnas/contracts";
+import { buildStyledSourcePreview } from "../preview-renderer";
+import { extractTitle } from "../shared/html";
 
 export type IngestedSource = {
   intake: OnboardingIntake;
   sourceRef: string;
   html: string;
   previewHtml: string;
+  rawMarkupPreview: string;
+  styleProfile: OnboardingSourceStyleProfile;
+  themeScopeClass: string;
+  baseUrl?: string;
   title?: string;
 };
 
@@ -51,12 +56,21 @@ export async function ingestSource(input: unknown): Promise<IngestedSource> {
   const intake = parseOnboardingIntake(input);
   const source = await resolveSourceHtml(intake);
   const title = extractTitle(source.html);
+  const styledPreview = buildStyledSourcePreview({
+    sourceHtml: source.html,
+    sourceRef: source.sourceRef,
+    themeKey: intake.themeKey
+  });
 
   return {
     intake,
     sourceRef: source.sourceRef,
     html: source.html,
-    previewHtml: sanitizePreviewHtml(source.html),
+    previewHtml: styledPreview.previewHtml,
+    rawMarkupPreview: styledPreview.rawMarkupPreview,
+    styleProfile: styledPreview.styleProfile,
+    themeScopeClass: styledPreview.themeScopeClass,
+    baseUrl: styledPreview.baseUrl,
     title
   };
 }

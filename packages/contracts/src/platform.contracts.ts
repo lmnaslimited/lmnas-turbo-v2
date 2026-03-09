@@ -268,45 +268,72 @@ export const onboardingIntakeSchema = z.object({
   themeKey: z.string().min(1).default("default")
 });
 
+export const onboardingSourceStyleProfileSchema = z.object({
+  appliedStrategy: z.enum(["source_document", "scoped_reconstruction", "unstyled_fallback"]).default("source_document"),
+  inlineStyleTagCount: z.number().int().min(0).default(0),
+  linkedStylesheetCount: z.number().int().min(0).default(0),
+  unresolvedStylesheetCount: z.number().int().min(0).default(0),
+  fidelityNotes: z.array(z.string().min(1)).default([])
+});
+
 export const onboardingSourcePreviewSchema = z.object({
   sourceRef: z.string().min(1),
   title: z.string().min(1).optional(),
-  previewHtml: z.string().min(1)
+  previewHtml: z.string().min(1),
+  rawMarkupPreview: z.string().min(1).optional(),
+  baseUrl: z.string().min(1).optional(),
+  themeScopeClass: z.string().min(1).default("theme-default"),
+  styleProfile: onboardingSourceStyleProfileSchema.default({
+    appliedStrategy: "source_document",
+    inlineStyleTagCount: 0,
+    linkedStylesheetCount: 0,
+    unresolvedStylesheetCount: 0,
+    fidelityNotes: []
+  })
 });
 
 export const onboardingShellCandidateSchema = z.object({
   id: z.string().min(1),
+  displayName: z.string().min(1).optional(),
   type: z.enum(["navbar", "footer", "utility_bar", "announcement_bar"]),
   selectorHint: z.string().min(1),
+  previewSelector: z.string().min(1).optional(),
   confidence: z.number().min(0).max(1),
   menuItems: z.array(navigationItemSchema).default([]),
   editableFields: z.array(z.string().min(1)).default([]),
   ctaLabels: z.array(z.string().min(1)).default([]),
+  sourceSnippet: z.string().min(1).optional(),
   previewHtml: z.string().min(1).optional()
 });
 
 export const onboardingBlockProposalSchema = z.object({
   id: z.string().min(1),
+  displayName: z.string().min(1).optional(),
   family: canonicalBlockFamilySchema,
   selectorHint: z.string().min(1),
+  previewSelector: z.string().min(1).optional(),
   confidence: z.number().min(0).max(1),
   editableFields: z.array(z.string().min(1)).default([]),
   ctaLabels: z.array(z.string().min(1)).default([]),
   actionIds: z.array(z.string().min(1)).default([]),
   segmentation: segmentationModeSchema.default("keep"),
   rawHtmlSnippet: z.string().min(1).optional(),
+  sourceSnippet: z.string().min(1).optional(),
   previewHtml: z.string().min(1).optional()
 });
 
 export const onboardingWidgetProposalSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
+  displayName: z.string().min(1).optional(),
   widgetType: widgetTypeSchema,
   selectorHint: z.string().min(1),
+  previewSelector: z.string().min(1).optional(),
   confidence: z.number().min(0).max(1),
   editableFields: z.array(z.string().min(1)).default([]),
   triggerLabels: z.array(z.string().min(1)).default([]),
   associatedActionIds: z.array(z.string().min(1)).default([]),
+  sourceSnippet: z.string().min(1).optional(),
   previewHtml: z.string().min(1).optional()
 });
 
@@ -318,14 +345,21 @@ export const actionDestinationSchema = z.object({
 export const onboardingActionProposalSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
+  displayName: z.string().min(1).optional(),
   selectorHint: z.string().min(1),
+  previewSelector: z.string().min(1).optional(),
   confidence: z.number().min(0).max(1),
   actionType: actionTypeSchema,
   sourceSurface: z.enum(["shell", "block", "widget", "unknown"]).default("unknown"),
   sourceItemId: z.string().min(1).optional(),
+  sourceItemLabel: z.string().min(1).optional(),
+  ctaKind: z.enum(["anchor", "button", "unknown"]).default("unknown"),
+  ctaHref: z.string().min(1).optional(),
+  ctaButtonType: z.string().min(1).optional(),
   destination: actionDestinationSchema,
   suggestedExitId: z.string().min(1).optional(),
   summary: z.string().min(1),
+  sourceSnippet: z.string().min(1).optional(),
   previewHtml: z.string().min(1).optional()
 });
 
@@ -382,6 +416,7 @@ export const onboardingOverrideSchema = z.object({
   shellVariantId: z.string().min(1).optional(),
   navbarVariantId: z.string().min(1).optional(),
   footerVariantId: z.string().min(1).optional(),
+  displayNameOverrides: z.record(z.string(), z.string().min(1)).default({}),
   blockFamilyOverrides: z.record(z.string(), canonicalBlockFamilySchema).default({}),
   exitStateOverrides: z.record(z.string(), exitStateSchema).default({}),
   itemImportState: z.record(z.string(), z.boolean()).default({}),
@@ -422,6 +457,7 @@ export const strapiSyncPayloadSchema = z.object({
 export const onboardingPublishRequestSchema = z.object({
   analysis: onboardingAnalysisSchema,
   overrides: onboardingOverrideSchema.default({
+    displayNameOverrides: {},
     blockFamilyOverrides: {},
     exitStateOverrides: {},
     itemImportState: {},
@@ -439,6 +475,12 @@ export const onboardingPublishRequestSchema = z.object({
 export const onboardingPublishResultSchema = z.object({
   mode: z.enum(["dry-run", "apply"]),
   applied: z.boolean(),
+  applyReadiness: z.object({
+    canApply: z.boolean(),
+    missingEnvKeys: z.array(z.string().min(1)).default([]),
+    operatorMessage: z.string().min(1),
+    developerMessage: z.string().min(1).optional()
+  }),
   summary: z.object({
     shellsToCreate: z.number().int().min(0),
     blocksToCreate: z.number().int().min(0),
@@ -450,6 +492,7 @@ export const onboardingPublishResultSchema = z.object({
   }),
   previewLinks: z.array(z.string().min(1)).default([]),
   warnings: z.array(fidelityWarningSchema),
+  assemblyPreviewHtml: z.string().min(1).optional(),
   strapiPayload: strapiSyncPayloadSchema
 });
 
@@ -479,6 +522,7 @@ export type WidgetVariant = z.infer<typeof widgetVariantSchema>;
 export type ActionBinding = z.infer<typeof actionBindingSchema>;
 export type OnboardingSourceType = z.infer<typeof onboardingSourceTypeSchema>;
 export type OnboardingIntake = z.infer<typeof onboardingIntakeSchema>;
+export type OnboardingSourceStyleProfile = z.infer<typeof onboardingSourceStyleProfileSchema>;
 export type OnboardingSourcePreview = z.infer<typeof onboardingSourcePreviewSchema>;
 export type OnboardingShellCandidate = z.infer<typeof onboardingShellCandidateSchema>;
 export type OnboardingBlockProposal = z.infer<typeof onboardingBlockProposalSchema>;

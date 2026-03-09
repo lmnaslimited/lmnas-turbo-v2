@@ -81,12 +81,22 @@ function detectWidgetsFromClassAndId(html: string): OnboardingWidgetProposal[] {
     candidates.set(id, {
       id,
       name: rule.defaultName,
+      displayName: rule.defaultName,
       widgetType: rule.type,
       selectorHint: `<${segment[1]} class='${classLike}'>`,
+      previewSelector:
+        segment[2] === "id"
+          ? `#${classLike}`
+          : classLike
+              .split(/\s+/)
+              .filter((entry) => entry.length > 0)
+              .map((entry) => `.${entry}`)
+              .join(""),
       confidence: rule.confidence,
       editableFields: ["heading", "body", "buttonText"],
       triggerLabels: [],
       associatedActionIds: [],
+      sourceSnippet: block,
       previewHtml: sanitizePreviewHtml(block)
     });
   }
@@ -116,12 +126,15 @@ function detectWidgetsFromCallsToAction(html: string): OnboardingWidgetProposal[
     candidates.set(id, {
       id,
       name: rule.defaultName,
+      displayName: rule.defaultName,
       widgetType: rule.type,
       selectorHint: clickable.selectorHint,
+      previewSelector: clickable.selectorHint,
       confidence: Math.max(0.7, rule.confidence - 0.08),
       editableFields: ["heading", "body", "buttonText"],
       triggerLabels: [label],
       associatedActionIds: [],
+      sourceSnippet: clickable.label,
       previewHtml: `<div><strong>${label}</strong></div>`
     });
   }
@@ -142,12 +155,15 @@ export function detectWidgetProposals(html: string): OnboardingWidgetProposal[] 
     merged.set("widget_contact_drawer", {
       id: "widget_contact_drawer",
       name: "Contact Drawer",
+      displayName: "Contact Drawer",
       widgetType: "drawer",
       selectorHint: "fallback:widget",
+      previewSelector: "body",
       confidence: 0.32,
       editableFields: ["heading", "buttonText"],
       triggerLabels: [],
       associatedActionIds: [],
+      sourceSnippet: "fallback",
       previewHtml: "<div>No explicit widget detected. You can still create one in mapping.</div>"
     });
   }

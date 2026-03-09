@@ -8,24 +8,57 @@ import type {
 import { extractAnchors, extractButtons, includesAny, slugify } from "../shared/html";
 
 function resolveSourceSurface(params: {
-  selectorHint: string;
+  snippet: string;
   label: string;
+  selectorHint: string;
   blocks: OnboardingBlockProposal[];
   shells: OnboardingShellCandidate[];
-}): { sourceSurface: OnboardingActionProposal["sourceSurface"]; sourceItemId?: string } {
-  const block = params.blocks.find((candidate) => (candidate.rawHtmlSnippet ?? "").includes(params.label));
+  widgets: OnboardingWidgetProposal[];
+}): {
+  sourceSurface: OnboardingActionProposal["sourceSurface"];
+  sourceItemId?: string;
+  sourceItemLabel?: string;
+} {
+  const block = params.blocks.find(
+    (candidate) =>
+      (candidate.rawHtmlSnippet ?? "").includes(params.snippet) ||
+      (candidate.rawHtmlSnippet ?? "").toLowerCase().includes(params.label.toLowerCase())
+  );
+
   if (block) {
     return {
       sourceSurface: "block",
-      sourceItemId: block.id
+      sourceItemId: block.id,
+      sourceItemLabel: block.displayName ?? block.id
     };
   }
 
-  const shell = params.shells.find((candidate) => candidate.selectorHint === "<nav>" || candidate.type === "navbar");
-  if (shell && params.selectorHint.startsWith("a[")) {
+  const shell = params.shells.find(
+    (candidate) =>
+      (candidate.sourceSnippet ?? "").includes(params.snippet) ||
+      (candidate.sourceSnippet ?? "").toLowerCase().includes(params.label.toLowerCase())
+  );
+
+  if (shell) {
     return {
       sourceSurface: "shell",
-      sourceItemId: shell.id
+      sourceItemId: shell.id,
+      sourceItemLabel: shell.displayName ?? shell.id
+    };
+  }
+
+  const widget = params.widgets.find(
+    (candidate) =>
+      (candidate.sourceSnippet ?? "").includes(params.snippet) ||
+      (candidate.sourceSnippet ?? "").toLowerCase().includes(params.label.toLowerCase()) ||
+      candidate.selectorHint === params.selectorHint
+  );
+
+  if (widget) {
+    return {
+      sourceSurface: "widget",
+      sourceItemId: widget.id,
+      sourceItemLabel: widget.displayName ?? widget.name
     };
   }
 
@@ -36,7 +69,9 @@ function resolveSourceSurface(params: {
 
 function findRelatedWidgetId(label: string, widgets: OnboardingWidgetProposal[]): string | undefined {
   const matchingWidget = widgets.find(
-    (widget) => includesAny(label, [widget.name, widget.widgetType.replaceAll("_", " ")]) || widget.triggerLabels.some((trigger) => includesAny(label, [trigger]))
+    (widget) =>
+      includesAny(label, [widget.name, widget.widgetType.replaceAll("_", " ")]) ||
+      widget.triggerLabels.some((trigger) => includesAny(label, [trigger]))
   );
 
   return matchingWidget?.id;
@@ -153,64 +188,79 @@ export function detectActionProposals(params: {
 }): OnboardingActionProposal[] {
   const anchors = extractAnchors(params.html);
   const buttons = extractButtons(params.html);
-
   const actions = new Map<string, OnboardingActionProposal>();
 
-  anchors.forEach((anchor) => {
-    const id = `action_${slugify(anchor.label)}_${slugify(anchor.href) || "link"}`;
+  anchors.forEach((anchor, index) => {
+    const id = `action_${slugify(anchor.label)}_${index + 1}`;
     if (actions.has(id)) {
       return;
     }
 
     const classification = classifyAction({ label: anchor.label, href: anchor.href, widgets: params.widgets });
     const source = resolveSourceSurface({
-      selectorHint: anchor.selectorHint,
+      snippet: anchor.htmlSnippet,
       label: anchor.label,
+      selectorHint: anchor.selectorHint,
       blocks: params.blocks,
-      shells: params.shells
+      shells: params.shells,
+      widgets: params.widgets
     });
 
     actions.set(id, {
       id,
       label: anchor.label,
+      displayName: anchor.label,
       selectorHint: anchor.selectorHint,
+      previewSelector: anchor.selectorHint,
       confidence: 0.86,
       actionType: classification.actionType,
       sourceSurface: source.sourceSurface,
       sourceItemId: source.sourceItemId,
+      sourceItemLabel: source.sourceItemLabel,
+      ctaKind: "anchor",
+      ctaHref: anchor.href,
       destination: classification.destination,
       suggestedExitId: classification.suggestedExitId,
       summary: classification.summary,
-      previewHtml: `<a href='${anchor.href}'>${anchor.label}</a>`
+      sourceSnippet: anchor.htmlSnippet,
+      previewHtml: anchor.htmlSnippet
     });
   });
 
-  buttons.forEach((button) => {
-    const id = `action_${slugify(button.label)}_${button.type}`;
+  buttons.forEach((button, index) => {
+    const id = `action_${slugify(button.label)}_${button.type}_${index + 1}`;
     if (actions.has(id)) {
       return;
     }
 
     const classification = classifyAction({ label: button.label, buttonType: button.type, widgets: params.widgets });
     const source = resolveSourceSurface({
-      selectorHint: button.selectorHint,
+      snippet: button.htmlSnippet,
       label: button.label,
+      selectorHint: button.selectorHint,
       blocks: params.blocks,
-      shells: params.shells
+      shells: params.shells,
+      widgets: params.widgets
     });
 
     actions.set(id, {
       id,
       label: button.label,
+      displayName: button.label,
       selectorHint: button.selectorHint,
+      previewSelector: button.selectorHint,
       confidence: 0.76,
       actionType: classification.actionType,
       sourceSurface: source.sourceSurface,
       sourceItemId: source.sourceItemId,
+      sourceItemLabel: source.sourceItemLabel,
+      ctaKind: "button",
+      ctaButtonType: button.type,
       destination: classification.destination,
       suggestedExitId: classification.suggestedExitId,
       summary: classification.summary,
-      previewHtml: `<button type='${button.type}'>${button.label}</button>`
+      sourceSnippet: button.htmlSnippet,
+      previewHtml: button.htmlSnippet
     });
   });
 
@@ -218,16 +268,20 @@ export function detectActionProposals(params: {
     actions.set("action_book_appointment_primary", {
       id: "action_book_appointment_primary",
       label: "Book Appointment",
+      displayName: "Book Appointment",
       selectorHint: "fallback:primary-cta",
+      previewSelector: "body",
       confidence: 0.4,
       actionType: "open_widget",
       sourceSurface: "unknown",
+      ctaKind: "unknown",
       destination: {
         kind: "widget",
         value: "booking_popup_primary"
       },
       suggestedExitId: "book_appointment_primary",
       summary: "Open booking widget",
+      sourceSnippet: "Book Appointment",
       previewHtml: "<button>Book Appointment</button>"
     });
   }

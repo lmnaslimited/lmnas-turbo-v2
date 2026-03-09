@@ -80,6 +80,63 @@ describe("onboarding pipeline", () => {
     expect(result.strapiPayload.widgetDefinitions.length).toBeGreaterThan(0);
     expect(result.strapiPayload.actionBindings.length).toBeGreaterThan(0);
   });
+
+  it("reports low-confidence and source-fidelity warnings for ambiguous unstyled content", async () => {
+    const analysis = await analyzeOnboardingSource({
+      sourceType: "raw_html",
+      sourceValue: "<div><p>Alpha signal content</p><a href='/next'>Continue</a></div>",
+      slug: "unstyled-page",
+      locale: "en",
+      themeKey: "default"
+    });
+
+    const warningCodes = analysis.fidelityWarnings.map((warning) => warning.code);
+    expect(warningCodes).toContain("blocks.low_confidence");
+    expect(warningCodes.some((code) => code.startsWith("preview.fidelity_note_"))).toBe(true);
+  });
+
+  it("warns when action mappings reference missing widgets or require auto-generated exits", async () => {
+    const analysis = await analyzeOnboardingSource({
+      sourceType: "raw_html",
+      sourceValue: sampleHtml,
+      slug: "mapping-gap-check",
+      locale: "en",
+      themeKey: "default"
+    });
+
+    const widgetAction = analysis.actionProposals[0];
+    const workflowAction = analysis.actionProposals.find((proposal) => proposal.id !== widgetAction?.id);
+    expect(widgetAction).toBeDefined();
+    expect(workflowAction).toBeDefined();
+
+    const result = await publishOnboardingDraft({
+      analysis,
+      mode: "dry-run",
+      overrides: {
+        blockFamilyOverrides: {},
+        exitStateOverrides: {},
+        itemImportState: Object.fromEntries(analysis.widgetProposals.map((widget) => [widget.id, false])),
+        itemTypeOverrides: {},
+        fieldOverrides: {},
+        mapToExisting: {},
+        segmentationOverrides: {},
+        actionTypeOverrides: {
+          [widgetAction!.id]: "open_widget",
+          [workflowAction!.id]: "workflow"
+        },
+        actionLabelOverrides: {},
+        actionTargetOverrides: {
+          [widgetAction!.id]: {
+            widgetId: "widget_missing_from_selection"
+          }
+        }
+      }
+    });
+
+    const warningCodes = result.warnings.map((warning) => warning.code);
+    expect(warningCodes).toContain("actions.widget_mapping_gap");
+    expect(warningCodes).toContain("actions.exit_mapping_gap");
+  });
 });
 
 describe("exit contract registry", () => {

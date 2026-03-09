@@ -19,12 +19,14 @@ The operator should always understand:
 - Enter slug and locale
 
 2. Source Preview
-- View interpreted source in preview panel
-- Verify source quality before mapping
+- View interpreted source in preview panel with styling fidelity
+- Switch viewport (`desktop`, `tablet`, `mobile`) and zoom
+- Click detected overlays to sync with detection cards
 
 3. Detection Review
 - Cards show shells, blocks, widgets, and actions
 - Each card includes preview, confidence, fields, CTA summary
+- Action cards include parent block/shell linkage and CTA hint
 - Operator chooses Import or Skip for each item
 
 4. Selection & Mapping
@@ -48,6 +50,7 @@ The operator should always understand:
 - Default dry run = **Preview What Will Be Created**
 - Summary shows counts for shells/blocks/widgets/actions/exits/fields
 - Warnings shown in plain language
+- Visual assembled preview is shown before apply
 - Developer JSON available only in collapsed details panel
 
 ## Operator Responsibilities
@@ -67,6 +70,7 @@ The operator should always understand:
 
 1. Analyze succeeds
 2. Operator keeps needed cards, skips noise
-3. Action mappings are clear
-4. Preview summary has acceptable warnings
-5. Apply succeeds and entries are available in Strapi
+3. Action mappings are traceable to parent CTA/source location
+4. Assembled preview matches expected shell + blocks + footer
+5. Preview summary has acceptable warnings
+6. Apply succeeds and entries are available in Strapi

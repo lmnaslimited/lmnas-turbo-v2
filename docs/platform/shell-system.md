@@ -53,3 +53,4 @@ Operators can:
 - map to existing shell models
 - edit menu/submenu labels and destinations
 - preview shell updates safely before publish
+- review shell cards with visual thumbnails and import/skip controls

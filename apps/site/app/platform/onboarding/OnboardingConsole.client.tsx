@@ -1,12 +1,19 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  buildDetectionThumbnailDocument,
+  buildFinalAssemblyPreviewDocument
+} from "@lmnas/integrations/onboarding/preview-renderer";
 import type {
   ActionType,
   CanonicalBlockFamily,
+  OnboardingActionProposal,
   OnboardingAnalysis,
+  OnboardingBlockProposal,
   OnboardingItemType,
   OnboardingPublishResult,
+  OnboardingShellCandidate,
   OnboardingSourceType,
   OnboardingWidgetProposal,
   SegmentationMode
@@ -57,6 +64,11 @@ const ACTION_TYPE_OPTIONS: Array<{ value: ActionType; label: string }> = [
 
 const ITEM_TYPE_OPTIONS: OnboardingItemType[] = ["shell", "block", "widget", "action", "exit"];
 const SEGMENTATION_OPTIONS: SegmentationMode[] = ["keep", "split", "merge"];
+const VIEWPORT_OPTIONS = [
+  { key: "desktop", label: "Desktop", width: 1220 },
+  { key: "tablet", label: "Tablet", width: 820 },
+  { key: "mobile", label: "Mobile", width: 430 }
+] as const;
 
 const STEPS = [
   "Source Intake",
@@ -80,6 +92,15 @@ type ActionTargetOverride = {
   sectionId?: string;
   widgetId?: string;
   exitId?: string;
+};
+
+type DetectableItem = {
+  id: string;
+  type: "shell" | "block" | "widget" | "action";
+  label: string;
+  previewHtml?: string;
+  previewSelector?: string;
+  confidence: number;
 };
 
 function dedupeStrings(values: string[]): string[] {
@@ -115,12 +136,96 @@ function chipStyleForType(type: string): string {
   return "lmnas-chip";
 }
 
+function buildDetectableItems(analysis: OnboardingAnalysis | null): DetectableItem[] {
+  if (!analysis) {
+    return [];
+  }
+
+  const shells = analysis.shellCandidates.map((item) => ({
+    id: item.id,
+    type: "shell" as const,
+    label: item.displayName ?? item.id,
+    previewHtml: item.previewHtml,
+    previewSelector: item.previewSelector,
+    confidence: item.confidence
+  }));
+
+  const blocks = analysis.blockProposals.map((item) => ({
+    id: item.id,
+    type: "block" as const,
+    label: item.displayName ?? item.id,
+    previewHtml: item.previewHtml,
+    previewSelector: item.previewSelector,
+    confidence: item.confidence
+  }));
+
+  const widgets = analysis.widgetProposals.map((item) => ({
+    id: item.id,
+    type: "widget" as const,
+    label: item.displayName ?? item.name,
+    previewHtml: item.previewHtml,
+    previewSelector: item.previewSelector,
+    confidence: item.confidence
+  }));
+
+  const actions = analysis.actionProposals.map((item) => ({
+    id: item.id,
+    type: "action" as const,
+    label: item.displayName ?? item.label,
+    previewHtml: item.previewHtml,
+    previewSelector: item.previewSelector,
+    confidence: item.confidence
+  }));
+
+  return [...shells, ...blocks, ...widgets, ...actions];
+}
+
+function mergeDisplayName<T extends { id: string; displayName?: string }>(item: T, overrides: Record<string, string>): T {
+  return {
+    ...item,
+    displayName: overrides[item.id] ?? item.displayName
+  };
+}
+
+function buildFinalAssemblyPreview(params: {
+  analysis: OnboardingAnalysis | null;
+  itemImportState: Record<string, boolean>;
+  displayNameOverrides: Record<string, string>;
+}): string {
+  if (!params.analysis) {
+    return "";
+  }
+
+  const shells = params.analysis.shellCandidates
+    .filter((item) => params.itemImportState[item.id] !== false)
+    .map((item) => mergeDisplayName(item, params.displayNameOverrides));
+  const blocks = params.analysis.blockProposals
+    .filter((item) => params.itemImportState[item.id] !== false)
+    .map((item) => mergeDisplayName(item, params.displayNameOverrides));
+  const widgets = params.analysis.widgetProposals
+    .filter((item) => params.itemImportState[item.id] !== false)
+    .map((item) => mergeDisplayName(item, params.displayNameOverrides));
+  const actions = params.analysis.actionProposals
+    .filter((item) => params.itemImportState[item.id] !== false)
+    .map((item) => mergeDisplayName(item, params.displayNameOverrides));
+
+  return buildFinalAssemblyPreviewDocument({
+    sourcePreviewHtml: params.analysis.source.previewHtml,
+    baseUrl: params.analysis.source.baseUrl,
+    themeScopeClass: params.analysis.source.themeScopeClass,
+    shellCandidates: shells,
+    blockProposals: blocks,
+    widgetProposals: widgets,
+    actionProposals: actions
+  });
+}
+
 export function OnboardingConsole() {
   const [step, setStep] = useState(0);
   const [intake, setIntake] = useState<IntakeFormState>({
     sourceType: "raw_html",
     sourceValue:
-      "<header><nav><a href='/products'>Products</a><a href='/contact'>Contact</a></nav></header><section class='hero'><h1>Build faster with LMNAs</h1><p>Launch governed pages in minutes.</p><a href='/book'>Book Appointment</a></section><section class='faq'><h2>FAQ</h2><button>Send me the full report</button></section><footer><a href='/privacy'>Privacy</a></footer>",
+      "<style>.hero{padding:48px 32px;background:#0f172a;color:#f8fafc;border-radius:18px}.hero a{display:inline-block;margin-top:10px;background:#0b66ff;color:#fff;padding:10px 14px;border-radius:8px;text-decoration:none}.faq{margin-top:16px;padding:18px;border:1px solid #d1dbe8;border-radius:14px}</style><header><nav><a href='/products'>Products</a><a href='/contact'>Contact</a></nav></header><section class='hero'><h1>Build faster with LMNAs</h1><p>Launch governed pages in minutes.</p><a href='/book'>Book Appointment</a></section><section class='faq'><h2>FAQ</h2><button>Send me the full report</button></section><footer><a href='/privacy'>Privacy</a></footer>",
     slug: "home",
     locale: "en",
     themeKey: "default"
@@ -131,9 +236,13 @@ export function OnboardingConsole() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sourceViewport, setSourceViewport] = useState<(typeof VIEWPORT_OPTIONS)[number]["key"]>("desktop");
+  const [sourceZoom, setSourceZoom] = useState(100);
+  const [focusedItemId, setFocusedItemId] = useState<string | null>(null);
 
   const [itemImportState, setItemImportState] = useState<Record<string, boolean>>({});
   const [itemTypeOverrides, setItemTypeOverrides] = useState<Record<string, OnboardingItemType>>({});
+  const [displayNameOverrides, setDisplayNameOverrides] = useState<Record<string, string>>({});
   const [mapToExisting, setMapToExisting] = useState<Record<string, string>>({});
   const [blockFamilyOverrides, setBlockFamilyOverrides] = useState<Record<string, CanonicalBlockFamily>>({});
   const [fieldOverrides, setFieldOverrides] = useState<Record<string, string[]>>({});
@@ -143,6 +252,7 @@ export function OnboardingConsole() {
   const [actionTargetOverrides, setActionTargetOverrides] = useState<Record<string, ActionTargetOverride>>({});
   const [exitStateOverrides, setExitStateOverrides] = useState<Record<string, "active" | "inactive">>({});
 
+  const sourceFrameRef = useRef<HTMLIFrameElement | null>(null);
   const canAnalyze =
     intake.sourceValue.trim().length > 0 &&
     intake.slug.trim().length > 0 &&
@@ -178,11 +288,23 @@ export function OnboardingConsole() {
     };
   }, [analysis, itemImportState]);
 
+  const detectableItems = useMemo(() => buildDetectableItems(analysis), [analysis]);
+  const assemblyPreviewFromSelection = useMemo(
+    () => buildFinalAssemblyPreview({ analysis, itemImportState, displayNameOverrides }),
+    [analysis, itemImportState, displayNameOverrides]
+  );
+
+  const activeSourceWidth = VIEWPORT_OPTIONS.find((option) => option.key === sourceViewport)?.width ?? VIEWPORT_OPTIONS[0].width;
+
   function updateIntake<K extends keyof IntakeFormState>(key: K, value: IntakeFormState[K]) {
     setIntake((previous) => ({
       ...previous,
       [key]: value
     }));
+  }
+
+  function displayNameFor(item: { id: string; displayName?: string }, fallbackLabel: string): string {
+    return displayNameOverrides[item.id] ?? item.displayName ?? fallbackLabel;
   }
 
   async function importSourceFile(file: File) {
@@ -231,6 +353,7 @@ export function OnboardingConsole() {
       setAnalysis(payload.analysis);
       initializeImportToggles(payload.analysis);
       setBlockFamilyOverrides({});
+      setDisplayNameOverrides({});
       setFieldOverrides({});
       setSegmentationOverrides({});
       setMapToExisting({});
@@ -239,6 +362,7 @@ export function OnboardingConsole() {
       setActionLabelOverrides({});
       setActionTargetOverrides({});
       setExitStateOverrides({});
+      setFocusedItemId(null);
       setStep(1);
     } catch (analysisError) {
       setError(analysisError instanceof Error ? analysisError.message : String(analysisError));
@@ -271,6 +395,10 @@ export function OnboardingConsole() {
     }));
   }
 
+  function focusItem(id: string) {
+    setFocusedItemId(id);
+  }
+
   async function publish(mode: "dry-run" | "apply") {
     if (!analysis) {
       return;
@@ -289,6 +417,7 @@ export function OnboardingConsole() {
           analysis,
           mode,
           overrides: {
+            displayNameOverrides,
             blockFamilyOverrides,
             exitStateOverrides,
             itemImportState,
@@ -335,6 +464,164 @@ export function OnboardingConsole() {
     );
   }
 
+  function buildCardPreview(snippet: string | undefined): string {
+    if (!analysis) {
+      return "";
+    }
+
+    return buildDetectionThumbnailDocument({
+      snippetHtml: snippet ?? "<div>No preview</div>",
+      sourcePreviewHtml: analysis.source.previewHtml,
+      baseUrl: analysis.source.baseUrl,
+      themeScopeClass: analysis.source.themeScopeClass
+    });
+  }
+
+  function renderSourcePane(title: string) {
+    return (
+      <article className="lmnas-source-pane">
+        <header className="lmnas-source-pane-header">
+          <div>
+            <h3>{title}</h3>
+            {analysis ? (
+              <p className="lmnas-muted">
+                {analysis.source.sourceRef} | Theme scope: {analysis.source.themeScopeClass}
+              </p>
+            ) : null}
+          </div>
+          <div className="lmnas-source-controls">
+            {VIEWPORT_OPTIONS.map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                data-primary={sourceViewport === option.key ? "true" : undefined}
+                onClick={() => setSourceViewport(option.key)}
+              >
+                {option.label}
+              </button>
+            ))}
+            <label>
+              Zoom
+              <input
+                data-testid="source-zoom-input"
+                type="range"
+                min={60}
+                max={140}
+                step={5}
+                value={sourceZoom}
+                onChange={(event) => setSourceZoom(Number(event.target.value))}
+              />
+            </label>
+          </div>
+        </header>
+        <div className="lmnas-source-canvas-wrap">
+          <div
+            className="lmnas-source-canvas"
+            style={{
+              width: `${activeSourceWidth}px`,
+              transform: `scale(${sourceZoom / 100})`,
+              transformOrigin: "top left"
+            }}
+          >
+            <iframe
+              ref={sourceFrameRef}
+              className="lmnas-preview-frame lmnas-preview-frame-source"
+              srcDoc={analysis?.source.previewHtml}
+              sandbox=""
+              title="Source preview"
+              data-testid="source-preview-frame"
+            />
+          </div>
+        </div>
+      </article>
+    );
+  }
+
+  useEffect(() => {
+    if (!analysis || !sourceFrameRef.current) {
+      return;
+    }
+
+    const frame = sourceFrameRef.current;
+    let cleanupClick: (() => void) | undefined;
+
+    const annotate = () => {
+      const doc = frame.contentDocument;
+      if (!doc) {
+        return;
+      }
+
+      const previous = Array.from(doc.querySelectorAll<HTMLElement>("[data-lmnas-item-id]"));
+      previous.forEach((element) => {
+        element.classList.remove("lmnas-source-item", "lmnas-source-item-active");
+        element.removeAttribute("data-lmnas-item-id");
+      });
+
+      detectableItems.forEach((item) => {
+        if (!item.previewSelector) {
+          return;
+        }
+
+        try {
+          const element = doc.querySelector<HTMLElement>(item.previewSelector);
+          if (!element) {
+            return;
+          }
+          element.dataset.lmnasItemId = item.id;
+          element.classList.add("lmnas-source-item");
+        } catch {
+          // Ignore invalid selectors from imperfect detection.
+        }
+      });
+
+      const onClick = (event: Event) => {
+        const target = event.target as Element | null;
+        const matched = target?.closest<HTMLElement>("[data-lmnas-item-id]");
+        if (!matched?.dataset.lmnasItemId) {
+          return;
+        }
+        event.preventDefault();
+        setFocusedItemId(matched.dataset.lmnasItemId);
+      };
+
+      doc.addEventListener("click", onClick);
+      cleanupClick = () => doc.removeEventListener("click", onClick);
+    };
+
+    annotate();
+    frame.addEventListener("load", annotate);
+
+    return () => {
+      frame.removeEventListener("load", annotate);
+      cleanupClick?.();
+    };
+  }, [analysis, detectableItems]);
+
+  useEffect(() => {
+    const doc = sourceFrameRef.current?.contentDocument;
+    if (!doc) {
+      return;
+    }
+
+    const allItems = Array.from(doc.querySelectorAll<HTMLElement>("[data-lmnas-item-id]"));
+    allItems.forEach((element) => element.classList.remove("lmnas-source-item-active"));
+
+    if (!focusedItemId) {
+      return;
+    }
+
+    const target = allItems.find((element) => element.dataset.lmnasItemId === focusedItemId);
+    if (!target) {
+      return;
+    }
+
+    target.classList.add("lmnas-source-item-active");
+    target.scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+  }, [focusedItemId, analysis, sourceViewport, sourceZoom]);
+
   return (
     <>
       <section className="lmnas-onboarding-card">
@@ -367,9 +654,7 @@ export function OnboardingConsole() {
       {step === 0 ? (
         <section className="lmnas-onboarding-card">
           <h2>1. Source Intake</h2>
-          <p className="lmnas-muted">
-            Start with one source. You can paste URL/HTML or import a handoff artifact.
-          </p>
+          <p className="lmnas-muted">Paste URL/HTML or upload a design artifact. Operator flow stays visual by default.</p>
 
           <div className="lmnas-source-type-grid">
             {SOURCE_TYPES.map((sourceType) => (
@@ -398,7 +683,12 @@ export function OnboardingConsole() {
 
           <label className="lmnas-onboarding-field">
             <span>Source content</span>
-            <textarea rows={10} value={intake.sourceValue} onChange={(event) => updateIntake("sourceValue", event.target.value)} />
+            <textarea
+              rows={10}
+              value={intake.sourceValue}
+              onChange={(event) => updateIntake("sourceValue", event.target.value)}
+              data-testid="source-content-input"
+            />
           </label>
 
           <label className="lmnas-onboarding-field">
@@ -424,7 +714,7 @@ export function OnboardingConsole() {
           </details>
 
           <div className="lmnas-onboarding-actions">
-            <button data-primary="true" onClick={runAnalysis} disabled={!canAnalyze || isAnalyzing}>
+            <button data-primary="true" onClick={runAnalysis} disabled={!canAnalyze || isAnalyzing} data-testid="analyze-source-button">
               {isAnalyzing ? "Analyzing..." : "Analyze Source"}
             </button>
           </div>
@@ -435,22 +725,31 @@ export function OnboardingConsole() {
         <section className="lmnas-onboarding-card">
           <h2>2. Source Preview</h2>
           {analysis ? (
-            <>
-              <p className="lmnas-muted">
-                Source: <strong>{analysis.source.sourceRef}</strong>
-                {analysis.source.title ? ` | Title: ${analysis.source.title}` : ""}
-              </p>
-              <div className="lmnas-preview-grid">
-                <article>
-                  <h3>Visual Preview</h3>
-                  <iframe className="lmnas-preview-frame" srcDoc={analysis.source.previewHtml} sandbox="" />
-                </article>
-                <article>
-                  <h3>Imported Markup</h3>
-                  <pre className="lmnas-code-preview">{analysis.source.previewHtml.slice(0, 3000)}</pre>
-                </article>
-              </div>
-            </>
+            <div className="lmnas-studio-layout">
+              {renderSourcePane("Styled Source Preview")}
+              <article className="lmnas-side-pane">
+                <h3>Detection Readiness</h3>
+                <div className="lmnas-chip-list">
+                  <span className="lmnas-chip">Stylesheets {analysis.source.styleProfile.linkedStylesheetCount}</span>
+                  <span className="lmnas-chip">Style tags {analysis.source.styleProfile.inlineStyleTagCount}</span>
+                  <span className="lmnas-chip">Applied {analysis.source.styleProfile.appliedStrategy}</span>
+                </div>
+                {analysis.source.styleProfile.fidelityNotes.length > 0 ? (
+                  <div>
+                    <h4>Fidelity Notes</h4>
+                    {analysis.source.styleProfile.fidelityNotes.map((note) => (
+                      <p key={note} className="lmnas-warning">
+                        {note}
+                      </p>
+                    ))}
+                  </div>
+                ) : null}
+                <details>
+                  <summary>Advanced markup view</summary>
+                  <pre className="lmnas-code-preview">{analysis.source.rawMarkupPreview ?? analysis.source.previewHtml.slice(0, 9000)}</pre>
+                </details>
+              </article>
+            </div>
           ) : (
             <p className="lmnas-warning">Run analysis first.</p>
           )}
@@ -460,9 +759,7 @@ export function OnboardingConsole() {
       {step === 2 && analysis ? (
         <section className="lmnas-onboarding-card">
           <h2>3. Detection Review</h2>
-          <p className="lmnas-muted">
-            Review each detected item visually. Import what you want, skip what you do not need.
-          </p>
+          <p className="lmnas-muted">Click any card to highlight source. Click highlighted source to focus the matching card.</p>
 
           <div className="lmnas-count-strip">
             <span className="lmnas-chip">Shells {selectedCounts.shells}</span>
@@ -472,117 +769,55 @@ export function OnboardingConsole() {
             <span className="lmnas-chip">Exits {selectedCounts.exits}</span>
           </div>
 
-          <h3>Shell Candidates</h3>
-          <div className="lmnas-detect-grid">
-            {analysis.shellCandidates.map((candidate) => (
-              <article key={candidate.id} className={`lmnas-detect-card ${itemImportState[candidate.id] === false ? "lmnas-detect-card-skipped" : ""}`}>
-                <header>
-                  <span className={chipStyleForType("shell")}>{candidate.type}</span>
-                  <span className="lmnas-chip">{Math.round(candidate.confidence * 100)}% confidence</span>
-                </header>
-                <div className="lmnas-detect-preview" dangerouslySetInnerHTML={{ __html: candidate.previewHtml ?? "<div>No preview</div>" }} />
-                <p>{candidate.selectorHint}</p>
-                <p className="lmnas-muted">Fields: {candidate.editableFields.join(", ") || "menu items"}</p>
-                {renderCardControls(candidate.id)}
-                <label className="lmnas-onboarding-field">
-                  <span>Map to existing (optional)</span>
-                  <input value={mapToExisting[candidate.id] ?? ""} onChange={(event) => setMapToExisting((previous) => ({ ...previous, [candidate.id]: event.target.value }))} placeholder="Existing Shell/Menu ID" />
-                </label>
-              </article>
-            ))}
-          </div>
+          <div className="lmnas-studio-layout">
+            {renderSourcePane("Source With Detection Highlights")}
+            <article className="lmnas-side-pane">
+              <h3>Detected Items</h3>
+              <div className="lmnas-detect-grid">
+                {detectableItems.map((item) => (
+                  <article
+                    key={item.id}
+                    className={`lmnas-detect-card ${focusedItemId === item.id ? "lmnas-detect-card-focused" : ""} ${
+                      itemImportState[item.id] === false ? "lmnas-detect-card-skipped" : ""
+                    }`}
+                    data-testid={`detection-card-${item.id}`}
+                    onClick={() => focusItem(item.id)}
+                  >
+                    <header>
+                      <span className={chipStyleForType(item.type)}>{item.type}</span>
+                      <span className="lmnas-chip">{Math.round(item.confidence * 100)}%</span>
+                    </header>
+                    <iframe className="lmnas-detect-preview-frame" srcDoc={buildCardPreview(item.previewHtml)} sandbox="" title={`${item.id} preview`} />
+                    <p>
+                      <strong>{displayNameOverrides[item.id] ?? item.label}</strong>
+                    </p>
+                    <p className="lmnas-muted">{item.previewSelector ?? "No selector available"}</p>
+                    {renderCardControls(item.id)}
+                    <button type="button" onClick={() => focusItem(item.id)}>
+                      Jump to source
+                    </button>
+                  </article>
+                ))}
+              </div>
 
-          <h3>Block Candidates</h3>
-          <div className="lmnas-detect-grid">
-            {analysis.blockProposals.map((block) => (
-              <article key={block.id} className={`lmnas-detect-card ${itemImportState[block.id] === false ? "lmnas-detect-card-skipped" : ""}`}>
-                <header>
-                  <span className={chipStyleForType("block")}>{block.family}</span>
-                  <span className="lmnas-chip">{Math.round(block.confidence * 100)}% confidence</span>
-                </header>
-                <div className="lmnas-detect-preview" dangerouslySetInnerHTML={{ __html: block.previewHtml ?? "<div>No preview</div>" }} />
-                <p>{block.selectorHint}</p>
-                <div className="lmnas-chip-list">
-                  {block.editableFields.map((field) => (
-                    <span key={field} className="lmnas-chip">
-                      {field}
-                    </span>
-                  ))}
-                </div>
-                <div className="lmnas-chip-list">
-                  {block.ctaLabels.map((cta) => (
-                    <span key={cta} className="lmnas-chip">
-                      CTA: {cta}
-                    </span>
-                  ))}
-                </div>
-                {renderCardControls(block.id)}
-                <label className="lmnas-onboarding-field">
-                  <span>Classify as</span>
-                  <select value={itemTypeOverrides[block.id] ?? "block"} onChange={(event) => setItemTypeOverrides((previous) => ({ ...previous, [block.id]: event.target.value as OnboardingItemType }))}>
-                    {ITEM_TYPE_OPTIONS.map((itemType) => (
-                      <option key={itemType} value={itemType}>
-                        {itemType}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="lmnas-onboarding-field">
-                  <span>Split / Merge</span>
-                  <select value={segmentationOverrides[block.id] ?? block.segmentation} onChange={(event) => setSegmentationOverrides((previous) => ({ ...previous, [block.id]: event.target.value as SegmentationMode }))}>
-                    {SEGMENTATION_OPTIONS.map((mode) => (
-                      <option key={mode} value={mode}>
-                        {mode}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </article>
-            ))}
-          </div>
-
-          <h3>Widget Candidates</h3>
-          <div className="lmnas-detect-grid">
-            {analysis.widgetProposals.map((widget) => (
-              <article key={widget.id} className={`lmnas-detect-card ${itemImportState[widget.id] === false ? "lmnas-detect-card-skipped" : ""}`}>
-                <header>
-                  <span className={chipStyleForType("widget")}>{widget.widgetType}</span>
-                  <span className="lmnas-chip">{Math.round(widget.confidence * 100)}% confidence</span>
-                </header>
-                <div className="lmnas-detect-preview" dangerouslySetInnerHTML={{ __html: widget.previewHtml ?? "<div>No preview</div>" }} />
-                <p>{widget.name}</p>
-                <div className="lmnas-chip-list">
-                  {widget.triggerLabels.map((label) => (
-                    <span key={label} className="lmnas-chip">
-                      Trigger: {label}
-                    </span>
-                  ))}
-                </div>
-                {renderCardControls(widget.id)}
-                <label className="lmnas-onboarding-field">
-                  <span>Map to existing widget (optional)</span>
-                  <input value={mapToExisting[widget.id] ?? ""} onChange={(event) => setMapToExisting((previous) => ({ ...previous, [widget.id]: event.target.value }))} placeholder="Existing Widget ID" />
-                </label>
-              </article>
-            ))}
-          </div>
-
-          <h3>Action Candidates</h3>
-          <div className="lmnas-detect-grid">
-            {analysis.actionProposals.map((action) => (
-              <article key={action.id} className={`lmnas-detect-card ${itemImportState[action.id] === false ? "lmnas-detect-card-skipped" : ""}`}>
-                <header>
-                  <span className={chipStyleForType("action")}>{action.actionType}</span>
-                  <span className="lmnas-chip">{Math.round(action.confidence * 100)}% confidence</span>
-                </header>
-                <div className="lmnas-detect-preview" dangerouslySetInnerHTML={{ __html: action.previewHtml ?? "<div>No preview</div>" }} />
-                <p>
-                  <strong>{action.label}</strong>
-                </p>
-                <p className="lmnas-muted">{action.summary}</p>
-                {renderCardControls(action.id)}
-              </article>
-            ))}
+              <h3>Action Traceability</h3>
+              {analysis.actionProposals
+                .filter((action) => itemImportState[action.id] !== false)
+                .map((action: OnboardingActionProposal) => (
+                  <div key={action.id} className="lmnas-map-row">
+                    <p>
+                      <strong>{displayNameFor(action, action.label)}</strong> ({action.actionType})
+                    </p>
+                    <p className="lmnas-muted">Parent: {action.sourceItemLabel ?? action.sourceItemId ?? "Not mapped"}</p>
+                    <p className="lmnas-muted">
+                      CTA: {action.ctaKind} {action.ctaHref ? `| ${action.ctaHref}` : ""} | {action.selectorHint}
+                    </p>
+                    <button type="button" onClick={() => focusItem(action.id)}>
+                      Highlight CTA
+                    </button>
+                  </div>
+                ))}
+            </article>
           </div>
         </section>
       ) : null}
@@ -590,19 +825,25 @@ export function OnboardingConsole() {
       {step === 3 && analysis ? (
         <section className="lmnas-onboarding-card">
           <h2>4. Selection & Mapping</h2>
-          <p className="lmnas-muted">Choose block families, editable fields, and model mapping before action wiring.</p>
+          <p className="lmnas-muted">Choose what to import, rename items, and confirm editable Strapi fields.</p>
 
-          <h3>Blocks</h3>
           {analysis.blockProposals
             .filter((block) => itemImportState[block.id] !== false)
-            .map((block) => (
+            .map((block: OnboardingBlockProposal) => (
               <div key={block.id} className="lmnas-onboarding-grid lmnas-map-row">
-                <p>
-                  <strong>{block.id}</strong>
-                </p>
+                <label className="lmnas-onboarding-field">
+                  <span>Display name</span>
+                  <input
+                    value={displayNameFor(block, block.id)}
+                    onChange={(event) => setDisplayNameOverrides((previous) => ({ ...previous, [block.id]: event.target.value }))}
+                  />
+                </label>
                 <label className="lmnas-onboarding-field">
                   <span>Block family</span>
-                  <select value={blockFamilyOverrides[block.id] ?? block.family} onChange={(event) => setBlockFamilyOverrides((previous) => ({ ...previous, [block.id]: event.target.value as CanonicalBlockFamily }))}>
+                  <select
+                    value={blockFamilyOverrides[block.id] ?? block.family}
+                    onChange={(event) => setBlockFamilyOverrides((previous) => ({ ...previous, [block.id]: event.target.value as CanonicalBlockFamily }))}
+                  >
                     {BLOCK_FAMILIES.map((family) => (
                       <option key={family} value={family}>
                         {family}
@@ -611,14 +852,37 @@ export function OnboardingConsole() {
                   </select>
                 </label>
                 <label className="lmnas-onboarding-field">
-                  <span>Editable fields (comma-separated)</span>
-                  <input
-                    value={(fieldOverrides[block.id] ?? block.editableFields).join(", ")}
-                    onChange={(event) => setFieldOverrideFromText(block.id, event.target.value)}
-                  />
+                  <span>Classify as</span>
+                  <select
+                    value={itemTypeOverrides[block.id] ?? "block"}
+                    onChange={(event) => setItemTypeOverrides((previous) => ({ ...previous, [block.id]: event.target.value as OnboardingItemType }))}
+                  >
+                    {ITEM_TYPE_OPTIONS.map((itemType) => (
+                      <option key={itemType} value={itemType}>
+                        {itemType}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label className="lmnas-onboarding-field">
-                  <span>Map to existing block (optional)</span>
+                  <span>Editable fields</span>
+                  <input value={(fieldOverrides[block.id] ?? block.editableFields).join(", ")} onChange={(event) => setFieldOverrideFromText(block.id, event.target.value)} />
+                </label>
+                <label className="lmnas-onboarding-field">
+                  <span>Split / Merge</span>
+                  <select
+                    value={segmentationOverrides[block.id] ?? block.segmentation}
+                    onChange={(event) => setSegmentationOverrides((previous) => ({ ...previous, [block.id]: event.target.value as SegmentationMode }))}
+                  >
+                    {SEGMENTATION_OPTIONS.map((mode) => (
+                      <option key={mode} value={mode}>
+                        {mode}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="lmnas-onboarding-field">
+                  <span>Map to existing block</span>
                   <input
                     value={mapToExisting[block.id] ?? ""}
                     onChange={(event) => setMapToExisting((previous) => ({ ...previous, [block.id]: event.target.value }))}
@@ -628,23 +892,26 @@ export function OnboardingConsole() {
               </div>
             ))}
 
-          <h3>Widgets</h3>
           {analysis.widgetProposals
             .filter((widget) => itemImportState[widget.id] !== false)
             .map((widget: OnboardingWidgetProposal) => (
               <div key={widget.id} className="lmnas-onboarding-grid lmnas-map-row">
-                <p>
-                  <strong>{widget.name}</strong> ({widget.widgetType})
-                </p>
                 <label className="lmnas-onboarding-field">
-                  <span>Editable fields (comma-separated)</span>
+                  <span>Widget display name</span>
+                  <input
+                    value={displayNameFor(widget, widget.name)}
+                    onChange={(event) => setDisplayNameOverrides((previous) => ({ ...previous, [widget.id]: event.target.value }))}
+                  />
+                </label>
+                <label className="lmnas-onboarding-field">
+                  <span>Editable fields</span>
                   <input
                     value={(fieldOverrides[widget.id] ?? widget.editableFields).join(", ")}
                     onChange={(event) => setFieldOverrideFromText(widget.id, event.target.value)}
                   />
                 </label>
                 <label className="lmnas-onboarding-field">
-                  <span>Map to existing widget (optional)</span>
+                  <span>Map to existing widget</span>
                   <input
                     value={mapToExisting[widget.id] ?? ""}
                     onChange={(event) => setMapToExisting((previous) => ({ ...previous, [widget.id]: event.target.value }))}
@@ -659,9 +926,7 @@ export function OnboardingConsole() {
       {step === 4 && analysis ? (
         <section className="lmnas-onboarding-card">
           <h2>5. Action Mapping</h2>
-          <p className="lmnas-muted">
-            Define what each CTA does. Advanced exit details only appear when you pick workflow-backed actions.
-          </p>
+          <p className="lmnas-muted">Map CTA behavior in human language first. Advanced exit internals stay collapsed.</p>
 
           {analysis.actionProposals
             .filter((action) => itemImportState[action.id] !== false)
@@ -673,13 +938,20 @@ export function OnboardingConsole() {
               return (
                 <article key={action.id} className="lmnas-action-card">
                   <header>
-                    <strong>{action.label}</strong>
+                    <strong>{displayNameFor(action, action.label)}</strong>
                     <span className="lmnas-chip">{action.summary}</span>
                   </header>
+                  <p className="lmnas-muted">Parent: {action.sourceItemLabel ?? action.sourceItemId ?? "Not mapped"}</p>
+                  <p className="lmnas-muted">
+                    CTA trace: {action.ctaKind} | {action.selectorHint}
+                  </p>
+                  <button type="button" onClick={() => focusItem(action.id)}>
+                    Jump to source
+                  </button>
 
                   <div className="lmnas-onboarding-grid">
                     <label className="lmnas-onboarding-field">
-                      <span>CTA label</span>
+                      <span>Display label</span>
                       <input
                         value={actionLabelOverrides[action.id] ?? action.label}
                         onChange={(event) => setActionLabelOverrides((previous) => ({ ...previous, [action.id]: event.target.value }))}
@@ -722,10 +994,7 @@ export function OnboardingConsole() {
                   {["open_modal", "open_drawer", "open_widget"].includes(type) ? (
                     <label className="lmnas-onboarding-field">
                       <span>Widget to open</span>
-                      <select
-                        value={target.widgetId ?? action.destination.value ?? ""}
-                        onChange={(event) => setActionTarget(action.id, { widgetId: event.target.value })}
-                      >
+                      <select value={target.widgetId ?? action.destination.value ?? ""} onChange={(event) => setActionTarget(action.id, { widgetId: event.target.value })}>
                         <option value="">Select widget</option>
                         {[...selectedWidgetIds].map((widgetId) => (
                           <option key={widgetId} value={widgetId}>
@@ -763,81 +1032,94 @@ export function OnboardingConsole() {
       {step === 5 && analysis ? (
         <section className="lmnas-onboarding-card">
           <h2>6. Publish Summary</h2>
-          <p className="lmnas-muted">Preview what will be created in Strapi. Apply only when the summary looks right.</p>
+          <p className="lmnas-muted">Preview what will be created, review warnings, then publish to Strapi.</p>
 
-          <div className="lmnas-onboarding-actions">
-            <button onClick={() => publish("dry-run")} disabled={isPublishing} data-primary="true">
+          <div className="lmnas-onboarding-actions lmnas-sticky-actions">
+            <button onClick={() => publish("dry-run")} disabled={isPublishing} data-primary="true" data-testid="preview-create-button">
               {isPublishing ? "Building preview..." : "Preview What Will Be Created"}
             </button>
-            <button onClick={() => publish("apply")} disabled={isPublishing}>
+            <button onClick={() => publish("apply")} disabled={isPublishing} data-testid="publish-apply-button">
               Publish to Strapi
             </button>
           </div>
 
+          <div className="lmnas-summary-grid">
+            <article>
+              <h3>{publishResult?.summary.shellsToCreate ?? selectedCounts.shells}</h3>
+              <p>Shells</p>
+            </article>
+            <article>
+              <h3>{publishResult?.summary.blocksToCreate ?? selectedCounts.blocks}</h3>
+              <p>Blocks</p>
+            </article>
+            <article>
+              <h3>{publishResult?.summary.widgetsToCreate ?? selectedCounts.widgets}</h3>
+              <p>Widgets</p>
+            </article>
+            <article>
+              <h3>{publishResult?.summary.actionsToCreate ?? selectedCounts.actions}</h3>
+              <p>Actions</p>
+            </article>
+            <article>
+              <h3>{publishResult?.summary.exitsRequired ?? selectedCounts.exits}</h3>
+              <p>Exits</p>
+            </article>
+            <article>
+              <h3>{publishResult?.summary.editableFieldsCreated ?? 0}</h3>
+              <p>Editable Strapi fields</p>
+            </article>
+          </div>
+
           {publishResult ? (
-            <>
-              <div className="lmnas-summary-grid">
-                <article>
-                  <h3>{publishResult.summary.shellsToCreate}</h3>
-                  <p>Shells to create</p>
-                </article>
-                <article>
-                  <h3>{publishResult.summary.blocksToCreate}</h3>
-                  <p>Blocks to create</p>
-                </article>
-                <article>
-                  <h3>{publishResult.summary.widgetsToCreate}</h3>
-                  <p>Widgets to create</p>
-                </article>
-                <article>
-                  <h3>{publishResult.summary.actionsToCreate}</h3>
-                  <p>Actions to create</p>
-                </article>
-                <article>
-                  <h3>{publishResult.summary.exitsRequired}</h3>
-                  <p>Exits required</p>
-                </article>
-                <article>
-                  <h3>{publishResult.summary.editableFieldsCreated}</h3>
-                  <p>Editable fields in Strapi</p>
-                </article>
-              </div>
+            <p className={publishResult.applied ? "lmnas-success" : "lmnas-warning"}>
+              {publishResult.applied
+                ? "Publish apply succeeded against Strapi."
+                : publishResult.applyReadiness.operatorMessage}
+            </p>
+          ) : (
+            <p className="lmnas-muted">Run preview to validate creation plan and environment readiness.</p>
+          )}
 
-              <p className={publishResult.applied ? "lmnas-success" : "lmnas-warning"}>
-                {publishResult.applied
-                  ? "Changes were applied to Strapi."
-                  : "Preview mode: no data was written to Strapi."}
-              </p>
+          <article className="lmnas-final-preview-panel">
+            <h3>Final Assembly Preview</h3>
+            <iframe
+              className="lmnas-preview-frame lmnas-preview-frame-assembly"
+              srcDoc={publishResult?.assemblyPreviewHtml ?? assemblyPreviewFromSelection}
+              sandbox=""
+              title="Assembly preview"
+              data-testid="assembly-preview-frame"
+            />
+          </article>
 
-              {publishResult.previewLinks.length > 0 ? (
-                <div>
-                  <h3>Preview Links</h3>
-                  {publishResult.previewLinks.map((link) => (
-                    <p key={link}>
-                      <a href={link} target="_blank" rel="noreferrer">
-                        {link}
-                      </a>
-                    </p>
-                  ))}
-                </div>
-              ) : null}
+          {publishResult?.warnings.length ? (
+            <article>
+              <h3>Warnings Requiring Review</h3>
+              {publishResult.warnings.map((warning) => (
+                <p key={warning.code} className={warning.severity === "error" ? "lmnas-error" : warning.severity === "warning" ? "lmnas-warning" : "lmnas-muted"}>
+                  <strong>{warning.code}</strong>: {warning.message}
+                </p>
+              ))}
+            </article>
+          ) : null}
 
-              {publishResult.warnings.length > 0 ? (
-                <div>
-                  <h3>Warnings Requiring Review</h3>
-                  {publishResult.warnings.map((warning) => (
-                    <p key={warning.code} className={warning.severity === "error" ? "lmnas-error" : warning.severity === "warning" ? "lmnas-warning" : "lmnas-muted"}>
-                      <strong>{warning.code}</strong>: {warning.message}
-                    </p>
-                  ))}
-                </div>
-              ) : null}
+          {publishResult?.previewLinks.length ? (
+            <article>
+              <h3>Preview Links</h3>
+              {publishResult.previewLinks.map((link) => (
+                <p key={link}>
+                  <a href={link} target="_blank" rel="noreferrer">
+                    {link}
+                  </a>
+                </p>
+              ))}
+            </article>
+          ) : null}
 
-              <details>
-                <summary>Developer details (JSON)</summary>
-                <pre>{JSON.stringify(publishResult.strapiPayload, null, 2)}</pre>
-              </details>
-            </>
+          {publishResult ? (
+            <details>
+              <summary>Developer details (JSON)</summary>
+              <pre>{JSON.stringify(publishResult, null, 2)}</pre>
+            </details>
           ) : null}
         </section>
       ) : null}

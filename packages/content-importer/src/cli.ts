@@ -9,6 +9,9 @@ import { preflight } from "./strapi/graphqlClient.js";
 import { generateSchemaArtifacts } from "./strapi/schema/runSchema.js";
 import { deriveSchemaFacts, formatSchemaFacts } from "./strapi/schema/facts.js";
 import { readIntrospectionFromDisk } from "./strapi/schema/introspection.js";
+import { loadProjectEnv } from "./env/bootstrap.js";
+
+loadProjectEnv();
 
 function parseArgs(argv: string[]): { command?: string; flags: Record<string, string | boolean> } {
   const [command, ...rest] = argv;

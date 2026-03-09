@@ -7,7 +7,8 @@ import {
   type OnboardingAnalysis,
   type OnboardingBlockProposal,
   type OnboardingPublishResult,
-  type OnboardingWidgetProposal
+  type OnboardingWidgetProposal,
+  type WidgetDefinition
 } from "@lmnas/contracts";
 import { detectActionProposals } from "../action-detector";
 import { mapActionsToSchema } from "../action-schema-mapper";
@@ -18,6 +19,7 @@ import { detectExitProposals } from "../exit-detector";
 import { detectEditableFields } from "../field-detector";
 import { buildFidelityWarnings } from "../fidelity-reporter";
 import { assemblePage } from "../page-assembler";
+import { buildFinalAssemblyPreviewDocument } from "../preview-renderer";
 import { renderAssemblyPreviewModel } from "../renderer";
 import { mapShellCandidatesToSchema } from "../shell-schema-mapper";
 import { detectShellCandidates } from "../shell-detector";
@@ -57,6 +59,16 @@ function isImported(importMap: Record<string, boolean>, id: string): boolean {
   return importMap[id] !== false;
 }
 
+function applyDisplayNameOverrides<T extends { id: string; displayName?: string }>(
+  items: T[],
+  overrides: Record<string, string>
+): T[] {
+  return items.map((item) => ({
+    ...item,
+    displayName: overrides[item.id] ?? item.displayName
+  }));
+}
+
 function applyTypeReclassification(params: {
   blocks: OnboardingBlockProposal[];
   widgets: OnboardingWidgetProposal[];
@@ -78,12 +90,15 @@ function applyTypeReclassification(params: {
     widgets.push({
       id: `${block.id}_widget`,
       name: `${block.family.replaceAll("_", " ")} widget`,
+      displayName: `${block.family.replaceAll("_", " ")} widget`,
       widgetType: "embedded_form",
       selectorHint: block.selectorHint,
+      previewSelector: block.previewSelector,
       confidence: block.confidence,
       editableFields: block.editableFields,
       triggerLabels: block.ctaLabels,
       associatedActionIds: block.actionIds,
+      sourceSnippet: block.sourceSnippet ?? block.rawHtmlSnippet,
       previewHtml: block.previewHtml
     });
   });
@@ -100,14 +115,17 @@ function applyTypeReclassification(params: {
 
     blocks.push({
       id: `${widget.id}_block`,
+      displayName: widget.displayName ?? widget.name,
       family: "rich_text_section",
       selectorHint: widget.selectorHint,
+      previewSelector: widget.previewSelector,
       confidence: widget.confidence,
       editableFields: widget.editableFields,
       ctaLabels: widget.triggerLabels,
       actionIds: widget.associatedActionIds,
       segmentation: "keep",
       rawHtmlSnippet: widget.previewHtml,
+      sourceSnippet: widget.sourceSnippet,
       previewHtml: widget.previewHtml
     });
   });
@@ -182,6 +200,40 @@ function ensureExitDefinitions(params: {
   };
 }
 
+function appendActionMappingWarnings(params: {
+  warnings: OnboardingPublishResult["warnings"];
+  actionBindings: ReturnType<typeof mapActionsToSchema>;
+  widgetDefinitions: WidgetDefinition[];
+  proposedExitIds: Set<string>;
+  resolvedExitDefinitions: ExitDefinition[];
+}): void {
+  const widgetIds = new Set(params.widgetDefinitions.map((widget) => widget.id));
+  const widgetRequiredActions = params.actionBindings.filter((binding) =>
+    ["open_modal", "open_drawer", "open_widget"].includes(binding.actionType)
+  );
+  const missingWidgetCount = widgetRequiredActions.filter((binding) => !binding.widgetId || !widgetIds.has(binding.widgetId))
+    .length;
+
+  if (missingWidgetCount > 0) {
+    params.warnings.push({
+      code: "actions.widget_mapping_gap",
+      message: `${missingWidgetCount} action(s) reference a widget that is not part of this import selection. Review widget mappings.`,
+      severity: "warning"
+    });
+  }
+
+  const autoProvisionedExitCount = params.resolvedExitDefinitions.filter(
+    (definition) => !params.proposedExitIds.has(definition.id)
+  ).length;
+  if (autoProvisionedExitCount > 0) {
+    params.warnings.push({
+      code: "actions.exit_mapping_gap",
+      message: `${autoProvisionedExitCount} action(s) required auto-generated exit contracts. Review workflow mapping before publish.`,
+      severity: "warning"
+    });
+  }
+}
+
 export async function analyzeOnboardingSource(input: unknown): Promise<OnboardingAnalysis> {
   const ingested = await ingestSource(input);
   const shellCandidates = detectShellCandidates(ingested.html);
@@ -217,12 +269,26 @@ export async function analyzeOnboardingSource(input: unknown): Promise<Onboardin
     severity: preview.structuralMatchRatio < 0.7 ? "warning" : "info"
   });
 
+  if (ingested.styleProfile.fidelityNotes.length > 0) {
+    ingested.styleProfile.fidelityNotes.forEach((note, index) => {
+      fidelityWarnings.push({
+        code: `preview.fidelity_note_${index + 1}`,
+        message: note,
+        severity: "warning"
+      });
+    });
+  }
+
   return parseOnboardingAnalysis({
     intake: ingested.intake,
     source: {
       sourceRef: ingested.sourceRef,
       title: ingested.title,
-      previewHtml: ingested.previewHtml
+      previewHtml: ingested.previewHtml,
+      rawMarkupPreview: ingested.rawMarkupPreview,
+      baseUrl: ingested.baseUrl,
+      themeScopeClass: ingested.themeScopeClass,
+      styleProfile: ingested.styleProfile
     },
     shellCandidates,
     blockProposals,
@@ -269,26 +335,40 @@ export async function publishOnboardingDraft(input: unknown): Promise<Onboarding
     });
   }
 
+  const displayNameOverrides = request.overrides.displayNameOverrides ?? {};
+  const namedShellCandidates = applyDisplayNameOverrides(shellCandidates, displayNameOverrides);
+  const namedBlocks = applyDisplayNameOverrides(fallbackBlocks, displayNameOverrides);
+  const namedWidgets = applyDisplayNameOverrides(reclassified.widgets, displayNameOverrides);
+  const namedActions = applyDisplayNameOverrides(actionCandidates, displayNameOverrides);
+
   const shell = mapShellCandidatesToSchema({
     slug: request.analysis.intake.slug,
-    shellCandidates,
+    shellCandidates: namedShellCandidates,
     overrides: request.overrides
   });
 
-  const blocks = mapBlocksToSchema(fallbackBlocks, request.overrides);
-  const widgets = mapWidgetsToSchema(reclassified.widgets, request.overrides);
-  const actions = mapActionsToSchema(actionCandidates, request.overrides);
+  const blocks = mapBlocksToSchema(namedBlocks, request.overrides);
+  const widgets = mapWidgetsToSchema(namedWidgets, request.overrides);
+  const actions = mapActionsToSchema(namedActions, request.overrides);
 
   const exitContracts = createExitContractsFromProposals({
     proposals: exitCandidates,
     overrides: request.overrides
   });
+  const proposedExitIds = new Set(exitContracts.definitions.map((definition) => definition.id));
 
   const exits = ensureExitDefinitions({
     definitions: exitContracts.definitions,
     bindings: exitContracts.bindings,
     actionBindings: actions,
     slug: request.analysis.intake.slug
+  });
+  appendActionMappingWarnings({
+    warnings: publishWarnings,
+    actionBindings: actions,
+    widgetDefinitions: widgets.definitions,
+    proposedExitIds,
+    resolvedExitDefinitions: exits.definitions
   });
 
   const pageAssembly = assemblePage({
@@ -309,10 +389,21 @@ export async function publishOnboardingDraft(input: unknown): Promise<Onboarding
     pageAssembly
   });
 
+  const assemblyPreviewHtml = buildFinalAssemblyPreviewDocument({
+    sourcePreviewHtml: request.analysis.source.previewHtml,
+    baseUrl: request.analysis.source.baseUrl,
+    themeScopeClass: request.analysis.source.themeScopeClass,
+    shellCandidates: namedShellCandidates,
+    blockProposals: namedBlocks,
+    widgetProposals: namedWidgets,
+    actionProposals: namedActions
+  });
+
   return publishStrapiSyncPayload({
     mode: request.mode,
     payload,
     warnings: publishWarnings,
-    previewLinks: [`/${request.analysis.intake.slug}`, `/platform/onboarding?slug=${request.analysis.intake.slug}`]
+    previewLinks: [`/${request.analysis.intake.slug}`, `/platform/onboarding?slug=${request.analysis.intake.slug}`],
+    assemblyPreviewHtml
   });
 }

@@ -20,6 +20,12 @@ export { buildStrapiSyncPayload, publishStrapiSyncPayload } from "./strapi-sync"
 export { assemblePage } from "./page-assembler";
 export { renderAssemblyPreviewModel } from "./renderer";
 export type { AssemblyPreviewModel } from "./renderer";
+export {
+  buildStyledSourcePreview,
+  buildDetectionThumbnailDocument,
+  buildFinalAssemblyPreviewDocument
+} from "./preview-renderer";
+export type { StyledSourcePreview } from "./preview-renderer";
 
 export { analyzeTheme } from "./theme-engine";
 export { buildFidelityWarnings } from "./fidelity-reporter";

@@ -14,12 +14,14 @@ This guide is for content managers and marketing operators.
 
 1. Open `/platform/onboarding`.
 2. Paste source (URL, HTML, Figma handoff, or Stitch artifact).
-3. Review source preview.
-4. Review detection cards visually.
+3. Review **Source Preview** (desktop/tablet/mobile + zoom).
+4. Review **Detection Cards** (visual thumbnails, confidence, fields, CTA/action summary).
 5. Import what you want and skip the rest.
-6. Confirm block/widget fields and CTA action behavior.
-7. Run **Preview What Will Be Created**.
-8. If summary looks good, click **Publish to Strapi**.
+6. Click cards to highlight the matching source region.
+7. Confirm block/widget fields and CTA action behavior.
+8. Run **Preview What Will Be Created**.
+9. Review the assembled visual preview.
+10. If summary looks good, click **Publish to Strapi**.
 
 ## Scenario A: Import One Section
 
@@ -38,10 +40,12 @@ Result: section appears in Strapi page assembly and fields are editable.
 1. Choose full-page source.
 2. Review detected shells (navbar/footer/utility/announcement).
 3. Review detected blocks and widgets visually.
-4. Skip any section not needed.
+4. Use Import/Skip per card and keep only required sections.
 5. Confirm CTA actions for each important button/link.
-6. Preview creation summary and warnings.
-7. Publish.
+6. Use action trace cards to verify parent block + CTA text.
+7. Preview creation summary and warnings.
+8. Preview the assembled page.
+9. Publish.
 
 Result: shell + block + widget + action objects are created in governed form.
 
@@ -69,6 +73,8 @@ Result: behavior changes without editing block component code.
 - “Workflow review required”: check action-to-exit mapping.
 - “Navbar/footer missing”: choose fallback shell mapping.
 - “Theme debt”: imported styles use arbitrary values; tokenize later.
+- “Widget mapping gap”: a CTA expects a widget that is not selected/imported.
+- “Exit mapping gap”: a workflow action required an auto-generated exit contract; review mapping.
 
 ## Troubleshooting
 
@@ -81,3 +87,5 @@ Result: behavior changes without editing block component code.
   - Re-open Action Mapping and update action type.
 - Publish cannot apply:
   - `STRAPI_URL` and `STRAPI_API_TOKEN` are not configured.
+- Need developer payload details:
+  - Open the **Developer details** section in Publish Summary (collapsed by default).

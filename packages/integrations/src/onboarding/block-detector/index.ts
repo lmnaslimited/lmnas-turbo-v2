@@ -70,17 +70,21 @@ export function detectBlockProposals(html: string): OnboardingBlockProposal[] {
 
   return sections.map((segment, index) => {
     const classification = classifyFamily(segment);
+    const blockId = `block-${index + 1}`;
 
     return {
-      id: `block-${index + 1}`,
+      id: blockId,
+      displayName: `Block ${index + 1}`,
       family: classification.family,
       selectorHint: `section:nth-of-type(${index + 1})`,
+      previewSelector: `section:nth-of-type(${index + 1})`,
       confidence: classification.confidence,
       editableFields: [],
       ctaLabels: extractCtaLabels(segment),
       actionIds: [],
       segmentation: "keep",
       rawHtmlSnippet: segment,
+      sourceSnippet: segment,
       previewHtml: sanitizePreviewHtml(segment)
     };
   });

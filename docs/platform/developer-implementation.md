@@ -9,6 +9,7 @@
 ## Core Modules
 
 - `source-ingestion`: normalize URL/HTML/Figma/Stitch input
+- `preview-renderer`: build styled source preview, thumbnail previews, and assembled preview HTML
 - `shell-detector`: detect navbar/footer/utility/announcement
 - `block-detector`: segment sections and classify block family
 - `widget-detector`: detect reusable interactive surfaces
@@ -25,6 +26,7 @@
 - `renderer`: compare source structure and mapped structure
 - `theme-engine`: token-first Tailwind analysis
 - `fidelity-reporter`: plain-language warnings
+- `env/bootstrap`: project-root env loading + required key validation
 
 ## Contracts
 
@@ -45,6 +47,7 @@ Key objects:
 - Analyze API: `POST /api/platform/onboarding/analyze`
 - Publish API: `POST /api/platform/onboarding/publish`
 - Exit execution API: `POST /api/platform/exits/execute`
+- Playwright visual/e2e: `apps/site/e2e/onboarding.visual.spec.ts`
 
 ## Strapi Integration
 
@@ -62,6 +65,26 @@ Key objects:
 - Frontend adapters resolve UX behaviors (redirect/modal/form/chat)
 - Backend adapters resolve workflow/system integration (`n8n_webhook`, `api`)
 - New exits should be added by contract registration and adapter mapping
+
+## Env Loading Strategy
+
+- `apps/site/app/lib/env.ts` loads `.env`, `.env.local`, and env-specific files from project root.
+- API routes call env bootstrap before publish/analyze logic.
+- Integrations/content-importer runtimes use env bootstrap in-code (no manual shell export required for normal local flow).
+- Publish apply validates `STRAPI_URL` and `STRAPI_API_TOKEN` and returns operator-safe readiness messaging.
+
+## Testing Coverage
+
+- Unit/integration:
+  - detector + mapper + publish flow tests
+  - missing env / invalid token / unreachable Strapi failure paths
+  - low-confidence + fidelity warning paths
+  - widget/exit mapping gap warnings
+- E2E + visual:
+  - styled source preview
+  - detection card review and action traceability
+  - assembled visual preview before publish
+  - apply-mode `@real` path
 
 ## Contract-First Extensibility
 

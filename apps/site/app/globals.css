@@ -296,12 +296,82 @@ a:hover {
   gap: 16px;
 }
 
+.lmnas-studio-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(340px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.lmnas-source-pane,
+.lmnas-side-pane {
+  border: 1px solid var(--lmnas-border);
+  border-radius: 14px;
+  background: #fff;
+  padding: 12px;
+}
+
+.lmnas-source-pane-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.lmnas-source-pane-header h3,
+.lmnas-side-pane h3 {
+  margin: 0;
+}
+
+.lmnas-source-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lmnas-source-controls label {
+  font-size: 12px;
+  color: var(--lmnas-muted);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.lmnas-source-controls input[type="range"] {
+  width: 120px;
+}
+
+.lmnas-source-canvas-wrap {
+  border: 1px solid var(--lmnas-border);
+  border-radius: 12px;
+  background: #eef3fb;
+  overflow: auto;
+  max-height: 760px;
+  padding: 8px;
+}
+
+.lmnas-source-canvas {
+  min-height: 500px;
+}
+
 .lmnas-preview-frame {
   width: 100%;
   min-height: 420px;
   border: 1px solid var(--lmnas-border);
   border-radius: 12px;
   background: #fff;
+}
+
+.lmnas-preview-frame-source {
+  min-height: 720px;
+  height: 720px;
+}
+
+.lmnas-preview-frame-assembly {
+  min-height: 780px;
+  height: 780px;
 }
 
 .lmnas-code-preview {
@@ -339,6 +409,11 @@ a:hover {
   background: #fff;
 }
 
+.lmnas-detect-card-focused {
+  border-color: var(--lmnas-accent);
+  box-shadow: 0 0 0 2px rgba(11, 102, 255, 0.14);
+}
+
 .lmnas-detect-card header {
   display: flex;
   justify-content: space-between;
@@ -358,6 +433,14 @@ a:hover {
   max-height: 140px;
   overflow: auto;
   padding: 8px;
+  background: #fcfdff;
+}
+
+.lmnas-detect-preview-frame {
+  width: 100%;
+  min-height: 140px;
+  border: 1px dashed var(--lmnas-border);
+  border-radius: 10px;
   background: #fcfdff;
 }
 
@@ -404,6 +487,18 @@ a:hover {
   align-items: center;
   gap: 10px;
   margin-bottom: 10px;
+}
+
+.lmnas-final-preview-panel h3 {
+  margin-top: 0;
+}
+
+.lmnas-sticky-actions {
+  position: sticky;
+  top: 10px;
+  z-index: 5;
+  background: #fff;
+  padding-bottom: 8px;
 }
 
 .lmnas-summary-grid {
@@ -453,6 +548,10 @@ a:hover {
   }
 
   .lmnas-preview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lmnas-studio-layout {
     grid-template-columns: 1fr;
   }
 

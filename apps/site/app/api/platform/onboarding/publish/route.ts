@@ -1,7 +1,9 @@
 import { publishOnboardingDraft } from "@lmnas/integrations";
+import { loadProjectEnv } from "../../../../lib/env";
 
 export async function POST(request: Request): Promise<Response> {
   try {
+    loadProjectEnv();
     const payload = (await request.json()) as unknown;
     const result = await publishOnboardingDraft(payload);
 

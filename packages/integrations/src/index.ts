@@ -26,6 +26,9 @@ export {
   publishStrapiSyncPayload,
   assemblePage,
   renderAssemblyPreviewModel,
+  buildStyledSourcePreview,
+  buildDetectionThumbnailDocument,
+  buildFinalAssemblyPreviewDocument,
   analyzeTheme,
   buildFidelityWarnings,
   ExitAdapterRuntime,
@@ -36,6 +39,7 @@ export type {
   IngestedSource,
   ShellSchemaMapResult,
   AssemblyPreviewModel,
+  StyledSourcePreview,
   ExitAdapterResult,
   ExitExecutionContext
 } from "./onboarding";

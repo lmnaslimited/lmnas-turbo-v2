@@ -23,6 +23,8 @@ Core stack: Next.js + Strapi + n8n + Rudder.
 - Action Mapping
 - Publish Summary
 
+No manual env export is required for normal local onboarding flow when `.env` / `.env.local` are present.
+
 ## Platform Objects
 
 - Shells: navbar/footer/utility/announcement
@@ -55,6 +57,8 @@ Core stack: Next.js + Strapi + n8n + Rudder.
 - `pnpm typecheck`
 - `pnpm test`
 - `pnpm build`
+- `pnpm test:e2e`
+- `pnpm test:e2e:real`
 
 ## Docs
 

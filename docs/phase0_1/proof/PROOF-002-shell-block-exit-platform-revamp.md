@@ -27,7 +27,15 @@
   - `pnpm lint` -> PASS
   - `pnpm typecheck` -> PASS
   - `pnpm test` -> PASS
+  - `pnpm test:e2e` -> PASS
+  - `pnpm test:e2e:real` -> PASS
   - `pnpm phase0:guard -- --id 002` -> PASS
+
+- Visual evidence artifacts:
+  - `apps/site/e2e/onboarding.visual.spec.ts-snapshots/source-preview-pane-darwin.png`
+  - `apps/site/e2e/onboarding.visual.spec.ts-snapshots/detection-review-pane-darwin.png`
+  - `apps/site/e2e/onboarding.visual.spec.ts-snapshots/final-assembly-preview-darwin.png`
+  - `playwright-report/index.html`
 
 ## Acceptance Criteria verification
 

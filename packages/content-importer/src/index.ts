@@ -18,6 +18,7 @@ import { buildThemeScopeClass, normalizeThemeKey } from "./import/themeTokens.js
 import { FIDELITY_DIFF_THRESHOLD, createPendingFidelityMetadata, enforceFidelityGateForApply, type FidelityApplyGateState } from "./fidelity/gate.js";
 import { preflight } from "./strapi/graphqlClient.js";
 import { createPageRepository, type UpsertOptions, type UpsertResult } from "./strapi/pageRepository.js";
+import { loadProjectEnv } from "./env/bootstrap.js";
 
 export type PlanOptions = {
   slug: string;
@@ -44,6 +45,7 @@ export type ApplyImportResult = UpsertResult & {
 };
 
 export async function createImportPlan(options: PlanOptions): Promise<ContentPlan> {
+  loadProjectEnv();
   const themeKey = normalizeThemeKey(options.theme);
   const themeScopeClass = buildThemeScopeClass(themeKey);
 
@@ -106,6 +108,7 @@ export async function createImportPlan(options: PlanOptions): Promise<ContentPla
 }
 
 export async function applyImportPlan(planInput: unknown, options: ApplyOptions = {}): Promise<ApplyImportResult> {
+  loadProjectEnv();
   const plan = validateContentPlan(planInput);
   const fidelityGate = enforceFidelityGateForApply(plan, { force: options.forceFidelity === true });
 
