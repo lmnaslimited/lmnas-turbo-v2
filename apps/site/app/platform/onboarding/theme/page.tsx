@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import type { StudioTheme, StudioThemeToken } from "../_lib/studio-types";
 import { requestClientJson } from "../_lib/client-request";
+import { setPreviewSwatchThemeId } from "../_lib/preview-swatch-state";
 import { StudioActionMenu, StudioDetailContainer, StudioListContainer } from "../_components/workflow";
 import {
   ALLOWED_THEME_SOURCES,
@@ -247,6 +248,10 @@ export default function ThemeWorkflowPage(): React.ReactElement {
   useEffect(() => {
     void loadThemes();
   }, []);
+
+  useEffect(() => {
+    setPreviewSwatchThemeId(swatchThemeId);
+  }, [swatchThemeId]);
 
   const selectedTheme = themes.find((theme) => theme.id === selectedId) ?? null;
   const activeTheme = themes.find((theme) => theme.status === "active") ?? null;

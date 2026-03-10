@@ -24,6 +24,13 @@ const WORKFLOWS = [
     iconColor: "text-emerald-400"
   },
   {
+    title: "Publish",
+    description: "Run final publish review with active-theme authorization and fidelity threshold guardrails.",
+    href: "/platform/onboarding/publish",
+    icon: "publish",
+    iconColor: "text-rose-400"
+  },
+  {
     title: "Pages",
     description: "Assemble pages from blocks with the active shell. Edit content and actions.",
     href: "/platform/onboarding/pages",

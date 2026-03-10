@@ -2,6 +2,7 @@ import type {
   StudioBlockTemplate,
   StudioMenuItem,
   StudioPageDocument,
+  StudioSettings,
   StudioShell,
   StudioTheme
 } from "../../../../platform/onboarding/_lib/studio-types";
@@ -11,6 +12,7 @@ type StudioStore = {
   shells: StudioShell[];
   blocks: StudioBlockTemplate[];
   pages: StudioPageDocument[];
+  settings: StudioSettings;
 };
 
 declare global {
@@ -159,7 +161,13 @@ function createSeedStore(): StudioStore {
         updatedAt: now
       }
     ],
-    pages: []
+    pages: [],
+    settings: {
+      fidelity: {
+        mode: "allow-below-threshold",
+        threshold: 0.25
+      }
+    }
   };
 }
 

@@ -1,0 +1,81 @@
+{
+  "mode": "apply",
+  "applied": false,
+  "blocked": true,
+  "source": "fallback",
+  "fidelityMode": "disallow-below-threshold",
+  "warnings": [
+    {
+      "code": "publish.fidelity_dark_media_detected",
+      "message": "Source includes @media(dark) or prefers-color-scheme dark rules.",
+      "severity": "info"
+    },
+    {
+      "code": "publish.fidelity_dark_mode_mismatch",
+      "message": "Dark-mode mismatch 0.500 exceeds threshold 0.250.",
+      "severity": "warning"
+    },
+    {
+      "code": "publish.fidelity_typography_mismatch",
+      "message": "Typography mismatch 1.000 exceeds threshold 0.250.",
+      "severity": "warning"
+    },
+    {
+      "code": "publish.fidelity_hard_block",
+      "message": "Publish blocked because fidelity mode is \"disallow-below-threshold\" and mismatch exceeded threshold.",
+      "severity": "error"
+    }
+  ],
+  "activeTheme": {
+    "id": "theme-h003-light-active",
+    "themeKey": "h003-light-active",
+    "name": "H003 Light Active",
+    "darkMode": false,
+    "status": "active"
+  },
+  "ignoredPreviewSwatchThemeId": null,
+  "rejectionReason": "Fidelity threshold rejection in disallow mode.",
+  "fidelity": {
+    "threshold": 0.25,
+    "hasDarkMediaQuery": true,
+    "darkModeMismatchRatio": 0.5,
+    "typographyMismatchRatio": 1,
+    "highestMismatchRatio": 1,
+    "exceedsThreshold": true,
+    "sourceFonts": [
+      "comic sans ms",
+      "cursive"
+    ],
+    "themeTypographyFonts": [
+      "manrope",
+      "sans-serif"
+    ],
+    "figmaTypographyFonts": [
+      "manrope",
+      "inter"
+    ]
+  },
+  "payload": {
+    "generatedAt": "2026-03-10T15:46:45.653Z",
+    "mode": "apply",
+    "activeTheme": {
+      "id": "theme-h003-light-active",
+      "themeKey": "h003-light-active",
+      "name": "H003 Light Active",
+      "darkMode": false,
+      "status": "active"
+    },
+    "sourceHtml": "<style>\n@media(dark){ body { background:#000; color:#fff; } }\nbody { font-family: 'Comic Sans MS', cursive; }\n</style>\n<section>Disallow mode fidelity probe</section>",
+    "fidelity": {
+      "mode": "disallow-below-threshold",
+      "threshold": 0.25,
+      "report": {
+        "hasDarkMediaQuery": true,
+        "darkModeMismatchRatio": 0.5,
+        "typographyMismatchRatio": 1,
+        "highestMismatchRatio": 1,
+        "exceedsThreshold": true
+      }
+    }
+  }
+}

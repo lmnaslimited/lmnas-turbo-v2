@@ -6,6 +6,8 @@ export type StudioShellRole = "navbar" | "footer" | "full";
 
 export type StudioShellStatus = "active" | "inactive";
 
+export type StudioFidelityMode = "allow-below-threshold" | "disallow-below-threshold";
+
 export type StudioActionType =
   | "link_url"
   | "scroll_to_section"
@@ -141,4 +143,13 @@ export interface StudioApiResponse<T> {
   ok: boolean;
   data: T;
   source: "strapi" | "fallback";
+}
+
+export interface StudioFidelitySettings {
+  mode: StudioFidelityMode;
+  threshold: number;
+}
+
+export interface StudioSettings {
+  fidelity: StudioFidelitySettings;
 }

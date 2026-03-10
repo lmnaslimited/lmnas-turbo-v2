@@ -1,0 +1,71 @@
+{
+  "mode": "apply",
+  "applied": true,
+  "blocked": false,
+  "source": "fallback",
+  "fidelityMode": "allow-below-threshold",
+  "warnings": [
+    {
+      "code": "publish.fidelity_dark_media_detected",
+      "message": "Source includes @media(dark) or prefers-color-scheme dark rules.",
+      "severity": "info"
+    },
+    {
+      "code": "publish.fidelity_typography_mismatch",
+      "message": "Typography mismatch 1.000 exceeds threshold 0.250.",
+      "severity": "warning"
+    }
+  ],
+  "activeTheme": {
+    "id": "theme-default",
+    "themeKey": "default",
+    "name": "LMNAs Default",
+    "darkMode": true,
+    "status": "active"
+  },
+  "ignoredPreviewSwatchThemeId": "theme-h003-swatch",
+  "rejectionReason": null,
+  "fidelity": {
+    "threshold": 0.25,
+    "hasDarkMediaQuery": true,
+    "darkModeMismatchRatio": 0,
+    "typographyMismatchRatio": 1,
+    "highestMismatchRatio": 1,
+    "exceedsThreshold": true,
+    "sourceFonts": [
+      "comic sans ms",
+      "cursive"
+    ],
+    "themeTypographyFonts": [
+      "manrope",
+      "sans-serif"
+    ],
+    "figmaTypographyFonts": [
+      "manrope",
+      "inter"
+    ]
+  },
+  "payload": {
+    "generatedAt": "2026-03-10T15:46:43.109Z",
+    "mode": "apply",
+    "activeTheme": {
+      "id": "theme-default",
+      "themeKey": "default",
+      "name": "LMNAs Default",
+      "darkMode": true,
+      "status": "active"
+    },
+    "sourceHtml": "<style>\n@media(dark) {\n  body { background: #020617; color: #f8fafc; }\n}\nbody { font-family: 'Comic Sans MS', cursive; }\n</style>\n<main><h1>Publish Fidelity Probe</h1><p>Inspect fidelity before commit.</p></main>",
+    "fidelity": {
+      "mode": "allow-below-threshold",
+      "threshold": 0.25,
+      "report": {
+        "hasDarkMediaQuery": true,
+        "darkModeMismatchRatio": 0,
+        "typographyMismatchRatio": 1,
+        "highestMismatchRatio": 1,
+        "exceedsThreshold": true
+      }
+    }
+  }
+}
