@@ -24,6 +24,17 @@ This handoff must be fully coded, locally unit tested, successfully executed aga
 
 ## 2. FIRST HANDOFF TO CLAUDE/CODEX (H-001)
 
+### 2.1. OPERATOR ROUTING NOTE
+- **Intended Recipient**: Claude/Codex
+- **Purpose**: Wipe legacy Strapi entries to prepare the test harness, and build the shared UI containers all Studio workflows will inherit.
+- **Handoff Type**: Mixed (Implementation + Implementation-Side Testing)
+- **Execution Mode**: Autonomous within bounded slice ONLY.
+- **Scope Authorization**: Authorizes Phase B and Phase C exactly. Later phases are explicitly NOT authorized.
+
+### 2.2. IMPLEMENTER HANDOFF BODY
+**ATTENTION CLAUDE/CODEX:**
+You are now authorized to begin Implementation Handoff H-001.
+
 - **Handoff ID**: `H-001`
 - **Phases Covered**: Phase B (Cleanup + Test Baseline) & Phase C (Shared/Reusable Workflow Foundation)
 - **Purpose**: Wipe legacy Strapi entries to prepare the test harness, and build the shared UI containers all Studio workflows will inherit.
@@ -72,10 +83,20 @@ Once `H-001` completes successfully, the execution unlocks:
 
 ## 4. HANDOFF TEMPLATE FOR SUBSEQUENT PHASES
 
-When Gemini issues the next phases, this exact template will be used for Claude/Codex:
+When Gemini issues the next phases, this exact template will be used:
 
-```markdown
-## HANDOFF INSTRUCTION [ID: H-XXX]
+### 4.1. OPERATOR ROUTING NOTE
+- **Intended Recipient**: [Claude / Codex / Claude/Codex / Gemini Validator]
+- **Purpose**: [Purpose of the handoff]
+- **Handoff Type**: [Implementation / Testing / Mixed / Validation]
+- **Execution Mode**: [Autonomous within bounded slice / Human-routed]
+- **Scope Authorization**: [Phase X only. Later phases are explicitly NOT authorized.]
+
+### 4.2. IMPLEMENTER HANDOFF BODY
+**ATTENTION [CLAUDE / CODEX / CLAUDE/CODEX / GEMINI]:**
+You are now authorized to execute this bounded handoff.
+
+- **Handoff ID**: `H-XXX`
 - **Phase Covered**: [Phase Name]
 - **Requirement IDs**: [REQ-XXX-XX]
 - **Governing Docs**: [SPEC / TASK / ADR references]
