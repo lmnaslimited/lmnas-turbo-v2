@@ -3,7 +3,7 @@
 ## Linked Spec: SPEC-004
 
 ## Evidence requirements (Claims are insufficient)
-*(To be completed by Implementers. Gemini must scrutinize links based on TV-### expected results)*
+*(To be completed by Implementers. Gemini must scrutinize links mapping explicitly to the test bounds in TEST-004*)
 
 - **Test logs**: [Link to Implementer Unit/Local Test outputs here]
 - **E2E results**: [Link to local E2E output here]
@@ -13,28 +13,28 @@
 ---
 
 ## Validated Requirement Row Coverage
-*Every row maps uniquely to an exact locked behavior.*
+*Every row maps uniquely to an exact locked behavior tracked in TEST-004.*
 
-| Proof ID | Linked REQ | Expected Evidence | Pass Condition | Supplier (C/C) | Validator (G) |
-| --- | --- | --- | --- | --- | --- |
-| `PR-01` | REQ-THM-03 | UI Screenshot / JSON | Duplicate upload throws trap without DB collision. | | |
-| `PR-02` | REQ-THM-[02/03] | Sequence Shots | Active vs Archived state toggle functioning. Sample Preview loads. | | |
-| `PR-03` | REQ-THM-02 | Overlap Screenshot | Swatch alters view temporarily; Prod state immutable. | | |
-| `PR-04` | REQ-BLK-01 | UI Screenshot | Navigating `/blocks` defaults to grouped Browse List. | | |
-| `PR-05` | REQ-BLK-01 | UI Screenshot | "Where Used" stops deletion of page-active block. | | |
-| `PR-06` | REQ-BLK-01 | Sequence Shots | Edit, activate, deactivate lifecycles executing cleanly. | | |
-| `PR-07` | REQ-PUB-02 | Test Log JSON | Code logs threshold calculation on Dark/Light inversions correctly. | | |
-| `PR-08` | REQ-BLK-02 | DB Dump Snippet | Generic Action route removed. Action config maps to single block scope. | | |
-| `PR-09` | REQ-PUB-01 | UI Screenshot | Publish Review isolates to strictly Active Prod Theme. | | |
-| `PR-10` | REQ-SHL-01 | DB Dump Snippet | Navbar/Footer parity interfaces save to global config structure. | | |
-| `PR-11` | REQ-PAG-[01/02] | UI Screenshots | Pages List enables browse/edit. Draft/Prod views toggle. | | |
-| `PR-12` | REQ-PAG-01 | HTML Ingestion Log | Slug creation explicitly blocked during HTML injection. | | |
-| `PR-13` | REQ-WID-01 | Unit/E2E JS Log | Repo logic resolves; JS injection attempts explicitly denied. | | |
-| `PR-14` | REQ-CLN-01 | CLI Exec Log | Wipe script drops faq/hero data yielding sterile start. | | |
-| `PR-15` | REQ-[All]-01 | `code.html` E2E Log | Total E2E sequence runs extracting Blocks cleanly without crashing. | | |
-| `PR-16` | REQ-PAG-01 | UI Link / Screenshot | First Page composed entirely of `code.html` extracted blocks. | | |
-| `PR-17` | REQ-PAG-01 | Schema JSON Link | Secondary Page composition succeeds utilizing isolated module instances. | | |
-| `PR-18` | REQ-STU-01 | UI Links / Screenshots | Identical UI generic List/Detail classes span Block, Shell, and Page flows. | | |
+| Proof ID | Linked REQ | Linked Test | Expected Evidence | Pass Condition | Supplier (C/C) | Validator (G) |
+| --- | --- | --- | --- | --- | --- | --- |
+| `PR-01` | REQ-THM-03 | `TV-E2E-03` | UI Screenshot / JSON | Duplicate upload throws trap without DB collision. | | |
+| `PR-02` | REQ-THM-[02/03] | `TV-MTR-02` | Sequence Shots | Active vs Archived state toggle functioning. Sample Preview loads. | | |
+| `PR-03` | REQ-THM-02 | `TV-MTR-01` | Overlap Screenshot | Swatch alters view temporarily; Prod state immutable. | | |
+| `PR-04` | REQ-BLK-01 | `TV-MTR-04` | UI Screenshot | Navigating `/blocks` defaults to grouped Browse List. | | |
+| `PR-05` | REQ-BLK-01 | `TV-MTR-03` | UI Screenshot | "Where Used" stops deletion of page-active block. | | |
+| `PR-06` | REQ-BLK-01 | `TV-MTR-04` | Sequence Shots | Edit, activate, deactivate lifecycles executing cleanly. | | |
+| `PR-07` | REQ-PUB-02 | `TV-MTR-07` | Test Log JSON | Code logs warning during threshold 'allow' mode successfully. | | |
+| `PR-08` | REQ-PUB-02 | `TV-MTR-11` | UI Error Screenshot | Publish rigidly blocked under threshold 'disallow' mode. | | |
+| `PR-09` | REQ-BLK-02 | `TV-MTR-04` | DB Dump Snippet | Generic Action route removed. Action config maps to single block scope. | | |
+| `PR-10` | REQ-PUB-01 | `TV-MTR-06` | UI Screenshot | Publish Review isolates to strictly Active Prod Theme. | | |
+| `PR-11` | REQ-SHL-01 | `TV-MTR-08` | DB Dump Snippet | Navbar/Footer parity interfaces save to global config structure. | | |
+| `PR-12` | REQ-PAG-[01/02] | `TV-MTR-09` | UI Screenshots | Pages List enables browse/edit. Draft/Prod views toggle. | | |
+| `PR-13` | REQ-PAG-01 | `TV-E2E-02` | HTML Ingestion Log | Slug creation explicitly blocked during HTML injection. | | |
+| `PR-14` | REQ-WID-01 | `TV-MTR-10` | Unit/E2E JS Log | Repo success path validated; placement/behavior executes functionally. | | |
+| `PR-15` | REQ-CLN-01 | `TV-E2E-01` | CLI Exec Log | Wipe script drops faq/hero data yielding sterile start. | | |
+| `PR-16` | REQ-[All]-01 | `TV-E2E-02` | `code.html` E2E Log | Total E2E sequence runs extracting Blocks cleanly without crashing. | | |
+| `PR-17` | REQ-PAG-01 | `TV-E2E-04` | UI Link / Screenshot | First Page composed entirely of `code.html` extracted blocks. | | |
+| `PR-18` | REQ-PAG-01 | `TV-E2E-05` | Schema JSON Link | Secondary Page composition succeeds utilizing isolated module instances. | | |
 
 ---
 

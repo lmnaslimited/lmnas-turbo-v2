@@ -52,8 +52,8 @@
 
 - **[REQ-PUB-02] Fidelity Configuration Toggle**
   - *Rationale*: Phase 0.1 agility vs Phase 1 strictness.
-  - *Statement*: The fidelity threshold exists as a global Studio setting allowing "publish-below-threshold". The engine identifies Dark/Light fidelity diffs specifically when source HTML defines `@media(dark)`.
-  - *Acceptance*: Dark mode inversions trigger threshold logs but do not block ingestion during Phase 0.1 settings.
+  - *Statement*: The fidelity threshold exists as a global Studio setting governing two operation modes: "allow-below-threshold" and "disallow-below-threshold". The engine captures Dark/Light fidelity diffs specifically when source HTML defines `@media(dark)`.
+  - *Acceptance*: While configured to "allow" mode, threshold inversions yield warning logs but save cleanly. While configured to "disallow" mode, threshold inversions trigger a hard UX rejection, actively blocking the publish state.
 
 ## 5. Shell Workflow
 - **[REQ-SHL-01] Global App Configuration**
@@ -73,8 +73,8 @@
 ## 7. Widget Workflow
 - **[REQ-WID-01] Repo-First Logic Separation**
   - *Rationale*: Secure Interactive code execution bounds.
-  - *Statement*: Widgets represent Interactive Code. They onboard exclusively via repo-paths. URL/HTML ingestion is for visual mocking only. Widget placement supports both embed (inside Block) and reference (standalone).
-  - *Acceptance*: Uploading raw `<script>` HTML logic fails ingestion; repo paths succeed.
+  - *Statement*: Widgets represent Interactive Code. They onboard exclusively via repo-paths. URL/HTML ingestion is strictly for visual mocking. Widget placement seamlessly supports embed (inside Block) and reference (standalone) execution. Validation strictly demands functional logic mapping/association verifying the success path, however visual validation pixel parity remains non-mandatory for Phase 0.1 widgets.
+  - *Acceptance*: Uploading raw `<script>` HTML logic fails securely; repo-mapped logic succeeds, associates visually with Studio blocks correctly, and functionally triggers its required interaction.
 
 ## 8. Cleanup / Test Baseline
 - **[REQ-CLN-01] Strapi Testing Hygiene**

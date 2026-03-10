@@ -60,7 +60,7 @@ Required: Requirement-to-implementation mapping validation; strict UI testing; i
 Gemini uses the exact block below when halting Gate 5:
 
 ```markdown
-### Gap ID: [G-001]
+### Issue ID: [G-001]
 - **Workflow**: [Theme / Block / Page / Shell / Widget]
 - **Severity**: [Critical / High / Medium / Low]
 - **Category**: [Gap Category]
@@ -110,10 +110,14 @@ Gemini explicitly commands the Sign-Off recommendation at Gate 7 only when evide
 
 ## 10. INSERTION MAP
 
-This addendum governs Phase 0.1 testing execution. It is centrally anchored:
-- **Primary Source:** `docs/phase0_1/tests/TEST_OWNERSHIP_AND_VALIDATION_ADDENDUM.md`
-- **Governed Files:**
-    - `README.md` (Pointers updated protecting Phase 0.1 7-Gate Rules)
-    - `AGENTS.md` (Requires adherence to Gemini Validator limits)
-    - `docs/phase0_1/templates/proof.template.md` (Embeds Section 5 Issue format)
-    - `docs/phase0_1/templates/tasks.template.md` (Embeds Section 2 Gate Map)
+This addendum governs Phase 0.1 testing execution. It must be implemented exactly as described.
+
+- **Governed RR Docs**: 
+    - `docs/phase0_1/tests/TEST-004-studio-workflow-tightening.md`
+    - `docs/phase0_1/proof/PROOF-004-studio-workflow-tightening.md`
+- **Referencing RR Docs**: 
+    - `docs/phase0_1/templates/proof.template.md` (Embeds Section 5 Issue Assignment Format)
+    - `docs/phase0_1/templates/tasks.template.md` (Embeds Section 2 Gate Model)
+- **Cross-Reference Updates Required**: 
+    - `README.md`: Must actively require Constitution `v2.2` parity protecting this Gate execution flow.
+    - `AGENTS.md`: Must explicitly bind Claude, Codex, and Gemini to the independent validation splits codified in Section 3 and 4.

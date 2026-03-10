@@ -26,7 +26,7 @@ Consolidated architectural decisions enforcing the boundaries of Phase 0.1 Studi
 - **Decision**: Maintain a single active app/site shell, avoiding page-specific shells for now, yet maintaining full CRUD for shell variants.
 - **Status**: Accepted
 - **Consequences**: Drastically simplifies Phase 0.1 routing and composition logic. Page-level shell overriding is deferred to Phase 0.2.
-- **Open issues**: How are different tenant brands handled if the app is multi-tenant? (Assumed single-tenant for Phase 0.1).
+- **Open issues**: None.
 
 ### ADR-004E: Widget Separation and Repo-First Onboarding Model
 - **Decision**: Widgets are logic elements prioritized via codebase referencing (repo-first). HTML/URL mapping is strictly for visual mockups.
