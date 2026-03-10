@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { StrapiSyncPayload } from "@lmnas/contracts";
 import { publishStrapiSyncPayload } from "./strapi-sync";
+import * as envBootstrap from "../env/bootstrap";
 
 const basePayload: StrapiSyncPayload = {
   shellVariants: [],
@@ -45,8 +46,11 @@ const applyContext = {
 
 describe("publishStrapiSyncPayload", () => {
   it("reports missing env keys for apply", async () => {
-    process.env.STRAPI_URL = "";
-    process.env.STRAPI_API_TOKEN = "";
+    vi.spyOn(envBootstrap, "loadProjectEnv").mockImplementation(() => {});
+    vi.spyOn(envBootstrap, "validateRequiredEnv").mockReturnValue({
+      ok: false,
+      missingKeys: ["STRAPI_URL", "STRAPI_API_TOKEN"]
+    });
 
     const result = await publishStrapiSyncPayload({
       mode: "apply",

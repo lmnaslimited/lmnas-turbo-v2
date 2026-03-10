@@ -15,13 +15,11 @@ Core stack: Next.js + Strapi + n8n + Rudder.
 2. Open onboarding studio
 - `http://localhost:3000/platform/onboarding`
 
-3. Use the visual wizard
-- Source Intake
-- Source Preview
-- Detection Review (import/skip)
-- Selection & Mapping
-- Action Mapping
-- Publish Summary
+3. Run the 4 workflows
+- Theme: `http://localhost:3000/platform/onboarding/theme`
+- Block Import: `http://localhost:3000/platform/onboarding/blocks`
+- Shells: `http://localhost:3000/platform/onboarding/shells`
+- Pages: `http://localhost:3000/platform/onboarding/pages`
 
 No manual env export is required for normal local onboarding flow when `.env` / `.env.local` are present.
 
@@ -48,7 +46,11 @@ No manual env export is required for normal local onboarding flow when `.env` / 
 - Site: `http://localhost:3000`
 - Onboarding: `http://localhost:3000/platform/onboarding`
 - Analyze API: `POST /api/platform/onboarding/analyze`
-- Publish API: `POST /api/platform/onboarding/publish`
+- Block Publish API: `POST /api/platform/studio/blocks/publish`
+- Theme APIs: `GET/POST /api/platform/studio/themes`, `POST /api/platform/studio/themes/activate`
+- Shell APIs: `GET/POST /api/platform/studio/shells`, `POST /api/platform/studio/shells/activate`
+- Blocks Library API: `GET/POST /api/platform/studio/blocks`
+- Pages API: `GET/POST /api/platform/studio/pages`
 - Exit runtime API: `POST /api/platform/exits/execute`
 
 ## Commands
@@ -66,6 +68,7 @@ No manual env export is required for normal local onboarding flow when `.env` / 
 - `docs/platform/operator-manual.md`
 - `docs/platform/onboarding-workflow.md`
 - `docs/platform/shell-system.md`
+- `docs/platform/page-workflow.md`
 - `docs/platform/block-model.md`
 - `docs/platform/exit-architecture.md`
 - `docs/platform/theme-model.md`

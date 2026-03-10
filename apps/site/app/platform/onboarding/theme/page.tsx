@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { requestClientJson } from "../_lib/client-request";
+import type { StudioTheme } from "../_lib/studio-types";
 
 /* ─── Theme Data Model ─── */
 
@@ -15,6 +17,7 @@ interface ThemeToken {
 
 interface ThemeRecord {
     id: string;
+    themeKey: string;
     name: string;
     status: "active" | "inactive" | "draft";
     sourceRef: string;
@@ -34,55 +37,6 @@ const TOKEN_CATEGORIES = [
     { key: "shadow", label: "Shadows", icon: "blur_on" }
 ] as const;
 
-/* ─── Seed data from project globals.css ─── */
-
-function loadThemesFromStorage(): ThemeRecord[] {
-    if (typeof window === "undefined") return [];
-    const raw = localStorage.getItem("lmnas-themes");
-    if (raw) {
-        try { return JSON.parse(raw); } catch { /* fall through */ }
-    }
-    // Seed with the project's current theme
-    const defaultTheme: ThemeRecord = {
-        id: "theme-default",
-        name: "LMNAs Dark v1",
-        status: "active",
-        sourceRef: "globals.css",
-        createdAt: "2026-02-15",
-        updatedAt: "2026-03-09",
-        tokenCoverage: 0.92,
-        themeDebt: "3 arbitrary color values detected outside token system",
-        darkMode: true,
-        tokens: [
-            { key: "bg", label: "Background", category: "color", value: "#0b1120", cssVariable: "--color-lmnas-bg", mapped: true },
-            { key: "bg-elevated", label: "Elevated Background", category: "color", value: "#111827", cssVariable: "--color-lmnas-bg-elevated", mapped: true },
-            { key: "panel", label: "Panel", category: "color", value: "#151f32", cssVariable: "--color-lmnas-panel", mapped: true },
-            { key: "border", label: "Border", category: "color", value: "#1e2d4a", cssVariable: "--color-lmnas-border", mapped: true },
-            { key: "text", label: "Primary Text", category: "color", value: "#f1f5f9", cssVariable: "--color-lmnas-text", mapped: true },
-            { key: "text-secondary", label: "Secondary Text", category: "color", value: "#94a3b8", cssVariable: "--color-lmnas-text-secondary", mapped: true },
-            { key: "muted", label: "Muted Text", category: "color", value: "#64748b", cssVariable: "--color-lmnas-muted", mapped: true },
-            { key: "accent", label: "Accent / Primary", category: "color", value: "#3b82f6", cssVariable: "--color-lmnas-accent", mapped: true },
-            { key: "accent-bright", label: "Accent Bright", category: "color", value: "#60a5fa", cssVariable: "--color-lmnas-accent-bright", mapped: true },
-            { key: "success", label: "Success", category: "color", value: "#22c55e", cssVariable: "--color-lmnas-success", mapped: true },
-            { key: "warning", label: "Warning", category: "color", value: "#f59e0b", cssVariable: "--color-lmnas-warning", mapped: true },
-            { key: "danger", label: "Danger", category: "color", value: "#ef4444", cssVariable: "--color-lmnas-danger", mapped: true },
-            { key: "font-display", label: "Primary Text Font", category: "typography", value: "Manrope, sans-serif", cssVariable: "--font-display", mapped: true },
-            { key: "radius-sm", label: "Small Radius", category: "radius", value: "8px", cssVariable: "rounded-lg", mapped: true },
-            { key: "radius-md", label: "Medium Radius", category: "radius", value: "12px", cssVariable: "rounded-xl", mapped: true },
-            { key: "radius-lg", label: "Large Radius", category: "radius", value: "16px", cssVariable: "rounded-2xl", mapped: true }
-        ]
-    };
-    const themes = [defaultTheme];
-    localStorage.setItem("lmnas-themes", JSON.stringify(themes));
-    return themes;
-}
-
-function saveThemes(themes: ThemeRecord[]) {
-    if (typeof window !== "undefined") {
-        localStorage.setItem("lmnas-themes", JSON.stringify(themes));
-    }
-}
-
 /* ─── Component ─── */
 
 export default function ThemeWorkflowPage() {
@@ -91,69 +45,165 @@ export default function ThemeWorkflowPage() {
     const [mode, setMode] = useState<"library" | "create">("library");
     const [referenceHtml, setReferenceHtml] = useState("");
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isLoadingThemes, setIsLoadingThemes] = useState(false);
+    const [isSavingTheme, setIsSavingTheme] = useState(false);
+    const [isActivatingTheme, setIsActivatingTheme] = useState(false);
     const [confirmActivateId, setConfirmActivateId] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        setThemes(loadThemesFromStorage());
-    }, []);
+    async function loadThemes() {
+        setIsLoadingThemes(true);
+        setError(null);
+        try {
+            const payload = await requestClientJson<{
+                ok: boolean;
+                data?: StudioTheme[];
+                error?: string;
+            }>("/api/platform/studio/themes", {
+                method: "GET",
+                headers: { "content-type": "application/json" }
+            }, {
+                timeoutMessage: "Loading themes timed out. Please retry.",
+                fallbackErrorMessage: "Unable to load themes."
+            });
+            if (!payload.ok || !payload.data) {
+                throw new Error(payload.error ?? "Unable to load themes.");
+            }
 
-    const activeTheme = themes.find((t) => t.status === "active");
-    const selectedTheme = themes.find((t) => t.id === selectedId) ?? null;
-
-    function activateTheme(id: string) {
-        const updated = themes.map((t) => ({
-            ...t,
-            status: (t.id === id ? "active" : t.status === "active" ? "inactive" : t.status) as ThemeRecord["status"]
-        }));
-        setThemes(updated);
-        saveThemes(updated);
-        setConfirmActivateId(null);
+            setThemes(payload.data as ThemeRecord[]);
+            if (!selectedId && payload.data.length > 0) {
+                setSelectedId(payload.data[0].id);
+            }
+        } catch (loadError) {
+            setError(loadError instanceof Error ? loadError.message : String(loadError));
+        } finally {
+            setIsLoadingThemes(false);
+        }
     }
 
-    function deactivateTheme(id: string) {
-        const updated = themes.map((t) => t.id === id ? { ...t, status: "inactive" as const } : t);
-        setThemes(updated);
-        saveThemes(updated);
+    useEffect(() => {
+        void loadThemes();
+    }, []);
+
+    const selectedTheme = themes.find((t) => t.id === selectedId) ?? null;
+
+    async function activateTheme(id: string, themeKey?: string) {
+        setError(null);
+        setIsActivatingTheme(true);
+        try {
+            const payload = await requestClientJson<{
+                ok: boolean;
+                data?: StudioTheme[];
+                error?: string;
+            }>("/api/platform/studio/themes/activate", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ id, themeKey })
+            }, {
+                timeoutMessage: "Activating theme timed out. Please retry.",
+                fallbackErrorMessage: "Unable to activate theme."
+            });
+            if (!payload.ok || !payload.data) {
+                throw new Error(payload.error ?? "Unable to activate theme.");
+            }
+            setThemes(payload.data as ThemeRecord[]);
+            setConfirmActivateId(null);
+        } catch (activationError) {
+            setError(activationError instanceof Error ? activationError.message : String(activationError));
+        } finally {
+            setIsActivatingTheme(false);
+        }
+    }
+
+    async function saveTheme(theme: ThemeRecord): Promise<ThemeRecord[]> {
+        setIsSavingTheme(true);
+        try {
+            const payload = await requestClientJson<{
+                ok: boolean;
+                data?: StudioTheme[];
+                error?: string;
+            }>("/api/platform/studio/themes", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ theme })
+            }, {
+                timeoutMessage: "Saving theme timed out. Please retry.",
+                fallbackErrorMessage: "Unable to save theme."
+            });
+            if (!payload.ok || !payload.data) {
+                throw new Error(payload.error ?? "Unable to save theme.");
+            }
+            const nextThemes = payload.data as ThemeRecord[];
+            setThemes(nextThemes);
+            return nextThemes;
+        } finally {
+            setIsSavingTheme(false);
+        }
     }
 
     async function deriveTheme() {
         setIsAnalyzing(true);
+        setError(null);
         try {
-            const res = await fetch("/api/platform/onboarding/analyze", {
+            const data = await requestClientJson<{
+                ok: boolean;
+                analysis?: {
+                    theme: {
+                        extractedColors?: Record<string, string>;
+                        extractedFonts?: string[];
+                        tokenFirstMatchRatio?: number;
+                        themeDebtSummary?: string;
+                        hasDarkModeTrigger?: boolean;
+                    };
+                };
+                error?: string;
+            }>("/api/platform/onboarding/analyze", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ sourceType: "raw_html", sourceValue: referenceHtml, slug: "theme-derive", locale: "en", themeKey: "default" })
+            }, {
+                timeoutMessage: "Theme analysis timed out. Please retry.",
+                fallbackErrorMessage: "Theme analysis failed."
             });
-            const data = await res.json();
-            if (data.theme) {
+            if (!data.ok || !data.analysis) {
+                throw new Error(data.error ?? "Theme analysis failed.");
+            }
+
+            const themeNotes = data.analysis.theme;
+            if (themeNotes) {
                 const tokens: ThemeToken[] = [];
-                (data.theme.extractedColors ?? []).forEach((c: string, i: number) => {
+                Object.values(themeNotes.extractedColors ?? {}).forEach((c: string, i: number) => {
                     tokens.push({ key: `c${i}`, label: i === 0 ? "Primary" : i === 1 ? "Secondary" : i === 2 ? "Accent" : `Color ${i + 1}`, category: "color", value: c, cssVariable: `--color-derived-${i}`, mapped: false });
                 });
-                (data.theme.extractedFonts ?? []).forEach((f: string, i: number) => {
+                (themeNotes.extractedFonts ?? []).forEach((f: string, i: number) => {
                     tokens.push({ key: `f${i}`, label: i === 0 ? "Primary Text Font" : `Font ${i + 1}`, category: "typography", value: f, cssVariable: `--font-derived-${i}`, mapped: false });
                 });
                 const newTheme: ThemeRecord = {
                     id: `theme-${Date.now()}`,
+                    themeKey: `derived-${Date.now()}`,
                     name: `Derived Theme ${themes.length + 1}`,
                     status: "draft",
                     sourceRef: "User HTML input",
                     createdAt: new Date().toISOString().slice(0, 10),
                     updatedAt: new Date().toISOString().slice(0, 10),
-                    tokenCoverage: data.theme.tokenFirstMatchRatio ?? 0,
-                    themeDebt: data.theme.themeDebtSummary ?? "Unknown",
-                    darkMode: data.theme.hasDarkModeTrigger ?? false,
+                    tokenCoverage: themeNotes.tokenFirstMatchRatio ?? 0,
+                    themeDebt: themeNotes.themeDebtSummary ?? "Unknown",
+                    darkMode: themeNotes.hasDarkModeTrigger ?? false,
                     tokens
                 };
-                const updated = [...themes, newTheme];
-                setThemes(updated);
-                saveThemes(updated);
-                setSelectedId(newTheme.id);
+                const nextThemes = await saveTheme(newTheme);
+                const storedTheme = nextThemes.find((theme) => theme.themeKey === newTheme.themeKey) ?? nextThemes[0];
+                if (storedTheme) {
+                    setSelectedId(storedTheme.id);
+                }
                 setMode("library");
                 setReferenceHtml("");
             }
-        } catch { /* analysis error */ }
-        setIsAnalyzing(false);
+        } catch (deriveError) {
+            setError(deriveError instanceof Error ? deriveError.message : String(deriveError));
+        } finally {
+            setIsAnalyzing(false);
+        }
     }
 
     const statusColor = (s: string) =>
@@ -192,10 +242,19 @@ export default function ThemeWorkflowPage() {
                         <p className="text-sm text-amber-300 font-medium">Changing the active theme may cause visual regression on already-published blocks and pages.</p>
                         <p className="text-xs text-amber-400/70 mt-1">All production previews and future imports will use the new theme. Existing content will not be automatically re-rendered.</p>
                         <div className="flex gap-2 mt-3">
-                            <button type="button" onClick={() => activateTheme(confirmActivateId)} className="px-4 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 text-xs font-bold hover:bg-amber-500/30 cursor-pointer">Confirm Activation</button>
+                            <button type="button" data-testid="theme-confirm-activate-button" disabled={isActivatingTheme} onClick={() => {
+                                const candidate = themes.find((theme) => theme.id === confirmActivateId);
+                                void activateTheme(confirmActivateId, candidate?.themeKey);
+                            }} className="px-4 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 text-xs font-bold hover:bg-amber-500/30 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">{isActivatingTheme ? "Activating…" : "Confirm Activation"}</button>
                             <button type="button" onClick={() => setConfirmActivateId(null)} className="px-4 py-1.5 rounded-lg bg-white/[0.04] text-slate-400 text-xs font-semibold hover:bg-white/[0.08] cursor-pointer">Cancel</button>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {error && (
+                <div className="rounded-xl bg-red-500/[0.08] border border-red-500/20 px-4 py-3">
+                    <p className="text-xs text-red-300">{error}</p>
                 </div>
             )}
 
@@ -205,7 +264,7 @@ export default function ThemeWorkflowPage() {
                     <h2 className="text-sm font-bold text-slate-200 mb-1">Derive Theme from Reference</h2>
                     <p className="text-xs text-slate-500 mb-4">Paste reference HTML to extract theme candidates. The derived theme will appear as a draft.</p>
                     <textarea className={`${input} min-h-[180px] font-mono text-xs`} value={referenceHtml} onChange={(e) => setReferenceHtml(e.target.value)} placeholder="Paste reference HTML..." />
-                    <button type="button" onClick={deriveTheme} disabled={!referenceHtml.trim() || isAnalyzing} className="mt-3 px-5 py-2 rounded-lg bg-blue-500 text-white text-sm font-bold shadow-lg shadow-blue-500/20 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+                    <button type="button" onClick={deriveTheme} disabled={!referenceHtml.trim() || isAnalyzing || isSavingTheme} className="mt-3 px-5 py-2 rounded-lg bg-blue-500 text-white text-sm font-bold shadow-lg shadow-blue-500/20 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
                         {isAnalyzing ? "Analyzing…" : "Derive Theme"}
                     </button>
                 </section>
@@ -216,6 +275,11 @@ export default function ThemeWorkflowPage() {
                 <div className="grid gap-5" style={{ gridTemplateColumns: selectedTheme ? "340px 1fr" : "1fr" }}>
                     {/* Theme List */}
                     <div className="flex flex-col gap-2">
+                        {isLoadingThemes && (
+                            <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] p-4">
+                                <p className="text-xs text-slate-500">Loading themes…</p>
+                            </div>
+                        )}
                         {themes.length === 0 && (
                             <div className="rounded-xl bg-white/[0.02] border border-dashed border-white/[0.08] p-8 text-center">
                                 <span className="material-symbols-outlined text-3xl text-slate-600 mb-2">palette</span>
@@ -226,6 +290,7 @@ export default function ThemeWorkflowPage() {
                             <button
                                 key={theme.id}
                                 type="button"
+                                data-testid={`theme-card-${theme.id}`}
                                 onClick={() => setSelectedId(theme.id)}
                                 className={`w-full text-left rounded-xl p-3.5 transition-all cursor-pointer ${selectedId === theme.id
                                         ? "bg-blue-500/[0.08] border border-blue-500/20"
@@ -264,7 +329,7 @@ export default function ThemeWorkflowPage() {
                                 </div>
                                 <div className="flex gap-2">
                                     {selectedTheme.status !== "active" && (
-                                        <button type="button" onClick={() => setConfirmActivateId(selectedTheme.id)} className="px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-xs font-bold hover:bg-emerald-500/25 cursor-pointer">
+                                        <button type="button" data-testid="theme-set-active-button" disabled={isActivatingTheme || isSavingTheme} onClick={() => setConfirmActivateId(selectedTheme.id)} className="px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-xs font-bold hover:bg-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
                                             Set as Active
                                         </button>
                                     )}
@@ -273,6 +338,23 @@ export default function ThemeWorkflowPage() {
                                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                                             Active Theme
                                         </span>
+                                    )}
+                                    {selectedTheme.status !== "inactive" && (
+                                        <button
+                                            type="button"
+                                            disabled={isSavingTheme || isActivatingTheme}
+                                            onClick={() =>
+                                                void saveTheme({
+                                                    ...selectedTheme,
+                                                    status: "inactive"
+                                                }).catch((saveError) => {
+                                                    setError(saveError instanceof Error ? saveError.message : String(saveError));
+                                                })
+                                            }
+                                            className="px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-slate-400 text-xs font-semibold hover:bg-white/[0.08] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                                        >
+                                            Set Inactive
+                                        </button>
                                     )}
                                 </div>
                             </header>

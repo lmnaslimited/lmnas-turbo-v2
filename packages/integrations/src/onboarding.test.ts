@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { analyzeOnboardingSource, ExitContractRegistry, publishOnboardingDraft } from "./onboarding";
 
 const sampleHtml = `
@@ -136,6 +136,43 @@ describe("onboarding pipeline", () => {
     const warningCodes = result.warnings.map((warning) => warning.code);
     expect(warningCodes).toContain("actions.widget_mapping_gap");
     expect(warningCodes).toContain("actions.exit_mapping_gap");
+  });
+
+  it("fails URL ingestion with a timeout error instead of hanging indefinitely", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+          return new Promise<Response>((_resolve, reject) => {
+            const signal = init?.signal;
+            if (signal) {
+              signal.addEventListener("abort", () => {
+                const abortError = new Error("aborted");
+                abortError.name = "AbortError";
+                reject(abortError);
+              });
+            }
+          });
+        }) as typeof fetch
+      );
+
+      const pendingAnalysis = analyzeOnboardingSource({
+        sourceType: "url",
+        sourceValue: "https://example.com/source",
+        slug: "timeout-check",
+        locale: "en",
+        themeKey: "default"
+      });
+      const handledFailure = pendingAnalysis.catch((error) => error);
+      await vi.advanceTimersByTimeAsync(12_500);
+      const failure = await handledFailure;
+      expect(failure).toBeInstanceOf(Error);
+      expect((failure as Error).message).toContain("Source URL request timed out");
+    } finally {
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    }
   });
 });
 

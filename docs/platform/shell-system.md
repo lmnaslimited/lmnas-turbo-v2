@@ -1,56 +1,50 @@
-# Shell System
+# Shell Workflow
 
-## First-Class Shell Objects
+## Objective
 
-- Navbar
-- Footer
-- Utility bar
-- Announcement bar
+Manage reusable shell variants (full, navbar, footer) as first-class platform objects with persisted activation state and editable CTA/menu behavior.
 
-Shells are not ordinary blocks.
+Route: `/platform/onboarding/shells`
 
-## Governed Structures
+## Capabilities
 
-- `ShellVariant`
-- `NavbarVariant`
-- `FooterVariant`
-- `NavigationMenu`
-- `NavigationItem`
-- `NavigationGroup`
-- `FooterColumn`
-- `FooterLegalStrip`
-- `ShellAssignment`
+- browse active/inactive shells grouped by role
+- preview selected shell
+- inspect and edit menu structure
+- inspect and edit shell actions/CTAs
+- add/update/delete shell actions
+- activate a shell variant
 
-## Detection Rules
+## Persistence
 
-Importer detects and proposes:
+Primary APIs:
 
-- navbar candidates
-- footer candidates
-- utility/announcement bars
-- menu and submenu hierarchy
-- shell CTA labels
+- `GET /api/platform/studio/shells`
+- `POST /api/platform/studio/shells`
+- `POST /api/platform/studio/shells/activate`
 
-## Assignment Rules
+Strapi path (when configured):
 
-- Site-level shell assignment for global default
-- Page-level shell assignment for exceptions
-- Navbar and footer variant can be overridden independently
+- reads/writes `shell-variants` collection
+- preserves shell role and action payloads
+- updates active/inactive status on activation
 
-## Mobile / Behavior
+Fallback path (when Strapi unavailable):
 
-Navbar supports:
+- reads/writes local studio store
+- maintains role-based active state
+- returns explicit source markers (`strapi` vs `fallback`)
 
-- sticky or static behavior
-- mobile behavior (`drawer`, `overlay`, `inline`)
-- CTA slot handling
+## Data Model (UI-facing)
 
-## Operator Controls
+- shell identity: `id`, `key`, `name`, `role`, `status`
+- preview: `previewHtml`
+- menu: hierarchical menu items
+- actions: `{ id, label, type, target }`
 
-Operators can:
+## Operator Guarantees
 
-- choose shell variant
-- map to existing shell models
-- edit menu/submenu labels and destinations
-- preview shell updates safely before publish
-- review shell cards with visual thumbnails and import/skip controls
+- no static/demo-only browsing path
+- action edits persist through save cycle
+- activation is explicit and persisted
+- loading/error states are shown for load/save/activate actions

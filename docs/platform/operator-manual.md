@@ -1,91 +1,123 @@
 # Operator Manual
 
-This guide is for content managers and marketing operators.
+This guide is for non-technical operators using the Visual Onboarding Studio.
 
-## What You Manage
+## Studio Model
 
-- Shells: navbar, footer, utility bar, announcement bar
-- Blocks: reusable page sections
-- Widgets: modal, drawer, booking popup, download gate, chat launcher
-- Actions: what a CTA click does
-- Exits: backend/business workflow contracts
+The studio is split into 4 workflows. They are intentionally separate:
 
-## Daily Workflow
+1. Theme Workflow
+2. Block Import Workflow
+3. Shell Workflow
+4. Page Workflow
 
-1. Open `/platform/onboarding`.
-2. Paste source (URL, HTML, Figma handoff, or Stitch artifact).
-3. Review **Source Preview** (desktop/tablet/mobile + zoom).
-4. Review **Detection Cards** (visual thumbnails, confidence, fields, CTA/action summary).
-5. Import what you want and skip the rest.
-6. Click cards to highlight the matching source region.
-7. Confirm block/widget fields and CTA action behavior.
-8. Run **Preview What Will Be Created**.
-9. Review the assembled visual preview.
-10. If summary looks good, click **Publish to Strapi**.
+Open the dashboard at `/platform/onboarding` and choose a workflow card.
 
-## Scenario A: Import One Section
+## Workflow 1: Theme
 
-1. Choose `Raw HTML` or `URL`.
-2. Paste section source.
-3. Confirm detected block card.
-4. Keep only the needed block.
-5. Set CTA action (for example: Open widget -> booking popup).
-6. Preview creation summary.
-7. Publish.
+Route: `/platform/onboarding/theme`
 
-Result: section appears in Strapi page assembly and fields are editable.
+Use this workflow to:
 
-## Scenario B: Import Full Page
+- browse all theme variants
+- inspect token coverage and theme debt
+- derive a theme from reference HTML
+- set one active theme for production previews/import mapping
 
-1. Choose full-page source.
-2. Review detected shells (navbar/footer/utility/announcement).
-3. Review detected blocks and widgets visually.
-4. Use Import/Skip per card and keep only required sections.
-5. Confirm CTA actions for each important button/link.
-6. Use action trace cards to verify parent block + CTA text.
-7. Preview creation summary and warnings.
-8. Preview the assembled page.
-9. Publish.
+When you activate a theme, all production previews in studio use that theme.
 
-Result: shell + block + widget + action objects are created in governed form.
+## Workflow 2: Block Import
 
-## Scenario C: Change CTA Behavior Without Code Changes
+Route: `/platform/onboarding/blocks`
 
-1. Open onboarding or Strapi action mapping.
-2. Find CTA action binding.
-3. Change behavior:
-   - URL -> widget
-   - widget -> workflow
-   - workflow target -> different exit
-4. Save/publish.
+Use this workflow to import reusable blocks only.
 
-Result: behavior changes without editing block component code.
+Important guardrails:
 
-## Menu / Submenu Management
+- no page slug is required here
+- this workflow does not create page entities
+- publish means block/component publish only
 
-- Manage menu items in shell navigation models.
-- Add submenu items under navigation groups/items.
-- Preview shell updates before publishing.
+Supported source intake:
 
-## Warnings (Plain Language)
+- URL
+- HTML paste
+- file upload
+- design handoff inputs already supported by ingestion (`figma_*`, `stitch_*`)
 
-- “Low confidence block/widget”: confirm mapping before publish.
-- “Workflow review required”: check action-to-exit mapping.
-- “Navbar/footer missing”: choose fallback shell mapping.
-- “Theme debt”: imported styles use arbitrary values; tokenize later.
-- “Widget mapping gap”: a CTA expects a widget that is not selected/imported.
-- “Exit mapping gap”: a workflow action required an auto-generated exit contract; review mapping.
+Operational flow:
+
+1. Analyze source.
+2. Validate reference preview.
+3. Validate production preview + fidelity.
+4. Review detected blocks one-by-one.
+5. Configure action mapping.
+6. Publish selected blocks.
+
+Block Explorer is included in Detection Review:
+
+- search/filter by family, status, theme
+- optional filters for recent and in-use
+- map detected block to an existing reusable block
+- compare detected vs existing block before publish
+
+If a block is skipped, linked actions/widgets are skipped with it.
+
+## Workflow 3: Shell
+
+Route: `/platform/onboarding/shells`
+
+Use this workflow to manage reusable shell variants.
+
+You can:
+
+- browse full/navbar/footer shells
+- preview selected shell
+- edit menu structure
+- edit shell actions/CTAs
+- activate shell variants
+
+Activation persists active/inactive state by role.
+
+## Workflow 4: Page
+
+Route: `/platform/onboarding/pages`
+
+Use this workflow to assemble pages from reusable blocks.
+
+You can:
+
+- open grouped block library
+- add/remove/reorder blocks
+- edit block content fields
+- set page-level action overrides (overrides block defaults)
+- save draft
+- publish/apply
+
+Active shell is pulled from shell workflow state and applied to page preview.
+Preview route is returned after save/publish (`/en` or `/en/<slug>`).
+
+## Status + Error Handling
+
+All long-running actions show explicit operator states:
+
+- loading
+- disabled controls during request
+- success message
+- failure message
+- retry path without page refresh
+
+Timeouts are surfaced with operator-safe messages (example: Analyze timeout).
 
 ## Troubleshooting
 
-- Nothing detected:
-  - Re-run with cleaner source HTML.
-  - Check if source has valid semantic tags.
-- Wrong section type:
-  - Override block family in Selection & Mapping.
-- CTA not doing the right thing:
-  - Re-open Action Mapping and update action type.
-- Publish cannot apply:
-  - `STRAPI_URL` and `STRAPI_API_TOKEN` are not configured.
-- Need developer payload details:
-  - Open the **Developer details** section in Publish Summary (collapsed by default).
+- Analyze keeps failing:
+  - retry with smaller HTML scope first
+  - switch to HTML paste if remote URL is unstable
+- Publish says fallback/local save:
+  - verify `STRAPI_URL` and `STRAPI_API_TOKEN`
+- Theme/shell/page changes not visible:
+  - verify the success message completed before navigation
+  - reload workflow to confirm persisted state
+- Unexpected import quality:
+  - use fidelity signals and theme debt report to decide token mapping cleanup

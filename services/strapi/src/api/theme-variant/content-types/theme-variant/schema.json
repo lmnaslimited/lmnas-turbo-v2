@@ -1,0 +1,50 @@
+{
+  "kind": "collectionType",
+  "collectionName": "theme_variants",
+  "info": {
+    "singularName": "theme-variant",
+    "pluralName": "theme-variants",
+    "displayName": "Theme Variant"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "themeKey": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["active", "inactive", "draft"],
+      "required": true,
+      "default": "inactive"
+    },
+    "sourceRef": {
+      "type": "string",
+      "required": false
+    },
+    "tokenCoverage": {
+      "type": "decimal",
+      "required": false
+    },
+    "themeDebt": {
+      "type": "text",
+      "required": false
+    },
+    "darkMode": {
+      "type": "boolean",
+      "required": false,
+      "default": false
+    },
+    "tokens": {
+      "type": "json",
+      "required": false
+    }
+  }
+}

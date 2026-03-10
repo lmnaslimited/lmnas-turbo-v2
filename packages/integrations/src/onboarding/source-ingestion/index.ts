@@ -19,6 +19,27 @@ function isInlineHtml(value: string): boolean {
   return /<\s*[a-z][\s\S]*>/i.test(value);
 }
 
+const SOURCE_URL_FETCH_TIMEOUT_MS = 12_000;
+
+async function fetchUrlWithTimeout(url: string): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), SOURCE_URL_FETCH_TIMEOUT_MS);
+  try {
+    return await fetch(url, {
+      signal: controller.signal
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`Source URL request timed out after ${SOURCE_URL_FETCH_TIMEOUT_MS / 1000}s.`);
+    }
+    throw new Error(
+      `Failed to fetch source URL: ${url}. ${error instanceof Error ? error.message : String(error)}`
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function resolveSourceHtml(intake: OnboardingIntake): Promise<{ sourceRef: string; html: string }> {
   if (intake.sourceType === "raw_html") {
     return {
@@ -28,7 +49,7 @@ async function resolveSourceHtml(intake: OnboardingIntake): Promise<{ sourceRef:
   }
 
   if (intake.sourceType === "url") {
-    const response = await fetch(intake.sourceValue);
+    const response = await fetchUrlWithTimeout(intake.sourceValue);
     if (!response.ok) {
       throw new Error(`Failed to fetch source URL: ${intake.sourceValue} (${response.status})`);
     }

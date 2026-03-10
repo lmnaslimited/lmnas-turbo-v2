@@ -225,6 +225,83 @@ describe("strapiClient", () => {
     });
   });
 
+  it("normalizes nullable hero conversion config fields from Strapi", async () => {
+    process.env.STRAPI_URL = "http://localhost:1337";
+
+    server.use(
+      http.post("http://localhost:1337/graphql", async ({ request }) => {
+        const body = (await request.json()) as { query?: string };
+        if (!(body.query ?? "").includes("GetPageBySlug")) {
+          return HttpResponse.json({ data: {} });
+        }
+
+        return HttpResponse.json({
+          data: {
+            pages: [
+              {
+                documentId: "page-home",
+                slug: "home",
+                pageType: "home",
+                layoutKey: "homeLayout",
+                conversionConfig: {
+                  intent: "book",
+                  eventName: "page_primary_cta_click"
+                },
+                shellAssignment: {
+                  scope: "site",
+                  shellVariantId: "shell-default",
+                  navbarVariantId: "navbar-default",
+                  footerVariantId: "footer-default"
+                },
+                exitBindings: [],
+                themeScope: "theme-default",
+                blocks: [
+                  {
+                    __typename: "ComponentBlocksHero",
+                    heading: "Hello",
+                    subheading: "Sub",
+                    productMapping: {
+                      product: "lens-cpq",
+                      industry: "complex-manufacturing"
+                    },
+                    primaryCta: {
+                      label: "Go",
+                      href: "/go",
+                      exitId: "book_appointment_primary"
+                    },
+                    conversionConfig: {
+                      intent: "book",
+                      eventName: "hero_primary_cta_click",
+                      campaignId: null,
+                      utmDefaults: null,
+                      benefitKey: null
+                    }
+                  }
+                ],
+                seo: {
+                  metaTitle: "Title",
+                  metaDescription: "Description",
+                  canonical: "https://lmnas.com",
+                  robots: "index,follow"
+                }
+              }
+            ]
+          }
+        });
+      })
+    );
+
+    const page = await getPageBySlug("home");
+    expect(page.blocks[0]).toMatchObject({
+      type: "hero",
+      heading: "Hello",
+      conversionConfig: {
+        intent: "book",
+        eventName: "hero_primary_cta_click"
+      }
+    });
+  });
+
   it("queries requested slug for nested routes", async () => {
     process.env.STRAPI_URL = "http://localhost:1337";
 

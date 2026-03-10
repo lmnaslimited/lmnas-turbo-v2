@@ -430,6 +430,52 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiBlockTemplateBlockTemplate
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'block_templates';
+  info: {
+    displayName: 'Block Template';
+    pluralName: 'block-templates';
+    singularName: 'block-template';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    actions: Schema.Attribute.JSON;
+    confidence: Schema.Attribute.Decimal;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    editableFields: Schema.Attribute.JSON;
+    family: Schema.Attribute.String & Schema.Attribute.Required;
+    inUseCount: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::block-template.block-template'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    previewHtml: Schema.Attribute.Text;
+    publishedAt: Schema.Attribute.DateTime;
+    sourceRef: Schema.Attribute.String;
+    sourceType: Schema.Attribute.String;
+    status: Schema.Attribute.Enumeration<['active', 'inactive', 'draft']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'active'>;
+    templateKey: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    themeKey: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'default'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiBlogPostBlogPost extends Struct.CollectionTypeSchema {
   collectionName: 'blog_posts';
   info: {
@@ -608,6 +654,7 @@ export interface ApiShellVariantShellVariant
     draftAndPublish: true;
   };
   attributes: {
+    actions: Schema.Attribute.JSON;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -617,15 +664,62 @@ export interface ApiShellVariantShellVariant
       'api::shell-variant.shell-variant'
     > &
       Schema.Attribute.Private;
+    previewHtml: Schema.Attribute.Text;
     publishedAt: Schema.Attribute.DateTime;
+    role: Schema.Attribute.Enumeration<['navbar', 'footer', 'full']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'full'>;
     shell: Schema.Attribute.Component<'shell.shell-variant', false> &
       Schema.Attribute.Required;
+    status: Schema.Attribute.Enumeration<['active', 'inactive']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'inactive'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     variantKey: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.Unique;
+  };
+}
+
+export interface ApiThemeVariantThemeVariant
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'theme_variants';
+  info: {
+    displayName: 'Theme Variant';
+    pluralName: 'theme-variants';
+    singularName: 'theme-variant';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    darkMode: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::theme-variant.theme-variant'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    sourceRef: Schema.Attribute.String;
+    status: Schema.Attribute.Enumeration<['active', 'inactive', 'draft']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'inactive'>;
+    themeDebt: Schema.Attribute.Text;
+    themeKey: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    tokenCoverage: Schema.Attribute.Decimal;
+    tokens: Schema.Attribute.JSON;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
   };
 }
 
@@ -1140,11 +1234,13 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::block-template.block-template': ApiBlockTemplateBlockTemplate;
       'api::blog-post.blog-post': ApiBlogPostBlogPost;
       'api::exit-definition.exit-definition': ApiExitDefinitionExitDefinition;
       'api::navigation.navigation': ApiNavigationNavigation;
       'api::page.page': ApiPagePage;
       'api::shell-variant.shell-variant': ApiShellVariantShellVariant;
+      'api::theme-variant.theme-variant': ApiThemeVariantThemeVariant;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;

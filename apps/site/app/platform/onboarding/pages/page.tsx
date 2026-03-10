@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { requestClientJson } from "../_lib/client-request";
+import type { StudioBlockTemplate, StudioPageDocument, StudioShell } from "../_lib/studio-types";
 
 /* ─── Types ─── */
 
@@ -129,13 +131,95 @@ export default function PageWorkflowPage() {
     const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
     const [actionOverrides, setActionOverrides] = useState<Record<string, PageAction>>({});
     const [showShell, setShowShell] = useState(true);
-    const [hasLoadedStorage, setHasLoadedStorage] = useState(false);
+    const [availableBlocks, setAvailableBlocks] = useState<PageBlock[]>(AVAILABLE_BLOCKS);
+    const [activeShellState, setActiveShellState] = useState<{
+        activeShellId?: string;
+        navbarHtml?: string;
+        footerHtml?: string;
+    }>({});
+    const [isLoadingInitial, setIsLoadingInitial] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveMessage, setSaveMessage] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (typeof window !== "undefined") setHasLoadedStorage(true);
+        void (async () => {
+            setIsLoadingInitial(true);
+            setError(null);
+            try {
+                const [blocksPayload, shellsPayload] = await Promise.all([
+                    requestClientJson<{
+                        ok: boolean;
+                        data?: StudioBlockTemplate[];
+                        error?: string;
+                    }>("/api/platform/studio/blocks?recent=1", {
+                        method: "GET",
+                        headers: { "content-type": "application/json" }
+                    }, {
+                        timeoutMessage: "Loading block library timed out. Please retry.",
+                        fallbackErrorMessage: "Unable to load block library."
+                    }),
+                    requestClientJson<{
+                        ok: boolean;
+                        data?: StudioShell[];
+                        error?: string;
+                    }>("/api/platform/studio/shells", {
+                        method: "GET",
+                        headers: { "content-type": "application/json" }
+                    }, {
+                        timeoutMessage: "Loading shells timed out. Please retry.",
+                        fallbackErrorMessage: "Unable to load shells."
+                    })
+                ]);
+
+                if (blocksPayload.ok && Array.isArray(blocksPayload.data) && blocksPayload.data.length > 0) {
+                    const mapped = blocksPayload.data.map((block) => ({
+                        id: block.id,
+                        name: block.name,
+                        family: block.family,
+                        group: block.family.includes("cta")
+                            ? "conversion"
+                            : block.family.includes("testimonial")
+                                ? "social_proof"
+                                : block.family.includes("hero")
+                                    ? "hero"
+                                    : "content",
+                        previewHtml: block.previewHtml,
+                        editableFields: block.editableFields.map((fieldKey) => ({
+                            key: fieldKey,
+                            label: fieldKey.replaceAll("_", " "),
+                            type: "text",
+                            value: ""
+                        })),
+                        actions: block.actions.map((action) => ({
+                            id: action.id,
+                            label: action.label,
+                            type: action.type,
+                            target: action.target
+                        }))
+                    }));
+                    setAvailableBlocks(mapped);
+                }
+
+                if (shellsPayload.ok && Array.isArray(shellsPayload.data)) {
+                    const activeFull = shellsPayload.data.find((shell) => shell.status === "active" && shell.role === "full");
+                    const activeNavbar = shellsPayload.data.find((shell) => shell.status === "active" && shell.role === "navbar");
+                    const activeFooter = shellsPayload.data.find((shell) => shell.status === "active" && shell.role === "footer");
+                    setActiveShellState({
+                        activeShellId: activeFull?.id ?? activeNavbar?.id,
+                        navbarHtml: activeFull?.previewHtml ?? activeNavbar?.previewHtml,
+                        footerHtml: activeFull ? "" : activeFooter?.previewHtml
+                    });
+                }
+            } catch (loadError) {
+                setError(loadError instanceof Error ? loadError.message : String(loadError));
+            } finally {
+                setIsLoadingInitial(false);
+            }
+        })();
     }, []);
 
-    const selectedBlock = AVAILABLE_BLOCKS.find((b) => b.id === selectedBlockId) ?? null;
+    const selectedBlock = availableBlocks.find((b) => b.id === selectedBlockId) ?? null;
 
     function addBlock(blockId: string) {
         setPageBlocks((prev) => [...prev, blockId]);
@@ -159,23 +243,97 @@ export default function PageWorkflowPage() {
     // Build full page preview HTML
     const pagePreviewHtml = (() => {
         const body = pageBlocks.map((bid) => {
-            const block = AVAILABLE_BLOCKS.find((b) => b.id === bid);
-            return block?.previewHtml ?? "";
+            const block = availableBlocks.find((b) => b.id === bid);
+            if (!block) return "";
+            const rendered = block.editableFields.reduce((html, field) => {
+                const value = fieldValues[`${block.id}.${field.key}`];
+                if (!value || !field.value) {
+                    return html;
+                }
+                return html.replace(field.value, value);
+            }, block.previewHtml);
+            return rendered;
         }).join("\n");
-        return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>*{margin:0;padding:0;box-sizing:border-box}</style></head><body style="background:#0b1120">${showShell ? SHELL_NAVBAR : ""}${body}${showShell ? SHELL_FOOTER : ""}</body></html>`;
+        const shellPreview = activeShellState.navbarHtml ?? SHELL_NAVBAR;
+        const footerPreview = activeShellState.footerHtml ?? SHELL_FOOTER;
+        return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>*{margin:0;padding:0;box-sizing:border-box}</style></head><body style="background:#0b1120">${showShell ? shellPreview : ""}${body}${showShell ? footerPreview : ""}</body></html>`;
     })();
 
     // Group available blocks
     const groupedBlocks = Object.entries(BLOCK_GROUPS).map(([key, label]) => ({
         key,
         label,
-        blocks: AVAILABLE_BLOCKS.filter((b) => b.group === key)
+        blocks: availableBlocks.filter((b) => b.group === key)
     })).filter((g) => g.blocks.length > 0);
+
+    async function savePage(mode: "save" | "apply") {
+        setIsSaving(true);
+        setError(null);
+        setSaveMessage(null);
+        try {
+            const pagePayload: Partial<StudioPageDocument> = {
+                id: pageSlug,
+                name: pageName,
+                slug: pageSlug,
+                locale: "en",
+                activeShellId: activeShellState.activeShellId,
+                blockOrder: pageBlocks,
+                fieldValues,
+                actionOverrides,
+                previewHtml: pagePreviewHtml
+            };
+
+            const payload = await requestClientJson<{
+                ok: boolean;
+                data?: {
+                    applied: boolean;
+                    warnings: string[];
+                    previewRoute: string;
+                };
+                error?: string;
+            }>("/api/platform/studio/pages", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({
+                    page: pagePayload,
+                    mode
+                })
+            }, {
+                timeoutMessage: mode === "apply" ? "Publishing page timed out. Please retry." : "Saving page timed out. Please retry.",
+                fallbackErrorMessage: mode === "apply" ? "Unable to publish page." : "Unable to save page."
+            });
+            if (!payload.ok || !payload.data) {
+                throw new Error(payload.error ?? "Unable to save page.");
+            }
+            if (mode === "apply" && payload.data.applied) {
+                setSaveMessage(`Published to Strapi. Preview route: ${payload.data.previewRoute}`);
+            } else if (mode === "apply") {
+                const warning = payload.data.warnings[0] ?? "Apply did not complete.";
+                setSaveMessage(`Saved locally. ${warning}`);
+            } else {
+                setSaveMessage("Page draft saved.");
+            }
+        } catch (saveError) {
+            setError(saveError instanceof Error ? saveError.message : String(saveError));
+        } finally {
+            setIsSaving(false);
+        }
+    }
 
     const input = "w-full rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500/40";
 
     return (
         <div className="max-w-[1600px] mx-auto flex flex-col gap-4">
+            {error && (
+                <div className="rounded-lg bg-red-500/[0.08] border border-red-500/20 p-3">
+                    <p className="text-xs text-red-300">{error}</p>
+                </div>
+            )}
+            {saveMessage && (
+                <div className="rounded-lg bg-emerald-500/[0.08] border border-emerald-500/20 p-3">
+                    <p className="text-xs text-emerald-300">{saveMessage}</p>
+                </div>
+            )}
             {/* Header */}
             <header className="flex items-center justify-between">
                 <div>
@@ -188,6 +346,7 @@ export default function PageWorkflowPage() {
                 <div className="flex items-center gap-2">
                     <button
                         type="button"
+                        data-testid="pages-add-block-toggle"
                         onClick={() => setDrawerOpen((v) => !v)}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${drawerOpen ? "bg-violet-500/15 text-violet-400 border border-violet-500/25" : "bg-white/[0.04] text-slate-400 border border-white/[0.06] hover:bg-white/[0.08]"
                             }`}
@@ -206,9 +365,21 @@ export default function PageWorkflowPage() {
                     </button>
                     <button
                         type="button"
-                        className="px-4 py-1.5 rounded-lg bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-500/20 hover:brightness-110 cursor-pointer"
+                        data-testid="pages-save-draft-button"
+                        onClick={() => void savePage("save")}
+                        disabled={isSaving}
+                        className="px-4 py-1.5 rounded-lg bg-white/[0.05] border border-white/[0.08] text-slate-300 text-xs font-semibold hover:bg-white/[0.1] cursor-pointer disabled:opacity-40"
                     >
-                        Sync to Strapi
+                        Save Draft
+                    </button>
+                    <button
+                        type="button"
+                        data-testid="pages-publish-button"
+                        onClick={() => void savePage("apply")}
+                        disabled={isSaving}
+                        className="px-4 py-1.5 rounded-lg bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-500/20 hover:brightness-110 cursor-pointer disabled:opacity-40"
+                    >
+                        {isSaving ? "Publishing…" : "Publish to Strapi"}
                     </button>
                 </div>
             </header>
@@ -231,6 +402,7 @@ export default function PageWorkflowPage() {
                 {drawerOpen && (
                     <div className="w-[280px] flex-shrink-0 rounded-xl bg-white/[0.02] border border-white/[0.06] p-4 overflow-y-auto" style={{ maxHeight: "calc(100vh - 200px)" }}>
                         <h2 className="text-xs font-bold text-slate-300 mb-3">Block Library</h2>
+                        {isLoadingInitial && <p className="text-[11px] text-slate-500 mb-3">Loading blocks…</p>}
                         {groupedBlocks.map((group) => (
                             <div key={group.key} className="mb-4">
                                 <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-2">{group.label}</p>
@@ -238,6 +410,7 @@ export default function PageWorkflowPage() {
                                     <button
                                         key={block.id}
                                         type="button"
+                                        data-testid={`pages-library-add-${block.id}`}
                                         onClick={() => addBlock(block.id)}
                                         className="w-full flex items-center gap-2.5 rounded-lg p-2.5 mb-1 text-left bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.12] transition-all cursor-pointer"
                                     >
@@ -277,7 +450,7 @@ export default function PageWorkflowPage() {
 
                 {/* Block Inspector (appears when a block is selected) */}
                 {selectedBlock && (
-                    <div className="w-[320px] flex-shrink-0 rounded-xl bg-white/[0.02] border border-white/[0.06] overflow-hidden flex flex-col" style={{ maxHeight: "calc(100vh - 200px)" }}>
+                    <div data-testid="pages-block-inspector" className="w-[320px] flex-shrink-0 rounded-xl bg-white/[0.02] border border-white/[0.06] overflow-hidden flex flex-col" style={{ maxHeight: "calc(100vh - 200px)" }}>
                         <header className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
                             <div>
                                 <h3 className="text-sm font-bold text-slate-200">{selectedBlock.name}</h3>
@@ -317,12 +490,14 @@ export default function PageWorkflowPage() {
                                             <span className="text-[10px] text-slate-500 uppercase tracking-wider">{field.label}</span>
                                             {field.type === "text" ? (
                                                 <input
+                                                    data-testid={`pages-field-${selectedBlock.id}-${field.key}`}
                                                     className={input}
                                                     value={fieldValues[`${selectedBlock.id}.${field.key}`] ?? field.value}
                                                     onChange={(e) => setFieldValues((p) => ({ ...p, [`${selectedBlock.id}.${field.key}`]: e.target.value }))}
                                                 />
                                             ) : (
                                                 <textarea
+                                                    data-testid={`pages-field-${selectedBlock.id}-${field.key}`}
                                                     className={`${input} min-h-[80px]`}
                                                     value={fieldValues[`${selectedBlock.id}.${field.key}`] ?? field.value}
                                                     onChange={(e) => setFieldValues((p) => ({ ...p, [`${selectedBlock.id}.${field.key}`]: e.target.value }))}
@@ -352,6 +527,7 @@ export default function PageWorkflowPage() {
                                                 <label className="flex flex-col gap-1">
                                                     <span className="text-[10px] text-slate-500 uppercase">Type</span>
                                                     <select
+                                                        data-testid={`pages-action-type-${selectedBlock.id}-${action.id}`}
                                                         className={input}
                                                         value={currentType}
                                                         onChange={(e) => setActionOverrides((p) => ({
@@ -371,6 +547,7 @@ export default function PageWorkflowPage() {
                                                 <label className="flex flex-col gap-1">
                                                     <span className="text-[10px] text-slate-500 uppercase">Target</span>
                                                     <input
+                                                        data-testid={`pages-action-target-${selectedBlock.id}-${action.id}`}
                                                         className={input}
                                                         value={currentTarget}
                                                         onChange={(e) => setActionOverrides((p) => ({
@@ -400,12 +577,13 @@ export default function PageWorkflowPage() {
                 <div className="flex items-center gap-2 rounded-lg bg-white/[0.02] border border-white/[0.04] px-3 py-2 overflow-x-auto">
                     <span className="text-[10px] text-slate-600 uppercase tracking-wider whitespace-nowrap">Order:</span>
                     {pageBlocks.map((bid, index) => {
-                        const block = AVAILABLE_BLOCKS.find((b) => b.id === bid);
+                        const block = availableBlocks.find((b) => b.id === bid);
                         if (!block) return null;
                         return (
                             <div key={`${bid}-${index}`} className="flex items-center gap-1 group">
                                 <button
                                     type="button"
+                                    data-testid={`pages-order-block-${index}`}
                                     onClick={() => { setSelectedBlockId(bid); setInspectorTab("content"); }}
                                     className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-all cursor-pointer ${selectedBlockId === bid
                                             ? "bg-blue-500/[0.1] border border-blue-500/20 text-blue-300"

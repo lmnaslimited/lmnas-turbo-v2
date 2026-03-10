@@ -1,76 +1,95 @@
 # Onboarding Workflow
 
-## UX Goal
+## Purpose
 
-The operator should always understand:
+The Visual Onboarding Studio is a UI-first operator flow for onboarding themes, blocks, shells, and pages without collapsing these into one monolithic import path.
 
-- what was detected
-- how it looks
-- what will be imported
-- what fields become editable
-- what each CTA will do
-- what Strapi objects will be created
+## Workflow Topology
 
-## Step-by-Step Wizard
+1. Theme Workflow (`/platform/onboarding/theme`)
+2. Block Import Workflow (`/platform/onboarding/blocks`)
+3. Shell Workflow (`/platform/onboarding/shells`)
+4. Page Workflow (`/platform/onboarding/pages`)
 
-1. Source Intake
-- Input source type (`url`, `raw_html`, `figma_*`, `stitch_*`)
-- Paste source or upload handoff file
-- Enter slug and locale
+Each workflow has its own persistence path and can be executed independently.
 
-2. Source Preview
-- View interpreted source in preview panel with styling fidelity
-- Switch viewport (`desktop`, `tablet`, `mobile`) and zoom
-- Click detected overlays to sync with detection cards
+## Data Contracts
 
-3. Detection Review
-- Cards show shells, blocks, widgets, and actions
-- Each card includes preview, confidence, fields, CTA summary
-- Action cards include parent block/shell linkage and CTA hint
-- Operator chooses Import or Skip for each item
+- Theme, block, shell, and page models are schema-first contracts in `@lmnas/contracts`.
+- Block Import publishes reusable block templates and action metadata.
+- Page Workflow composes instances and page-level overrides from reusable objects.
+- CTA behavior remains adapter-routed; no business logic inside blocks/shells.
 
-4. Selection & Mapping
-- Override block family when needed
-- Edit detected editable fields
-- Map to existing shell/block/widget models when reuse is preferred
-- Set split/merge intent for sections where needed
+## Runtime Paths
 
-5. Action Mapping
-- For each CTA, choose action:
-  - Link URL
-  - Scroll to section
-  - Open modal/drawer/widget
-  - Submit form
-  - Download asset
-  - External booking
-  - Backend workflow
-- Advanced exit details stay hidden unless workflow-backed action is selected
+Primary APIs:
 
-6. Publish Summary
-- Default dry run = **Preview What Will Be Created**
-- Summary shows counts for shells/blocks/widgets/actions/exits/fields
-- Warnings shown in plain language
-- Visual assembled preview is shown before apply
-- Developer JSON available only in collapsed details panel
+- `POST /api/platform/onboarding/analyze`
+- `POST /api/platform/studio/blocks/publish`
+- `GET/POST /api/platform/studio/themes`
+- `POST /api/platform/studio/themes/activate`
+- `GET/POST /api/platform/studio/shells`
+- `POST /api/platform/studio/shells/activate`
+- `GET/POST /api/platform/studio/blocks`
+- `GET/POST /api/platform/studio/pages`
 
-## Operator Responsibilities
+Fallback behavior:
 
-- Review and curate detected items
-- Confirm CTA behavior
-- Validate warnings before apply
+- If Strapi is configured and reachable, studio routes read/write Strapi content types.
+- If Strapi is unavailable, routes continue in local fallback store with explicit operator messaging.
 
-## Developer Responsibilities
+## Block Import Execution
 
-- Maintain schema contracts and detectors
-- Maintain adapter runtime and exit contracts
-- Maintain Strapi schema compatibility
-- Improve detection precision over time
+Operational steps:
 
-## Happy Path
+1. Source intake (`url`, `raw_html`, file upload, `figma_*`, `stitch_*`)
+2. Reference preview
+3. Production preview + fidelity report
+4. Detection review (block-by-block)
+5. Action mapping
+6. Publish blocks
 
-1. Analyze succeeds
-2. Operator keeps needed cards, skips noise
-3. Action mappings are traceable to parent CTA/source location
-4. Assembled preview matches expected shell + blocks + footer
-5. Preview summary has acceptable warnings
-6. Apply succeeds and entries are available in Strapi
+Required behavior implemented:
+
+- no page slug in block import
+- no page entity creation in block import
+- map-to-existing block support
+- Block Explorer for reusable block browse/filter/compare
+- timeout-safe analyze/publish requests with retry-safe UI states
+
+## Shell Execution
+
+- browse active/inactive shells by role
+- edit menu/actions
+- activate selected shell and persist active state
+
+## Page Execution
+
+- grouped block library + content editing
+- page-level action overrides
+- save and publish/apply
+- preview route returned from API (`/en` or `/en/<slug>`)
+
+## State Safety Rules
+
+All async actions must expose:
+
+- loading state
+- disabled controls while in-flight
+- success/failure messaging
+- timeout handling
+- retry without deadlock
+
+Shared timeout-safe client request helper is used by studio pages.
+
+## Regression Coverage
+
+Playwright suite `apps/site/e2e/studio-workflows.spec.ts` covers:
+
+- theme load/browse/activate
+- block analyze + map-to-existing + publish
+- analyze timeout/hang regression
+- shell browse/edit/activate
+- page assemble/edit/override/save/publish
+
+Visual baseline `apps/site/e2e/onboarding.visual.spec.ts` covers core visual states for block import preview/review/publish.

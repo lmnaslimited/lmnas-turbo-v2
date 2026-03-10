@@ -1,16 +1,10 @@
 {
-  "generatedAt": "2026-03-09T13:43:57.230Z",
-  "hardFailures": [
-    {
-      "rawValue": "transparent",
-      "reason": "Invalid color value: transparent",
-      "tokenType": "colors"
-    }
-  ],
+  "generatedAt": "2026-03-09T19:13:33.358Z",
+  "hardFailures": [],
   "nearestMatches": [],
   "schemaVersion": "theme-debt.v1",
   "summary": {
-    "hardFailureCount": 1,
+    "hardFailureCount": 0,
     "softMatchCount": 0,
     "unknownCount": 0
   },

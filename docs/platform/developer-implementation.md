@@ -1,96 +1,98 @@
-# Developer Implementation
+# Developer Implementation Notes
 
-## Architectural Baseline
+## Architecture Guardrails
 
-- Constitution v2.1 is the governing guardrail
-- LMOP v1.2 is the product architecture baseline
-- Schema-first contracts are mandatory
+- Constitution v2.1 is authoritative.
+- LMOP v1.2 (Product Architecture) is baseline.
+- Schema-first contracts remain mandatory.
+- Blocks/shells/widgets stay UI-only; CTA execution routes through action/exit adapters.
 
-## Core Modules
+## Studio Surface
 
-- `source-ingestion`: normalize URL/HTML/Figma/Stitch input
-- `preview-renderer`: build styled source preview, thumbnail previews, and assembled preview HTML
-- `shell-detector`: detect navbar/footer/utility/announcement
-- `block-detector`: segment sections and classify block family
-- `widget-detector`: detect reusable interactive surfaces
-- `action-detector`: classify CTA click behavior
-- `field-detector`: infer editable fields
-- `exit-detector`: infer governed exit contracts
-- `shell-schema-mapper`: map shell candidates to canonical shell schemas
-- `block-schema-mapper`: apply block family/field overrides
-- `widget-schema-mapper`: map widget candidates to definition/variant contracts
-- `action-schema-mapper`: map CTA behavior to action bindings
-- `exit-contract-registry`: register/resolve/toggle exit contracts
-- `strapi-sync`: build and publish payloads
-- `page-assembler`: compose shell + blocks + widgets + actions
-- `renderer`: compare source structure and mapped structure
-- `theme-engine`: token-first Tailwind analysis
-- `fidelity-reporter`: plain-language warnings
-- `env/bootstrap`: project-root env loading + required key validation
+UI routes:
 
-## Contracts
+- `/platform/onboarding` (workflow dashboard)
+- `/platform/onboarding/theme`
+- `/platform/onboarding/blocks`
+- `/platform/onboarding/shells`
+- `/platform/onboarding/pages`
 
-Primary schemas live in `packages/contracts/src/platform.contracts.ts`.
+## Integration APIs
 
-Key objects:
+Analyze/publish:
 
-- shell models (`ShellVariant`, `NavbarVariant`, `FooterVariant`, `ShellAssignment`)
-- block proposals
-- widget definitions/variants
-- action bindings
-- exit definitions/bindings
-- onboarding analysis/request/result
+- `POST /api/platform/onboarding/analyze`
+- `POST /api/platform/studio/blocks/publish`
 
-## Frontend Integration
+Theme:
 
-- Onboarding UI route: `apps/site/app/platform/onboarding`
-- Analyze API: `POST /api/platform/onboarding/analyze`
-- Publish API: `POST /api/platform/onboarding/publish`
-- Exit execution API: `POST /api/platform/exits/execute`
-- Playwright visual/e2e: `apps/site/e2e/onboarding.visual.spec.ts`
+- `GET/POST /api/platform/studio/themes`
+- `POST /api/platform/studio/themes/activate`
 
-## Strapi Integration
+Shell:
 
-`StrapiSyncPayload` now includes:
+- `GET/POST /api/platform/studio/shells`
+- `POST /api/platform/studio/shells/activate`
 
-- shell variants + menus
-- block instances
-- widget definitions + variants
-- action bindings
-- exit definitions + bindings
-- page assembly
+Blocks library:
 
-## Adapter Strategy
+- `GET/POST /api/platform/studio/blocks`
 
-- Frontend adapters resolve UX behaviors (redirect/modal/form/chat)
-- Backend adapters resolve workflow/system integration (`n8n_webhook`, `api`)
-- New exits should be added by contract registration and adapter mapping
+Pages:
 
-## Env Loading Strategy
+- `GET/POST /api/platform/studio/pages`
 
-- `apps/site/app/lib/env.ts` loads `.env`, `.env.local`, and env-specific files from project root.
-- API routes call env bootstrap before publish/analyze logic.
-- Integrations/content-importer runtimes use env bootstrap in-code (no manual shell export required for normal local flow).
-- Publish apply validates `STRAPI_URL` and `STRAPI_API_TOKEN` and returns operator-safe readiness messaging.
+Utility:
 
-## Testing Coverage
+- `POST /api/platform/studio/reset` (deterministic e2e setup)
 
-- Unit/integration:
-  - detector + mapper + publish flow tests
-  - missing env / invalid token / unreachable Strapi failure paths
-  - low-confidence + fidelity warning paths
-  - widget/exit mapping gap warnings
-- E2E + visual:
-  - styled source preview
-  - detection card review and action traceability
-  - assembled visual preview before publish
-  - apply-mode `@real` path
+## Strapi Wiring
 
-## Contract-First Extensibility
+Studio routes attempt Strapi first, then fallback store:
 
-For new workflow-heavy actions:
+- theme variants -> `theme-variants`
+- shell variants -> `shell-variants`
+- block templates -> `block-templates`
+- page apply -> `content-importer` plan/apply pipeline
 
-1. Add/extend exit contract
-2. Register adapter mapping
-3. Bind action to exit in config
-4. Keep shell/block/widget code unchanged
+Fallback mode keeps workflows usable when Strapi is unavailable and returns operator-facing warnings.
+
+## Async State Safety
+
+Client helper:
+
+- `apps/site/app/platform/onboarding/_lib/client-request.ts`
+- abort-based timeout handling and normalized operator errors
+
+Used in theme/blocks/shells/pages workflow pages to prevent dead UI states.
+
+Source ingestion timeout:
+
+- `packages/integrations/src/onboarding/source-ingestion/index.ts`
+- URL fetch timeout to prevent hanging analyze requests on remote dependency stalls.
+
+## Regression Test Coverage
+
+E2E:
+
+- `apps/site/e2e/studio-workflows.spec.ts`
+  - theme load/browse/activate
+  - block analyze/map/publish
+  - analyze timeout/hang path
+  - shell browse/edit/activate
+  - page assemble/edit/override/save/publish
+  - local `/en/<slug>` route verification after publish
+
+Visual:
+
+- `apps/site/e2e/onboarding.visual.spec.ts`
+  - reference preview
+  - detection review + Block Explorer
+  - publish preview state
+
+Unit/integration:
+
+- `packages/integrations/src/onboarding.test.ts`
+- `packages/integrations/src/onboarding/strapi-sync.test.ts`
+- `apps/site/app/api/platform/studio/themes/activate/route.test.ts`
+- onboarding analyze/publish API tests under `apps/site/app/api/platform/onboarding/*.test.ts`

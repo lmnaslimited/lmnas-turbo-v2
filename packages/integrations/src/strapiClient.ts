@@ -195,7 +195,7 @@ function normalizeStrapiBlock(block: Record<string, unknown>): Record<string, un
       secondaryCta: normalizeSecondaryCta(block),
       ctaLabel: primaryCta.label,
       ctaHref: primaryCta.href,
-      conversionConfig: block.conversionConfig
+      conversionConfig: normalizeHeroConversionConfig(block.conversionConfig)
     };
   }
 
@@ -219,6 +219,67 @@ function normalizeStrapiBlock(block: Record<string, unknown>): Record<string, un
   return {
     type: "unknown"
   };
+}
+
+function normalizeHeroConversionConfig(value: unknown): Record<string, unknown> {
+  const source = value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+
+  const intent =
+    source.intent === "book" || source.intent === "run_benefit" || source.intent === "download" || source.intent === "subscribe"
+      ? source.intent
+      : "book";
+
+  const eventCategory =
+    source.eventCategory === "conversion" ||
+    source.eventCategory === "engagement" ||
+    source.eventCategory === "navigation" ||
+    source.eventCategory === "experiment"
+      ? source.eventCategory
+      : undefined;
+
+  const campaignId = typeof source.campaignId === "string" && source.campaignId.trim().length > 0 ? source.campaignId : undefined;
+  const benefitKey = typeof source.benefitKey === "string" && source.benefitKey.trim().length > 0 ? source.benefitKey : undefined;
+
+  const utmDefaults =
+    source.utmDefaults && typeof source.utmDefaults === "object" && !Array.isArray(source.utmDefaults)
+      ? (source.utmDefaults as Record<string, unknown>)
+      : undefined;
+
+  const destination =
+    source.destination && typeof source.destination === "object" && !Array.isArray(source.destination)
+      ? (source.destination as Record<string, unknown>)
+      : undefined;
+
+  const normalized: Record<string, unknown> = {
+    intent,
+    eventName: typeof source.eventName === "string" && source.eventName.trim().length > 0 ? source.eventName : "hero_primary_cta_click",
+    ...(eventCategory ? { eventCategory } : {})
+  };
+
+  if (campaignId) {
+    normalized.campaignId = campaignId;
+  }
+  if (benefitKey) {
+    normalized.benefitKey = benefitKey;
+  }
+  if (utmDefaults) {
+    normalized.utmDefaults = Object.fromEntries(
+      Object.entries(utmDefaults).filter(([, entry]) => typeof entry === "string" && entry.trim().length > 0)
+    );
+  }
+  if (
+    destination &&
+    (destination.type === "url" || destination.type === "benefit" || destination.type === "asset" || destination.type === "form") &&
+    typeof destination.value === "string" &&
+    destination.value.trim().length > 0
+  ) {
+    normalized.destination = {
+      type: destination.type,
+      value: destination.value
+    };
+  }
+
+  return normalized;
 }
 
 function normalizePrimaryCta(block: Record<string, unknown>): { label: string; href: string; exitId?: string } {

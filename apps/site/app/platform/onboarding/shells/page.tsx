@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { requestClientJson } from "../_lib/client-request";
+import type { StudioShell } from "../_lib/studio-types";
 
 /* ─── Data Model ─── */
 
@@ -20,8 +22,9 @@ interface MenuItem {
 
 interface ShellVariant {
     id: string;
+    key: string;
     name: string;
-    role: "navbar" | "footer";
+    role: "navbar" | "footer" | "full";
     status: "active" | "inactive";
     updatedAt: string;
     menuItems: MenuItem[];
@@ -36,74 +39,6 @@ const ACTION_TYPES = [
     { value: "open_drawer", label: "Open drawer" }
 ];
 
-/* ─── Seed shells ─── */
-
-function loadShells(): ShellVariant[] {
-    if (typeof window === "undefined") return [];
-    const raw = localStorage.getItem("lmnas-shells");
-    if (raw) { try { return JSON.parse(raw); } catch { /* fall through */ } }
-    const seed: ShellVariant[] = [
-        {
-            id: "navbar-main",
-            name: "Main Navbar",
-            role: "navbar",
-            status: "active",
-            updatedAt: "2026-03-09",
-            menuItems: [
-                { id: "m1", label: "Products", href: "/products" },
-                {
-                    id: "m2", label: "Solutions", href: "/solutions", children: [
-                        { id: "m2a", label: "Enterprise", href: "/solutions/enterprise" },
-                        { id: "m2b", label: "Startups", href: "/solutions/startups" }
-                    ]
-                },
-                { id: "m3", label: "Pricing", href: "/pricing" },
-                { id: "m4", label: "Blog", href: "/blog" }
-            ],
-            actions: [
-                { id: "a1", label: "Book Demo", type: "open_modal", target: "#book-demo" },
-                { id: "a2", label: "Sign In", type: "link_url", target: "/login" }
-            ],
-            previewHtml: `<nav style="display:flex;justify-content:space-between;align-items:center;padding:14px 28px;background:#0f172a;color:#f8fafc;font-family:system-ui"><strong style="font-size:16px;letter-spacing:-0.4px">LMNAs</strong><div style="display:flex;gap:20px"><a href="#" style="color:#94a3b8;text-decoration:none;font-size:13px">Products</a><a href="#" style="color:#94a3b8;text-decoration:none;font-size:13px">Solutions</a><a href="#" style="color:#94a3b8;text-decoration:none;font-size:13px">Pricing</a><a href="#" style="color:#94a3b8;text-decoration:none;font-size:13px">Blog</a></div><div style="display:flex;gap:8px"><button style="background:transparent;border:1px solid #334155;color:#94a3b8;padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer">Sign In</button><button style="background:#3b82f6;border:none;color:white;padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">Book Demo</button></div></nav>`
-        },
-        {
-            id: "navbar-alt",
-            name: "Minimal Navbar",
-            role: "navbar",
-            status: "inactive",
-            updatedAt: "2026-03-05",
-            menuItems: [
-                { id: "m1", label: "Home", href: "/" },
-                { id: "m2", label: "About", href: "/about" }
-            ],
-            actions: [
-                { id: "a1", label: "Get Started", type: "link_url", target: "/signup" }
-            ],
-            previewHtml: `<nav style="display:flex;justify-content:space-between;align-items:center;padding:12px 24px;background:#111827;color:#e2e8f0;font-family:system-ui"><span style="font-size:14px;font-weight:700">LMNAs</span><div style="display:flex;gap:16px;align-items:center"><a href="#" style="color:#64748b;text-decoration:none;font-size:13px">Home</a><a href="#" style="color:#64748b;text-decoration:none;font-size:13px">About</a><button style="background:#22c55e;border:none;color:white;padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600">Get Started</button></div></nav>`
-        },
-        {
-            id: "footer-main",
-            name: "Main Footer",
-            role: "footer",
-            status: "active",
-            updatedAt: "2026-03-09",
-            menuItems: [
-                { id: "f1", label: "Home", href: "/" },
-                { id: "f2", label: "Terms", href: "/terms" },
-                { id: "f3", label: "Privacy", href: "/privacy" }
-            ],
-            actions: [],
-            previewHtml: `<footer style="padding:20px 28px;background:#0b1120;color:#64748b;font-family:system-ui;text-align:center;font-size:12px;border-top:1px solid #1e293b"><div style="display:flex;justify-content:center;gap:16px;margin-bottom:8px"><a href="#" style="color:#475569;text-decoration:none">Home</a><a href="#" style="color:#475569;text-decoration:none">Terms</a><a href="#" style="color:#475569;text-decoration:none">Privacy</a></div>&copy; 2026 LMNAs Platform</footer>`
-        }
-    ];
-    localStorage.setItem("lmnas-shells", JSON.stringify(seed));
-    return seed;
-}
-
-function saveShells(shells: ShellVariant[]) {
-    if (typeof window !== "undefined") localStorage.setItem("lmnas-shells", JSON.stringify(shells));
-}
-
 /* ─── Component ─── */
 
 export default function ShellWorkflowPage() {
@@ -111,31 +46,109 @@ export default function ShellWorkflowPage() {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [detailTab, setDetailTab] = useState<"preview" | "menu" | "actions">("preview");
     const [editingAction, setEditingAction] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isActivating, setIsActivating] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    async function loadShells() {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const payload = await requestClientJson<{
+                ok: boolean;
+                data?: StudioShell[];
+                error?: string;
+            }>("/api/platform/studio/shells", {
+                method: "GET",
+                headers: { "content-type": "application/json" }
+            }, {
+                timeoutMessage: "Loading shells timed out. Please retry.",
+                fallbackErrorMessage: "Unable to load shells."
+            });
+            if (!payload.ok || !payload.data) {
+                throw new Error(payload.error ?? "Unable to load shells.");
+            }
+            setShells(payload.data as ShellVariant[]);
+            if (payload.data.length > 0 && !selectedId) {
+                setSelectedId(payload.data[0].id);
+            }
+        } catch (loadError) {
+            setError(loadError instanceof Error ? loadError.message : String(loadError));
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    async function saveShell(nextShell: ShellVariant) {
+        setIsSaving(true);
+        try {
+            const payload = await requestClientJson<{
+                ok: boolean;
+                data?: StudioShell[];
+                error?: string;
+            }>("/api/platform/studio/shells", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ shell: nextShell })
+            }, {
+                timeoutMessage: "Saving shell timed out. Please retry.",
+                fallbackErrorMessage: "Unable to save shell."
+            });
+            if (!payload.ok || !payload.data) {
+                throw new Error(payload.error ?? "Unable to save shell.");
+            }
+            setShells(payload.data as ShellVariant[]);
+        } finally {
+            setIsSaving(false);
+        }
+    }
 
     useEffect(() => {
-        const loaded = loadShells();
-        setShells(loaded);
-        if (loaded.length > 0) setSelectedId(loaded[0].id);
+        void loadShells();
     }, []);
 
     const selected = shells.find((s) => s.id === selectedId) ?? null;
     const navbars = shells.filter((s) => s.role === "navbar");
     const footers = shells.filter((s) => s.role === "footer");
+    const fullShells = shells.filter((s) => s.role === "full");
 
     function updateShell(id: string, patch: Partial<ShellVariant>) {
-        const updated = shells.map((s) => s.id === id ? { ...s, ...patch } : s);
-        setShells(updated);
-        saveShells(updated);
+        const current = shells.find((shell) => shell.id === id);
+        if (!current) return;
+        const next = { ...current, ...patch };
+        void saveShell(next).catch((saveError) => {
+            setError(saveError instanceof Error ? saveError.message : String(saveError));
+        });
     }
 
-    function activateShell(id: string) {
-        const role = shells.find((s) => s.id === id)?.role;
-        const updated = shells.map((s) => ({
-            ...s,
-            status: (s.id === id ? "active" : s.role === role && s.status === "active" ? "inactive" : s.status) as ShellVariant["status"]
-        }));
-        setShells(updated);
-        saveShells(updated);
+    function activateShell(id: string, key?: string) {
+        void (async () => {
+            setError(null);
+            setIsActivating(true);
+            try {
+                const payload = await requestClientJson<{
+                    ok: boolean;
+                    data?: StudioShell[];
+                    error?: string;
+                }>("/api/platform/studio/shells/activate", {
+                    method: "POST",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify({ id, key })
+                }, {
+                    timeoutMessage: "Activating shell timed out. Please retry.",
+                    fallbackErrorMessage: "Unable to activate shell."
+                });
+                if (!payload.ok || !payload.data) {
+                    throw new Error(payload.error ?? "Unable to activate shell.");
+                }
+                setShells(payload.data as ShellVariant[]);
+            } catch (activationError) {
+                setError(activationError instanceof Error ? activationError.message : String(activationError));
+            } finally {
+                setIsActivating(false);
+            }
+        })();
     }
 
     function updateAction(shellId: string, actionId: string, patch: Partial<ShellAction>) {
@@ -154,6 +167,11 @@ export default function ShellWorkflowPage() {
 
     return (
         <div className="max-w-[1400px] mx-auto flex flex-col gap-5">
+            {error && (
+                <div className="rounded-lg bg-red-500/[0.08] border border-red-500/20 p-3">
+                    <p className="text-xs text-red-300">{error}</p>
+                </div>
+            )}
             <header>
                 <h1 className="text-xl font-bold text-slate-100 flex items-center gap-2.5">
                     <span className="material-symbols-outlined text-2xl text-emerald-400">web</span>
@@ -163,6 +181,12 @@ export default function ShellWorkflowPage() {
                     Manage navbar and footer variants. One of each type can be active at a time. Active shells apply to all new pages.
                 </p>
             </header>
+
+            {isLoading && (
+                <div className="rounded-lg bg-white/[0.02] border border-white/[0.06] p-3">
+                    <p className="text-xs text-slate-500">Loading shells…</p>
+                </div>
+            )}
 
             <div className="grid gap-5" style={{ gridTemplateColumns: selected ? "300px 1fr" : "1fr" }}>
                 {/* Shell list */}
@@ -192,6 +216,37 @@ export default function ShellWorkflowPage() {
                                 <div className="flex items-center gap-2 text-[10px] text-slate-600">
                                     <span>{shell.menuItems.length} items</span>
                                     <span>·</span>
+                                    <span>{shell.actions.length} CTAs</span>
+                                    <span>·</span>
+                                    <span>{shell.updatedAt}</span>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Full Shells */}
+                    <div>
+                        <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-sm text-blue-400">view_agenda</span>
+                            Full Shells
+                        </p>
+                        {fullShells.map((shell) => (
+                            <button
+                                key={shell.id}
+                                type="button"
+                                onClick={() => { setSelectedId(shell.id); setDetailTab("preview"); }}
+                                className={`w-full text-left rounded-xl p-3 mb-1.5 transition-all cursor-pointer ${selectedId === shell.id
+                                        ? "bg-blue-500/[0.08] border border-blue-500/20"
+                                        : "bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.1]"
+                                    }`}
+                            >
+                                <div className="flex items-center justify-between mb-1">
+                                    <h3 className="text-sm font-semibold text-slate-200 truncate">{shell.name}</h3>
+                                    <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full border ${statusBadge(shell.status)}`}>
+                                        {shell.status}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] text-slate-600">
                                     <span>{shell.actions.length} CTAs</span>
                                     <span>·</span>
                                     <span>{shell.updatedAt}</span>
@@ -248,11 +303,11 @@ export default function ShellWorkflowPage() {
                             </div>
                             <div className="flex gap-2">
                                 {selected.status !== "active" ? (
-                                    <button type="button" onClick={() => activateShell(selected.id)} className="px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-xs font-bold hover:bg-emerald-500/25 cursor-pointer">
-                                        Activate
+                                    <button type="button" data-testid="shell-activate-button" disabled={isSaving || isActivating} onClick={() => activateShell(selected.id, selected.key)} className="px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-xs font-bold hover:bg-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+                                        {isActivating ? "Activating…" : "Activate"}
                                     </button>
                                 ) : (
-                                    <button type="button" onClick={() => updateShell(selected.id, { status: "inactive" })} className="px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-slate-400 text-xs font-semibold hover:bg-white/[0.08] cursor-pointer">
+                                    <button type="button" disabled={isSaving || isActivating} onClick={() => updateShell(selected.id, { status: "inactive" })} className="px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-slate-400 text-xs font-semibold hover:bg-white/[0.08] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
                                         Deactivate
                                     </button>
                                 )}
@@ -287,7 +342,7 @@ export default function ShellWorkflowPage() {
                                 <div className="flex flex-col gap-4">
                                     <iframe
                                         className="w-full rounded-lg border border-white/[0.06] bg-white"
-                                        style={{ minHeight: "200px", height: selected.role === "navbar" ? "80px" : "120px" }}
+                                        style={{ minHeight: "200px", height: selected.role === "navbar" ? "80px" : selected.role === "footer" ? "120px" : "260px" }}
                                         srcDoc={selected.previewHtml}
                                         sandbox="allow-scripts allow-same-origin"
                                         title={selected.name}
@@ -351,11 +406,13 @@ export default function ShellWorkflowPage() {
                                         <p className="text-[10px] text-slate-500 uppercase tracking-wider">CTAs &amp; Actions</p>
                                         <button
                                             type="button"
+                                            data-testid="shell-add-action-button"
+                                            disabled={isSaving}
                                             onClick={() => {
                                                 const newAction: ShellAction = { id: `sa-${Date.now()}`, label: "New Action", type: "link_url", target: "/" };
                                                 updateShell(selected.id, { actions: [...selected.actions, newAction] });
                                             }}
-                                            className="text-[10px] font-semibold text-blue-400 hover:text-blue-300 cursor-pointer flex items-center gap-1"
+                                            className="text-[10px] font-semibold text-blue-400 hover:text-blue-300 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1"
                                         >
                                             <span className="material-symbols-outlined text-sm">add</span>
                                             Add

@@ -15,6 +15,26 @@
       "required": true,
       "unique": true
     },
+    "role": {
+      "type": "enumeration",
+      "enum": ["navbar", "footer", "full"],
+      "required": true,
+      "default": "full"
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["active", "inactive"],
+      "required": true,
+      "default": "inactive"
+    },
+    "actions": {
+      "type": "json",
+      "required": false
+    },
+    "previewHtml": {
+      "type": "text",
+      "required": false
+    },
     "shell": {
       "type": "component",
       "repeatable": false,

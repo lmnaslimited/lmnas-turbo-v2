@@ -40,45 +40,37 @@ const styledHtmlFixture = `
 `;
 
 async function runAnalysisFromFixture(page: import("playwright/test").Page) {
-  await page.goto("/platform/onboarding");
-  await page.locator("[data-testid='source-content-input']").fill(styledHtmlFixture);
-  await page.locator("[data-testid='analyze-source-button']").click();
-  await expect(page.getByRole("heading", { name: "2. Source Preview" })).toBeVisible();
+  await page.goto("/platform/onboarding/blocks");
+  await page.locator("[data-testid='blocks-source-input']").fill(styledHtmlFixture);
+  await page.locator("[data-testid='blocks-analyze-button']").click();
+  await expect(page.getByRole("heading", { name: "Reference Preview" })).toBeVisible();
 }
 
 test("visual onboarding flow renders styled preview, traceability, and final assembly", async ({ page }) => {
   await runAnalysisFromFixture(page);
 
-  const sourceFrame = page.frameLocator("[data-testid='source-preview-frame']");
+  const sourceFrame = page.frameLocator("[data-testid='reference-preview']");
   await expect(sourceFrame.locator("text=Build faster with LMNAs")).toBeVisible();
 
-  // Source preview pane screenshot (now uses Tailwind utility classes)
-  const sourcePane = page.locator("article").filter({ has: page.locator("[data-testid='source-preview-frame']") }).first();
+  const sourcePane = page.locator("article").filter({ has: page.locator("[data-testid='reference-preview']") }).first();
   await expect(sourcePane).toHaveScreenshot("source-preview-pane.png");
 
-  await page.getByRole("button", { name: /Detection Review/i }).click();
-  await expect(page.getByRole("heading", { name: "3. Detection Review" })).toBeVisible();
-  const detectedCardCount = await page.locator("[data-testid^='detection-card-']").count();
-  expect(detectedCardCount).toBeGreaterThan(3);
-  await expect(page.getByText("Action Traceability")).toBeVisible();
-  await expect(page.getByText("Parent:", { exact: false }).first()).toBeVisible();
+  await page.getByRole("button", { name: "Continue →" }).click();
+  await page.getByRole("button", { name: "Continue →" }).click();
+  await expect(page.getByRole("heading", { name: "Detection Review" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Studio Block Explorer" })).toBeVisible();
+  await expect(page.getByText("Map to Existing")).toBeVisible();
 
-  const actionCard = page.locator("[data-testid^='detection-card-action_']").first();
-  await actionCard.click();
-  // Focused card now uses Tailwind class (border-lmnas-accent) instead of lmnas-detect-card-focused
-  await expect(actionCard).toHaveClass(/border-lmnas-accent/);
-  // Detection review side pane screenshot
-  const detectionSidePane = page.locator("article").filter({ has: page.getByText("Detected Items") }).first();
+  const detectionSidePane = page.locator("article").filter({ has: page.getByRole("heading", { name: "Studio Block Explorer" }) }).first();
   await expect(detectionSidePane).toHaveScreenshot("detection-review-pane.png");
 
-  await page.getByRole("button", { name: /Publish Summary/i }).click();
-  await expect(page.getByRole("heading", { name: "6. Publish Summary" })).toBeVisible();
-  await page.locator("[data-testid='preview-create-button']").click();
+  await page.getByRole("button", { name: "Continue →" }).click();
+  await page.getByRole("button", { name: "Continue →" }).click();
+  await expect(page.getByRole("heading", { name: "Publish Blocks" })).toBeVisible();
 
-  const assemblyFrame = page.frameLocator("[data-testid='assembly-preview-frame']");
+  const assemblyFrame = page.frameLocator("[data-testid='publish-preview']");
   await expect(assemblyFrame.locator("text=Build faster with LMNAs")).toBeVisible();
-  // Final assembly preview screenshot
-  const assemblyPanel = page.locator("article").filter({ has: page.locator("[data-testid='assembly-preview-frame']") }).first();
+  const assemblyPanel = page.locator("article").filter({ has: page.locator("[data-testid='publish-preview']") }).first();
   await expect(assemblyPanel).toHaveScreenshot("final-assembly-preview.png");
 });
 
@@ -86,7 +78,10 @@ test("@real apply mode succeeds when local Strapi stack is reachable", async ({ 
   test.skip(process.env.LMNAS_E2E_REAL_STACK !== "1", "Run with LMNAS_E2E_REAL_STACK=1 and local docker stack.");
 
   await runAnalysisFromFixture(page);
-  await page.getByRole("button", { name: /Publish Summary/i }).click();
-  await page.locator("[data-testid='publish-apply-button']").click();
-  await expect(page.getByText("Publish apply succeeded against Strapi.")).toBeVisible({ timeout: 60_000 });
+  await page.getByRole("button", { name: "Continue →" }).click();
+  await page.getByRole("button", { name: "Continue →" }).click();
+  await page.getByRole("button", { name: "Continue →" }).click();
+  await page.getByRole("button", { name: "Continue →" }).click();
+  await page.getByTestId("blocks-publish-apply-button").click();
+  await expect(page.getByText(/Blocks published to Strapi|blocks\.publish_failed/)).toBeVisible({ timeout: 60_000 });
 });

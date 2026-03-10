@@ -2,8 +2,7 @@
 
 import React, { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import {
-    buildDetectionThumbnailDocument,
-    buildFinalAssemblyPreviewDocument
+    buildDetectionThumbnailDocument
 } from "@lmnas/integrations/onboarding/preview-renderer";
 import type {
     ActionType,
@@ -20,6 +19,8 @@ import type {
 import { StepIndicator } from "../_components/StepIndicator";
 import { PreviewPane } from "../_components/PreviewPane";
 import { FidelityDisplay } from "../_components/FidelityDisplay";
+import { requestClientJson } from "../_lib/client-request";
+import type { StudioBlockTemplate } from "../_lib/studio-types";
 
 /* ─── Project Styles ─── */
 
@@ -126,9 +127,64 @@ export default function BlockImportPage() {
 
     // Action mapping state
     const [selectedActionIndex, setSelectedActionIndex] = useState(0);
+    const [libraryBlocks, setLibraryBlocks] = useState<StudioBlockTemplate[]>([]);
+    const [librarySearch, setLibrarySearch] = useState("");
+    const [libraryFamilyFilter, setLibraryFamilyFilter] = useState("all");
+    const [libraryStatusFilter, setLibraryStatusFilter] = useState("all");
+    const [libraryThemeFilter, setLibraryThemeFilter] = useState("all");
+    const [libraryRecentOnly, setLibraryRecentOnly] = useState(false);
+    const [libraryInUseOnly, setLibraryInUseOnly] = useState(false);
+    const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
 
     const canAnalyze = sourceValue.trim().length > 0;
     const input = "w-full rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500/40";
+
+    async function loadBlockLibrary() {
+        setIsLoadingLibrary(true);
+        try {
+            const params = new URLSearchParams();
+            if (librarySearch.trim().length > 0) params.set("search", librarySearch.trim());
+            if (libraryFamilyFilter !== "all") params.set("family", libraryFamilyFilter);
+            if (libraryStatusFilter !== "all") params.set("status", libraryStatusFilter);
+            if (libraryThemeFilter !== "all") params.set("theme", libraryThemeFilter);
+            if (libraryRecentOnly) params.set("recent", "1");
+            if (libraryInUseOnly) params.set("inUse", "1");
+
+            const query = params.toString();
+            const payload = await requestClientJson<{
+                ok: boolean;
+                data?: StudioBlockTemplate[];
+                error?: string;
+            }>(`/api/platform/studio/blocks${query ? `?${query}` : ""}`, {
+                method: "GET",
+                headers: { "content-type": "application/json" }
+            }, {
+                timeoutMessage: "Loading block library timed out. Retry in a moment.",
+                fallbackErrorMessage: "Unable to load block library."
+            });
+            if (!payload.ok || !payload.data) {
+                throw new Error(payload.error ?? "Unable to load block library.");
+            }
+            setLibraryBlocks(payload.data);
+        } finally {
+            setIsLoadingLibrary(false);
+        }
+    }
+
+    useEffect(() => {
+        void loadBlockLibrary().catch((loadError) => {
+            setError(loadError instanceof Error ? loadError.message : String(loadError));
+        });
+    }, []);
+
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            void loadBlockLibrary().catch((loadError) => {
+                setError(loadError instanceof Error ? loadError.message : String(loadError));
+            });
+        }, 220);
+        return () => clearTimeout(timeout);
+    }, [librarySearch, libraryFamilyFilter, libraryStatusFilter, libraryThemeFilter, libraryRecentOnly, libraryInUseOnly]);
 
     /* ─── File upload ─── */
 
@@ -146,55 +202,75 @@ export default function BlockImportPage() {
         setError(null);
         setIsAnalyzing(true);
         try {
-            const res = await fetch("/api/platform/onboarding/analyze", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ sourceType, sourceValue, slug: "block-import", locale: "en", themeKey: "default" })
-            });
-            const data = await res.json();
-            if (!res.ok || data.error) throw new Error(data.error ?? "Analysis failed");
-            setAnalysis(data);
+            const data = await requestClientJson<{ ok: boolean; analysis?: OnboardingAnalysis; error?: string }>(
+                "/api/platform/onboarding/analyze",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ sourceType, sourceValue, slug: "block-import", locale: "en", themeKey: "default" })
+                },
+                {
+                    timeoutMessage: "Analyze timed out. Please retry or reduce source size.",
+                    fallbackErrorMessage: "Analysis failed."
+                }
+            );
+            if (!data.ok || !data.analysis) {
+                throw new Error(data.error ?? "Analysis failed");
+            }
+            setAnalysis(data.analysis);
             const toggles: Record<string, boolean> = {};
-            for (const b of data.blockProposals ?? []) toggles[b.id] = true;
-            for (const w of data.widgetProposals ?? []) toggles[w.id] = true;
-            for (const a of data.actionProposals ?? []) toggles[a.id] = true;
+            for (const b of data.analysis.blockProposals ?? []) toggles[b.id] = true;
+            for (const w of data.analysis.widgetProposals ?? []) toggles[w.id] = true;
+            for (const a of data.analysis.actionProposals ?? []) toggles[a.id] = true;
             setItemImportState(toggles);
             setSelectedBlockIndex(0);
             setSelectedActionIndex(0);
             setStep(1);
         } catch (e) {
             setError(e instanceof Error ? e.message : String(e));
+        } finally {
+            setIsAnalyzing(false);
         }
-        setIsAnalyzing(false);
     }
 
     /* ─── Publish (blocks only) ─── */
 
     async function publish(mode: "dry-run" | "apply") {
         if (!analysis) return;
+        setError(null);
         setIsPublishing(true);
         try {
-            const res = await fetch("/api/platform/onboarding/publish", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    mode,
-                    analysis,
-                    overrides: {
-                        itemImportState, itemTypeOverrides, displayNameOverrides,
-                        blockFamilyOverrides, fieldOverrides, segmentationOverrides,
-                        actionTypeOverrides, actionLabelOverrides: {}, actionTargetOverrides,
-                        exitStateOverrides, mapToExisting
-                    }
-                })
-            });
-            const data = await res.json();
-            if (data.result) setPublishResult(data.result);
-            else if (data.error) setError(data.error);
+            const data = await requestClientJson<{ ok: boolean; result?: OnboardingPublishResult; error?: string }>(
+                "/api/platform/studio/blocks/publish",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        mode,
+                        analysis,
+                        overrides: {
+                            itemImportState, itemTypeOverrides, displayNameOverrides,
+                            blockFamilyOverrides, fieldOverrides, segmentationOverrides,
+                            actionTypeOverrides, actionLabelOverrides: {}, actionTargetOverrides,
+                            exitStateOverrides, mapToExisting
+                        }
+                    })
+                },
+                {
+                    timeoutMessage: "Publish timed out. Please retry.",
+                    fallbackErrorMessage: "Publish failed."
+                }
+            );
+            if (!data.ok || !data.result) {
+                throw new Error(data.error ?? "Publish failed");
+            }
+            setPublishResult(data.result);
+            await loadBlockLibrary();
         } catch (e) {
             setError(e instanceof Error ? e.message : String(e));
+        } finally {
+            setIsPublishing(false);
         }
-        setIsPublishing(false);
     }
 
     /* ─── Block helpers ─── */
@@ -237,8 +313,9 @@ export default function BlockImportPage() {
         if (!snippet) return "<p style='padding:16px;color:#666'>No preview</p>";
         return buildDetectionThumbnailDocument({
             sourcePreviewHtml: analysis?.source?.productionPreviewHtml ?? "",
-            snippet,
-            baseUrl: analysis?.source?.baseUrl ?? ""
+            snippetHtml: snippet,
+            baseUrl: analysis?.source?.baseUrl ?? "",
+            themeScopeClass: analysis?.source?.themeScopeClass ?? "theme-default"
         });
     }
 
@@ -303,7 +380,7 @@ export default function BlockImportPage() {
                         {sourceType === "url" ? (
                             <label className="flex flex-col gap-1.5">
                                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">URL</span>
-                                <input className={input} value={sourceValue} onChange={(e) => setSourceValue(e.target.value)} placeholder="https://example.com/landing" />
+                                <input data-testid="blocks-source-url-input" className={input} value={sourceValue} onChange={(e) => setSourceValue(e.target.value)} placeholder="https://example.com/landing" />
                             </label>
                         ) : (
                             <div className="flex flex-col gap-3">
@@ -311,7 +388,7 @@ export default function BlockImportPage() {
                                     <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                                         {sourceType.startsWith("figma") ? "Figma Export HTML" : sourceType.startsWith("stitch") ? "Stitch Artifact HTML" : "HTML Source"}
                                     </span>
-                                    <textarea className={`${input} min-h-[200px] font-mono text-xs`} value={sourceValue} onChange={(e) => setSourceValue(e.target.value)} placeholder="<section>...</section>" />
+                                    <textarea data-testid="blocks-source-input" className={`${input} min-h-[200px] font-mono text-xs`} value={sourceValue} onChange={(e) => setSourceValue(e.target.value)} placeholder="<section>...</section>" />
                                 </label>
                                 <div className="flex items-center gap-3">
                                     <button
@@ -333,6 +410,7 @@ export default function BlockImportPage() {
                         type="button"
                         onClick={runAnalysis}
                         disabled={!canAnalyze || isAnalyzing}
+                        data-testid="blocks-analyze-button"
                         className="self-start px-6 py-2.5 rounded-lg bg-blue-500 text-white text-sm font-bold shadow-lg shadow-blue-500/20 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                     >
                         {isAnalyzing ? "Analyzing…" : "Analyze Source →"}
@@ -476,7 +554,7 @@ export default function BlockImportPage() {
                                     </div>
 
                                     {/* Mapping */}
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-3 gap-3">
                                         <label className="flex flex-col gap-1">
                                             <span className="text-[10px] text-slate-500 uppercase tracking-wider">Display Name</span>
                                             <input className={input} value={displayNameOverrides[currentBlock.id] ?? currentBlock.displayName ?? currentBlock.family.replaceAll("_", " ")} onChange={(e) => setDisplayNameOverrides((p) => ({ ...p, [currentBlock.id]: e.target.value }))} />
@@ -487,6 +565,21 @@ export default function BlockImportPage() {
                                                 {BLOCK_FAMILIES.map((f) => <option key={f} value={f}>{f.replaceAll("_", " ")}</option>)}
                                             </select>
                                         </label>
+                                        <label className="flex flex-col gap-1">
+                                            <span className="text-[10px] text-slate-500 uppercase tracking-wider">Map to Existing</span>
+                                            <select
+                                                className={input}
+                                                value={mapToExisting[currentBlock.id] ?? ""}
+                                                onChange={(event) => setMapToExisting((previous) => ({ ...previous, [currentBlock.id]: event.target.value }))}
+                                            >
+                                                <option value="">Create new block</option>
+                                                {libraryBlocks.map((block) => (
+                                                    <option key={block.id} value={block.key}>
+                                                        {block.name} ({block.family})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </label>
                                     </div>
 
                                     {/* Fields summary */}
@@ -494,9 +587,9 @@ export default function BlockImportPage() {
                                         <div>
                                             <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1.5">Editable Fields</p>
                                             <div className="flex flex-wrap gap-1.5">
-                                                {currentBlock.editableFields.map((f) => (
-                                                    <span key={f.fieldKey} className="text-[10px] font-mono bg-white/[0.04] border border-white/[0.06] rounded px-2 py-0.5 text-slate-400">
-                                                        {f.fieldKey} <span className="text-slate-600">({f.fieldType})</span>
+                                                {currentBlock.editableFields.map((fieldKey) => (
+                                                    <span key={fieldKey} className="text-[10px] font-mono bg-white/[0.04] border border-white/[0.06] rounded px-2 py-0.5 text-slate-400">
+                                                        {fieldKey}
                                                     </span>
                                                 ))}
                                             </div>
@@ -517,10 +610,106 @@ export default function BlockImportPage() {
                                             </div>
                                         </div>
                                     )}
+
+                                    {mapToExisting[currentBlock.id] ? (
+                                        <div className="rounded-lg bg-blue-500/[0.08] border border-blue-500/20 p-3">
+                                            {(() => {
+                                                const mapped = libraryBlocks.find((block) => block.key === mapToExisting[currentBlock.id]);
+                                                if (!mapped) {
+                                                    return <p className="text-xs text-blue-300">Mapped block no longer exists in library.</p>;
+                                                }
+                                                return (
+                                                    <div className="space-y-1.5">
+                                                        <p className="text-xs font-semibold text-blue-300">Compare with existing block</p>
+                                                        <p className="text-[11px] text-blue-200">
+                                                            Existing: <strong>{mapped.name}</strong> ({mapped.family})
+                                                        </p>
+                                                        <p className="text-[11px] text-blue-200">
+                                                            Field count: detected {currentBlock.editableFields.length} vs existing {mapped.editableFields.length}
+                                                        </p>
+                                                        <p className="text-[11px] text-blue-200">
+                                                            Action count: detected {blockActions.length} vs existing {mapped.actions.length}
+                                                        </p>
+                                                    </div>
+                                                );
+                                            })()}
+                                        </div>
+                                    ) : null}
                                 </div>
                             </div>
                         )}
                     </div>
+
+                    <article className="rounded-xl bg-white/[0.02] border border-white/[0.06] p-4">
+                        <header className="flex items-center justify-between gap-3 mb-3">
+                            <div>
+                                <h3 className="text-sm font-bold text-slate-200">Studio Block Explorer</h3>
+                                <p className="text-[11px] text-slate-500">Browse reusable blocks and choose map-to-existing before publish.</p>
+                            </div>
+                            <span className="text-[10px] text-slate-500">{isLoadingLibrary ? "Loading…" : `${libraryBlocks.length} blocks`}</span>
+                        </header>
+                        <div className="grid grid-cols-6 gap-2 mb-3">
+                            <input
+                                className={`${input} col-span-2`}
+                                placeholder="Search name/family"
+                                value={librarySearch}
+                                onChange={(event) => setLibrarySearch(event.target.value)}
+                            />
+                            <select className={input} value={libraryFamilyFilter} onChange={(event) => setLibraryFamilyFilter(event.target.value)}>
+                                <option value="all">All families</option>
+                                {Array.from(new Set(libraryBlocks.map((block) => block.family))).map((family) => (
+                                    <option key={family} value={family}>
+                                        {family}
+                                    </option>
+                                ))}
+                            </select>
+                            <select className={input} value={libraryStatusFilter} onChange={(event) => setLibraryStatusFilter(event.target.value)}>
+                                <option value="all">Any status</option>
+                                <option value="active">active</option>
+                                <option value="inactive">inactive</option>
+                                <option value="draft">draft</option>
+                            </select>
+                            <select className={input} value={libraryThemeFilter} onChange={(event) => setLibraryThemeFilter(event.target.value)}>
+                                <option value="all">Any theme</option>
+                                {Array.from(new Set(libraryBlocks.map((block) => block.themeKey))).map((theme) => (
+                                    <option key={theme} value={theme}>
+                                        {theme}
+                                    </option>
+                                ))}
+                            </select>
+                            <div className="flex items-center gap-3 px-2">
+                                <label className="flex items-center gap-1 text-[11px] text-slate-400">
+                                    <input type="checkbox" checked={libraryRecentOnly} onChange={(event) => setLibraryRecentOnly(event.target.checked)} />
+                                    recent
+                                </label>
+                                <label className="flex items-center gap-1 text-[11px] text-slate-400">
+                                    <input type="checkbox" checked={libraryInUseOnly} onChange={(event) => setLibraryInUseOnly(event.target.checked)} />
+                                    in use
+                                </label>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 max-h-[260px] overflow-y-auto">
+                            {libraryBlocks.map((block) => (
+                                <button
+                                    key={block.id}
+                                    type="button"
+                                    className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-2 text-left hover:border-white/[0.14] transition-colors cursor-pointer"
+                                    onClick={() => {
+                                        if (currentBlock) {
+                                            setMapToExisting((previous) => ({ ...previous, [currentBlock.id]: block.key }));
+                                        }
+                                    }}
+                                >
+                                    <p className="text-xs font-semibold text-slate-300 truncate">{block.name}</p>
+                                    <p className="text-[10px] text-slate-500">{block.family}</p>
+                                    <p className="text-[10px] text-slate-600">
+                                        {block.status} · {block.themeKey} · in use {block.inUseCount}
+                                    </p>
+                                </button>
+                            ))}
+                            {libraryBlocks.length === 0 && <p className="text-xs text-slate-600">No blocks found with current filters.</p>}
+                        </div>
+                    </article>
 
                     <div className="flex justify-between">
                         <button type="button" onClick={() => setStep(2)} className="px-4 py-2 rounded-lg bg-white/[0.04] text-slate-400 text-xs font-semibold hover:bg-white/[0.08] cursor-pointer">← Back</button>
@@ -658,7 +847,8 @@ export default function BlockImportPage() {
                             <button onClick={() => publish("dry-run")} disabled={isPublishing} className="px-4 py-2 rounded-lg bg-white/[0.06] border border-white/[0.08] text-slate-300 text-xs font-semibold hover:bg-white/[0.1] disabled:opacity-40 cursor-pointer">
                                 Preview
                             </button>
-                            <button onClick={() => publish("apply")} disabled={isPublishing} className="px-5 py-2 rounded-lg bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-500/20 hover:brightness-110 disabled:opacity-40 cursor-pointer">
+                            <button data-testid="blocks-publish-apply-button" onClick={() => publish("apply")} disabled={isPublishing} className="px-5 py-2 rounded-lg bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-500/20 hover:brightness-110 disabled:opacity-40 cursor-pointer">
+                                <span className="sr-only">Publish blocks</span>
                                 {isPublishing ? "Publishing…" : "Publish to Strapi"}
                             </button>
                         </div>
