@@ -85,6 +85,13 @@ function mapShellActions(actions: unknown): StudioShellAction[] {
     .filter((action): action is StudioShellAction => action !== null);
 }
 
+function normalizeBlockArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0);
+}
+
 function mapShellFromStrapi(value: unknown): StudioShell {
   const row = (value ?? {}) as Record<string, unknown>;
   const shell = row.shell && typeof row.shell === "object" && !Array.isArray(row.shell) ? (row.shell as Record<string, unknown>) : {};
@@ -110,6 +117,8 @@ function mapShellFromStrapi(value: unknown): StudioShell {
     updatedAt: typeof row.updatedAt === "string" ? row.updatedAt.slice(0, 10) : new Date().toISOString().slice(0, 10),
     menuItems,
     actions: mapShellActions(row.actions),
+    navbarBlocks: normalizeBlockArray(row.navbarBlocks ?? shell.navbarBlocks),
+    footerBlocks: normalizeBlockArray(row.footerBlocks ?? shell.footerBlocks),
     previewHtml: typeof row.previewHtml === "string" && row.previewHtml.length > 0 ? row.previewHtml : "<div>No preview</div>"
   };
 }
@@ -137,11 +146,15 @@ async function upsertShellInStrapi(shell: StudioShell): Promise<void> {
     role: shell.role,
     status: shell.status,
     actions: shell.actions,
+    navbarBlocks: shell.navbarBlocks,
+    footerBlocks: shell.footerBlocks,
     previewHtml: shell.previewHtml,
     shell: {
       variantKey: shell.key,
       title: shell.name,
       description: `${shell.name} shell`,
+      navbarBlocks: shell.navbarBlocks,
+      footerBlocks: shell.footerBlocks,
       navbarVariant: {
         variantKey: `${shell.key}-navbar`,
         title: `${shell.name} Navbar`,
@@ -215,6 +228,8 @@ function normalizeShell(value: unknown): StudioShell {
   const row = (value ?? {}) as Record<string, unknown>;
   const menuItems = Array.isArray(row.menuItems) ? (row.menuItems as StudioMenuItem[]) : [];
   const actions = Array.isArray(row.actions) ? mapShellActions(row.actions) : [];
+  const navbarBlocks = normalizeBlockArray(row.navbarBlocks);
+  const footerBlocks = normalizeBlockArray(row.footerBlocks);
   return {
     id: typeof row.id === "string" && row.id.length > 0 ? row.id : `shell-${Date.now()}`,
     key: typeof row.key === "string" && row.key.length > 0 ? row.key : `shell-${Date.now()}`,
@@ -224,6 +239,8 @@ function normalizeShell(value: unknown): StudioShell {
     updatedAt: typeof row.updatedAt === "string" ? row.updatedAt.slice(0, 10) : new Date().toISOString().slice(0, 10),
     menuItems,
     actions,
+    navbarBlocks,
+    footerBlocks,
     previewHtml: typeof row.previewHtml === "string" && row.previewHtml.length > 0 ? row.previewHtml : "<div>No preview</div>"
   };
 }

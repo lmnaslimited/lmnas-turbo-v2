@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo, useRef, useState, useEffect } from "react";
+import React, { useMemo, useRef, useState, useEffect } from "react";
 import {
     buildDetectionThumbnailDocument
 } from "@lmnas/integrations/onboarding/preview-renderer";
@@ -19,8 +19,10 @@ import type {
 import { StepIndicator } from "../_components/StepIndicator";
 import { PreviewPane } from "../_components/PreviewPane";
 import { FidelityDisplay } from "../_components/FidelityDisplay";
+import { StudioActionMenu, StudioDetailContainer, StudioListContainer } from "../_components/workflow";
 import { requestClientJson } from "../_lib/client-request";
-import type { StudioBlockTemplate } from "../_lib/studio-types";
+import type { StudioActionType, StudioBlockTemplate, StudioPageDocument } from "../_lib/studio-types";
+import { injectProjectStyles, withBlockStructuralFallback } from "./preview-fallback";
 
 /* ─── Project Styles ─── */
 
@@ -34,16 +36,6 @@ function useProjectStyles(): string {
         setStyles(collected);
     }, []);
     return styles;
-}
-
-function injectProjectStyles(html: string, projectStyles: string): string {
-    if (!projectStyles || !html) return html;
-    const cleaned = html
-        .replace(/<script[^>]*src=["'][^"']*cdn\.tailwindcss\.com[^"']*["'][^>]*>[\s\S]*?<\/script>/gi, "")
-        .replace(/<script[^>]*id=["']tailwind-config["'][^>]*>[\s\S]*?<\/script>/gi, "");
-    const idx = cleaned.indexOf("</head>");
-    if (idx >= 0) return cleaned.slice(0, idx) + projectStyles + cleaned.slice(idx);
-    return `<html><head>${projectStyles}</head><body>${cleaned}</body></html>`;
 }
 
 /* ─── Source type cards ─── */
@@ -135,6 +127,14 @@ export default function BlockImportPage() {
     const [libraryRecentOnly, setLibraryRecentOnly] = useState(false);
     const [libraryInUseOnly, setLibraryInUseOnly] = useState(false);
     const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
+    const [viewMode, setViewMode] = useState<"browse" | "import">("browse");
+    const [selectedBrowseFamily, setSelectedBrowseFamily] = useState<string | null>(null);
+    const [selectedBrowseBlockId, setSelectedBrowseBlockId] = useState<string | null>(null);
+    const [libraryPages, setLibraryPages] = useState<StudioPageDocument[]>([]);
+    const [whereUsedModal, setWhereUsedModal] = useState<{
+        blockName: string;
+        whereUsed: Array<{ id: string; slug: string; locale: string }>;
+    } | null>(null);
 
     const canAnalyze = sourceValue.trim().length > 0;
     const input = "w-full rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500/40";
@@ -171,10 +171,33 @@ export default function BlockImportPage() {
         }
     }
 
+    async function loadPageLibrary() {
+        try {
+            const payload = await requestClientJson<{
+                ok: boolean;
+                data?: StudioPageDocument[];
+                error?: string;
+            }>("/api/platform/studio/pages", {
+                method: "GET",
+                headers: { "content-type": "application/json" }
+            }, {
+                timeoutMessage: "Loading pages timed out. Retry in a moment.",
+                fallbackErrorMessage: "Unable to load pages."
+            });
+            if (!payload.ok || !payload.data) {
+                throw new Error(payload.error ?? "Unable to load pages.");
+            }
+            setLibraryPages(payload.data);
+        } catch (loadError) {
+            setError(loadError instanceof Error ? loadError.message : String(loadError));
+        }
+    }
+
     useEffect(() => {
         void loadBlockLibrary().catch((loadError) => {
             setError(loadError instanceof Error ? loadError.message : String(loadError));
         });
+        void loadPageLibrary();
     }, []);
 
     useEffect(() => {
@@ -273,6 +296,55 @@ export default function BlockImportPage() {
         }
     }
 
+    async function saveBrowseBlock(next: StudioBlockTemplate): Promise<void> {
+        const payload = await requestClientJson<{
+            ok: boolean;
+            data?: StudioBlockTemplate[];
+            error?: string;
+        }>("/api/platform/studio/blocks", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ block: next })
+        }, {
+            timeoutMessage: "Saving block timed out. Please retry.",
+            fallbackErrorMessage: "Unable to save block."
+        });
+        if (!payload.ok || !payload.data) {
+            throw new Error(payload.error ?? "Unable to save block.");
+        }
+        setLibraryBlocks(payload.data);
+    }
+
+    async function deleteBrowseBlock(block: StudioBlockTemplate): Promise<void> {
+        setError(null);
+        const response = await fetch(`/api/platform/studio/blocks?id=${encodeURIComponent(block.id)}&key=${encodeURIComponent(block.key)}`, {
+            method: "DELETE",
+            headers: { "content-type": "application/json" }
+        });
+
+        const payload = (await response.json()) as {
+            ok: boolean;
+            data?: StudioBlockTemplate[];
+            error?: string;
+            code?: string;
+            whereUsed?: Array<{ id: string; slug: string; locale: string }>;
+        };
+
+        if (!response.ok || !payload.ok) {
+            if (payload.code === "blocks.where_used") {
+                setWhereUsedModal({
+                    blockName: block.name,
+                    whereUsed: payload.whereUsed ?? []
+                });
+                return;
+            }
+            throw new Error(payload.error ?? "Unable to delete block.");
+        }
+
+        setLibraryBlocks(payload.data ?? []);
+        setSelectedBrowseBlockId((current) => (current === block.id ? null : current));
+    }
+
     /* ─── Block helpers ─── */
 
     const blocks = analysis?.blockProposals ?? [];
@@ -310,10 +382,9 @@ export default function BlockImportPage() {
     }
 
     function buildCardPreview(snippet: string | undefined): string {
-        if (!snippet) return "<p style='padding:16px;color:#666'>No preview</p>";
         return buildDetectionThumbnailDocument({
             sourcePreviewHtml: analysis?.source?.productionPreviewHtml ?? "",
-            snippetHtml: snippet,
+            snippetHtml: withBlockStructuralFallback(snippet),
             baseUrl: analysis?.source?.baseUrl ?? "",
             themeScopeClass: analysis?.source?.themeScopeClass ?? "theme-default"
         });
@@ -325,20 +396,87 @@ export default function BlockImportPage() {
         );
     }
 
+    const groupedFamilies = useMemo(() => {
+        const grouped = new Map<string, StudioBlockTemplate[]>();
+        for (const block of libraryBlocks) {
+            const family = block.family;
+            const existing = grouped.get(family) ?? [];
+            existing.push(block);
+            grouped.set(family, existing);
+        }
+
+        return Array.from(grouped.entries())
+            .map(([family, items]) => ({
+                id: family,
+                family,
+                count: items.length,
+                activeCount: items.filter((item) => item.status === "active").length
+            }))
+            .sort((left, right) => left.family.localeCompare(right.family));
+    }, [libraryBlocks]);
+
+    useEffect(() => {
+        if (!selectedBrowseFamily && groupedFamilies.length > 0) {
+            setSelectedBrowseFamily(groupedFamilies[0].id);
+        }
+    }, [groupedFamilies, selectedBrowseFamily]);
+
+    const browseBlocks = useMemo(() => {
+        if (!selectedBrowseFamily) {
+            return [] as StudioBlockTemplate[];
+        }
+        return libraryBlocks.filter((block) => block.family === selectedBrowseFamily);
+    }, [libraryBlocks, selectedBrowseFamily]);
+
+    useEffect(() => {
+        if (browseBlocks.length === 0) {
+            setSelectedBrowseBlockId(null);
+            return;
+        }
+        if (!selectedBrowseBlockId || !browseBlocks.some((block) => block.id === selectedBrowseBlockId)) {
+            setSelectedBrowseBlockId(browseBlocks[0].id);
+        }
+    }, [browseBlocks, selectedBrowseBlockId]);
+
+    const selectedBrowseBlock = browseBlocks.find((block) => block.id === selectedBrowseBlockId) ?? null;
+    const selectedBrowseWhereUsed = selectedBrowseBlock
+        ? libraryPages.filter((page) =>
+            page.blockOrder.some((blockId) => blockId === selectedBrowseBlock.id || blockId === selectedBrowseBlock.key)
+        )
+        : [];
+
     /* ─── Render ─── */
 
     return (
         <div className="max-w-[1400px] mx-auto flex flex-col gap-5">
             {/* Header */}
-            <header>
-                <h1 className="text-xl font-bold text-slate-100 flex items-center gap-2.5">
+            <header className="flex items-end justify-between gap-3">
+                <div>
+                    <h1 className="text-xl font-bold text-slate-100 flex items-center gap-2.5">
                     <span className="material-symbols-outlined text-2xl text-violet-400">dashboard_customize</span>
-                    Block Import
-                </h1>
-                <p className="text-xs text-slate-500 mt-0.5">Import sections and components as reusable blocks. This creates blocks only — not pages.</p>
+                        Blocks Workflow
+                    </h1>
+                    <p className="text-xs text-slate-500 mt-0.5">Grouped browse is the default. Import and detection review remain available in this route.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        data-testid="blocks-browse-mode"
+                        onClick={() => setViewMode("browse")}
+                        className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${viewMode === "browse" ? "bg-blue-500/20 text-blue-200" : "bg-white/[0.04] text-slate-400"}`}
+                    >
+                        Browse
+                    </button>
+                    <button
+                        type="button"
+                        data-testid="blocks-import-mode"
+                        onClick={() => setViewMode("import")}
+                        className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${viewMode === "import" ? "bg-blue-500/20 text-blue-200" : "bg-white/[0.04] text-slate-400"}`}
+                    >
+                        Import
+                    </button>
+                </div>
             </header>
-
-            <StepIndicator steps={STEPS} current={step} onStepClick={(i) => i <= step && setStep(i)} />
 
             {error && (
                 <div className="rounded-lg bg-red-500/[0.08] border border-red-500/15 p-3">
@@ -346,8 +484,228 @@ export default function BlockImportPage() {
                 </div>
             )}
 
-            {/* ── Step 0: Source Intake ── */}
-            {step === 0 && (
+            {whereUsedModal ? (
+                <div data-testid="blocks-where-used-modal" className="rounded-xl border border-amber-500/30 bg-amber-500/[0.08] p-4">
+                    <p className="text-sm font-semibold text-amber-200">Delete blocked by Where-Used dependency</p>
+                    <p className="mt-1 text-xs text-amber-300">
+                        Block <strong>{whereUsedModal.blockName}</strong> is mapped to one or more pages.
+                    </p>
+                    <ul className="mt-2 space-y-1">
+                        {whereUsedModal.whereUsed.map((entry) => (
+                            <li key={entry.id} className="text-xs text-amber-300">
+                                {entry.locale}/{entry.slug}
+                            </li>
+                        ))}
+                        {whereUsedModal.whereUsed.length === 0 ? (
+                            <li className="text-xs text-amber-300">One or more active page mappings were detected.</li>
+                        ) : null}
+                    </ul>
+                    <button
+                        type="button"
+                        className="mt-3 rounded-lg bg-amber-500/20 px-3 py-1.5 text-xs font-semibold text-amber-100"
+                        onClick={() => setWhereUsedModal(null)}
+                    >
+                        Close
+                    </button>
+                </div>
+            ) : null}
+
+            {viewMode === "browse" ? (
+                <section className="grid gap-5 lg:grid-cols-[280px_320px_1fr]">
+                    <StudioListContainer
+                        title="Browse Groups"
+                        description="Families are grouped by canonical block type."
+                        items={groupedFamilies}
+                        selectedId={selectedBrowseFamily}
+                        onSelectItem={(group) => setSelectedBrowseFamily(group.id)}
+                        getItemTestId={(group) => `blocks-group-${group.id}`}
+                        getItemTitle={(group) => group.family.replaceAll("_", " ")}
+                        getItemSubtitle={(group) => `${group.count} total`}
+                        getItemMeta={(group) => `${group.activeCount} active`}
+                        emptyTitle="No block groups yet"
+                        emptyDescription="Import or publish blocks to populate grouped browse."
+                    />
+
+                    <StudioListContainer
+                        title="Blocks"
+                        description={selectedBrowseFamily ? `${selectedBrowseFamily.replaceAll("_", " ")} family` : "Select a family"}
+                        items={browseBlocks}
+                        selectedId={selectedBrowseBlockId}
+                        onSelectItem={(block) => setSelectedBrowseBlockId(block.id)}
+                        getItemTestId={(block) => `blocks-browse-item-${block.id}`}
+                        getItemTitle={(block) => block.name}
+                        getItemSubtitle={(block) => `${block.status} • ${block.key}`}
+                        getItemMeta={(block) => `${block.actions.length} actions • in use ${block.inUseCount}`}
+                        emptyTitle="No blocks in this group"
+                        emptyDescription="Select a different family or import new blocks."
+                    />
+
+                    <div className="flex flex-col gap-5">
+                        <StudioDetailContainer
+                            title={selectedBrowseBlock ? selectedBrowseBlock.name : "Block Detail"}
+                            description={
+                                selectedBrowseBlock
+                                    ? `Native action mapping is embedded here. In-use pages: ${selectedBrowseWhereUsed.length}`
+                                    : "Select a block from grouped browse."
+                            }
+                            isEmpty={!selectedBrowseBlock}
+                            emptyTitle="No block selected"
+                            emptyDescription="Choose a grouped block row to inspect preview, usage, and actions."
+                        >
+                            {selectedBrowseBlock ? (
+                                <div className="space-y-3">
+                                    <iframe
+                                        data-testid="blocks-browse-preview"
+                                        className="w-full rounded-lg border border-white/[0.08] bg-white"
+                                        style={{ minHeight: "240px" }}
+                                        srcDoc={injectProjectStyles(withBlockStructuralFallback(selectedBrowseBlock.previewHtml), projectStyles)}
+                                        sandbox="allow-scripts allow-same-origin"
+                                        title={`${selectedBrowseBlock.id} browse preview`}
+                                    />
+
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-2 text-center">
+                                            <p className="text-sm font-semibold text-slate-100">{selectedBrowseBlock.family}</p>
+                                            <p className="text-[10px] text-slate-500">Family</p>
+                                        </div>
+                                        <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-2 text-center">
+                                            <p className="text-sm font-semibold text-slate-100">{selectedBrowseBlock.actions.length}</p>
+                                            <p className="text-[10px] text-slate-500">Actions</p>
+                                        </div>
+                                        <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-2 text-center">
+                                            <p className="text-sm font-semibold text-slate-100">{selectedBrowseWhereUsed.length}</p>
+                                            <p className="text-[10px] text-slate-500">Where Used</p>
+                                        </div>
+                                    </div>
+
+                                    <div data-testid="blocks-native-action-map" className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-3">
+                                        <p className="text-xs font-semibold text-slate-300">Detection Review: Native Action Mapping</p>
+                                        <div className="mt-2 space-y-2">
+                                            {selectedBrowseBlock.actions.map((action) => (
+                                                <div key={action.id} className="grid grid-cols-[1fr_160px_1fr] gap-2 rounded-lg border border-white/[0.08] bg-white/[0.015] p-2">
+                                                    <input
+                                                        className={input}
+                                                        value={action.label}
+                                                        onChange={(event) => {
+                                                            const next = {
+                                                                ...selectedBrowseBlock,
+                                                                actions: selectedBrowseBlock.actions.map((entry) =>
+                                                                    entry.id === action.id ? { ...entry, label: event.target.value } : entry
+                                                                )
+                                                            };
+                                                            void saveBrowseBlock(next).catch((saveError) => {
+                                                                setError(saveError instanceof Error ? saveError.message : String(saveError));
+                                                            });
+                                                        }}
+                                                    />
+                                                    <select
+                                                        className={input}
+                                                        value={action.type}
+                                                        onChange={(event) => {
+                                                            const next = {
+                                                                ...selectedBrowseBlock,
+                                                                actions: selectedBrowseBlock.actions.map((entry) =>
+                                                                    entry.id === action.id
+                                                                        ? { ...entry, type: event.target.value as StudioActionType }
+                                                                        : entry
+                                                                )
+                                                            };
+                                                            void saveBrowseBlock(next).catch((saveError) => {
+                                                                setError(saveError instanceof Error ? saveError.message : String(saveError));
+                                                            });
+                                                        }}
+                                                    >
+                                                        {ACTION_TYPES.map((option) => (
+                                                            <option key={option.value} value={option.value}>
+                                                                {option.label}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    <input
+                                                        className={input}
+                                                        value={action.target}
+                                                        onChange={(event) => {
+                                                            const next = {
+                                                                ...selectedBrowseBlock,
+                                                                actions: selectedBrowseBlock.actions.map((entry) =>
+                                                                    entry.id === action.id ? { ...entry, target: event.target.value } : entry
+                                                                )
+                                                            };
+                                                            void saveBrowseBlock(next).catch((saveError) => {
+                                                                setError(saveError instanceof Error ? saveError.message : String(saveError));
+                                                            });
+                                                        }}
+                                                    />
+                                                </div>
+                                            ))}
+                                            {selectedBrowseBlock.actions.length === 0 ? (
+                                                <p className="text-xs text-slate-500">No actions mapped for this block.</p>
+                                            ) : null}
+                                        </div>
+                                    </div>
+
+                                    <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-3">
+                                        <p className="text-xs font-semibold text-slate-300">Where Used</p>
+                                        {selectedBrowseWhereUsed.length === 0 ? (
+                                            <p className="mt-1 text-xs text-slate-500">No page dependencies found.</p>
+                                        ) : (
+                                            <ul className="mt-1 space-y-1">
+                                                {selectedBrowseWhereUsed.map((entry) => (
+                                                    <li key={entry.id} className="text-xs text-slate-400">
+                                                        {entry.locale}/{entry.slug}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : null}
+                        </StudioDetailContainer>
+
+                        <StudioActionMenu
+                            title="Block Actions"
+                            description="Delete is blocked when where-used dependencies exist."
+                            items={
+                                selectedBrowseBlock
+                                    ? [
+                                        {
+                                            id: "toggle-status",
+                                            label: selectedBrowseBlock.status === "active" ? "Deactivate Block" : "Activate Block",
+                                            description: "Update lifecycle status from grouped browse.",
+                                            tone: "accent",
+                                            onSelect: () => {
+                                                const next = {
+                                                    ...selectedBrowseBlock,
+                                                    status: selectedBrowseBlock.status === "active" ? "inactive" : "active"
+                                                } as StudioBlockTemplate;
+                                                void saveBrowseBlock(next).catch((saveError) => {
+                                                    setError(saveError instanceof Error ? saveError.message : String(saveError));
+                                                });
+                                            }
+                                        },
+                                        {
+                                            id: "delete-block",
+                                            label: "Delete Block",
+                                            description: "Runs local where-used dependency guard before deletion.",
+                                            tone: "danger",
+                                            onSelect: () => {
+                                                void deleteBrowseBlock(selectedBrowseBlock).catch((deleteError) => {
+                                                    setError(deleteError instanceof Error ? deleteError.message : String(deleteError));
+                                                });
+                                            }
+                                        }
+                                    ]
+                                    : []
+                            }
+                        />
+                    </div>
+                </section>
+            ) : (
+                <>
+                    <StepIndicator steps={STEPS} current={step} onStepClick={(i) => i <= step && setStep(i)} />
+
+                    {/* ── Step 0: Source Intake ── */}
+                    {step === 0 && (
                 <section className="flex flex-col gap-5">
                     {/* Source type selection – visual cards */}
                     <div>
@@ -908,6 +1266,8 @@ export default function BlockImportPage() {
                         <button type="button" onClick={() => setStep(4)} className="px-4 py-2 rounded-lg bg-white/[0.04] text-slate-400 text-xs font-semibold hover:bg-white/[0.08] cursor-pointer">← Back</button>
                     </div>
                 </section>
+            )}
+                </>
             )}
         </div>
     );

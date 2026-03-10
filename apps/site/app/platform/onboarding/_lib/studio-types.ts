@@ -85,6 +85,8 @@ export interface StudioShell {
   updatedAt: string;
   menuItems: StudioMenuItem[];
   actions: StudioShellAction[];
+  navbarBlocks: string[];
+  footerBlocks: string[];
   previewHtml: string;
 }
 

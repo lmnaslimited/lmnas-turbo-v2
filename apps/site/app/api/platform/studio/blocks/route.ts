@@ -1,4 +1,4 @@
-import type { StudioActionType, StudioBlockTemplate } from "../../../../platform/onboarding/_lib/studio-types";
+import type { StudioActionType, StudioBlockTemplate, StudioPageDocument } from "../../../../platform/onboarding/_lib/studio-types";
 import { isStudioActionType } from "../../../../platform/onboarding/_lib/studio-types";
 import { getStudioStore, replaceStore } from "../_lib/store";
 import { isStrapiConfigured, requestStrapi, StudioApiError, unwrapStrapiEntity } from "../_lib/strapi";
@@ -6,6 +6,8 @@ import { isStrapiConfigured, requestStrapi, StudioApiError, unwrapStrapiEntity }
 type StrapiCollectionResponse = {
   data?: Array<Record<string, unknown>>;
 };
+
+type BlockWhereUsedEntry = Pick<StudioPageDocument, "id" | "slug" | "locale">;
 
 function normalizeActionType(value: unknown): StudioActionType {
   if (isStudioActionType(value)) {
@@ -155,6 +157,47 @@ function upsertInFallback(template: StudioBlockTemplate): StudioBlockTemplate[] 
   return blocks;
 }
 
+function findWhereUsedPages(template: StudioBlockTemplate, pages: StudioPageDocument[]): BlockWhereUsedEntry[] {
+  return pages
+    .filter((page) => page.blockOrder.some((blockId) => blockId === template.id || blockId === template.key))
+    .map((page) => ({
+      id: page.id,
+      slug: page.slug,
+      locale: page.locale
+    }));
+}
+
+async function deleteInStrapi(templateKey: string): Promise<void> {
+  const lookup = await requestStrapi<StrapiCollectionResponse>(
+    `/api/block-templates?filters[templateKey][$eq]=${encodeURIComponent(templateKey)}&pagination[pageSize]=1`
+  );
+  const existing = Array.isArray(lookup.data) ? lookup.data[0] : undefined;
+  const existingId =
+    existing && typeof existing.documentId === "string"
+      ? existing.documentId
+      : existing && (typeof existing.id === "number" || typeof existing.id === "string")
+        ? String(existing.id)
+        : undefined;
+
+  if (existingId === undefined) {
+    return;
+  }
+
+  await requestStrapi(`/api/block-templates/${encodeURIComponent(existingId)}`, {
+    method: "DELETE"
+  });
+}
+
+function deleteInFallback(target: StudioBlockTemplate): StudioBlockTemplate[] {
+  const store = getStudioStore();
+  const blocks = store.blocks.filter((template) => template.id !== target.id && template.key !== target.key);
+  replaceStore({
+    ...store,
+    blocks
+  });
+  return blocks;
+}
+
 export async function GET(request: Request): Promise<Response> {
   const requestUrl = new URL(request.url);
   if (isStrapiConfigured()) {
@@ -207,6 +250,94 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({
       ok: true,
       data: fallbackTemplates,
+      source: "fallback"
+    });
+  } catch (error) {
+    if (error instanceof StudioApiError) {
+      return Response.json(
+        {
+          ok: false,
+          error: error.operatorMessage,
+          developerError: error.developerMessage
+        },
+        { status: error.status }
+      );
+    }
+
+    return Response.json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : String(error)
+      },
+      { status: 400 }
+    );
+  }
+}
+
+export async function DELETE(request: Request): Promise<Response> {
+  try {
+    const requestUrl = new URL(request.url);
+    const blockId = requestUrl.searchParams.get("id")?.trim();
+    const blockKey = requestUrl.searchParams.get("key")?.trim();
+    if (!blockId && !blockKey) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Block id or key is required."
+        },
+        { status: 400 }
+      );
+    }
+
+    const store = getStudioStore();
+    const target = store.blocks.find((template) => template.id === blockId || template.key === blockKey);
+    if (!target) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Block not found."
+        },
+        { status: 404 }
+      );
+    }
+
+    const whereUsed = findWhereUsedPages(target, store.pages);
+    if (whereUsed.length > 0 || target.inUseCount > 0) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Block is referenced by active pages and cannot be deleted.",
+          code: "blocks.where_used",
+          whereUsed,
+          inUseCount: target.inUseCount
+        },
+        { status: 409 }
+      );
+    }
+
+    if (isStrapiConfigured()) {
+      try {
+        await deleteInStrapi(target.key);
+        const templates = await listFromStrapi();
+        return Response.json({
+          ok: true,
+          data: applyFilters(templates, requestUrl),
+          source: "strapi"
+        });
+      } catch {
+        const fallbackTemplates = deleteInFallback(target);
+        return Response.json({
+          ok: true,
+          data: applyFilters(fallbackTemplates, requestUrl),
+          source: "fallback"
+        });
+      }
+    }
+
+    const fallbackTemplates = deleteInFallback(target);
+    return Response.json({
+      ok: true,
+      data: applyFilters(fallbackTemplates, requestUrl),
       source: "fallback"
     });
   } catch (error) {

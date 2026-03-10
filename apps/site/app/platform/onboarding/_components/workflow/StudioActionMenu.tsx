@@ -8,6 +8,7 @@ export type StudioActionMenuItem = {
   description?: string;
   tone?: StudioActionMenuItemTone;
   disabled?: boolean;
+  onSelect?: () => void;
 };
 
 export type StudioActionMenuProps = {
@@ -65,6 +66,7 @@ export function StudioActionMenu(props: StudioActionMenuProps): React.ReactEleme
               type="button"
               data-testid={`studio-action-${item.id}`}
               disabled={item.disabled}
+              onClick={item.onSelect}
               className={`w-full rounded-xl border px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${resolveToneClass(
                 item.tone
               )}`}

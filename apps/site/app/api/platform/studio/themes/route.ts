@@ -1,9 +1,16 @@
 import type { StudioTheme, StudioThemeToken } from "../../../../platform/onboarding/_lib/studio-types";
+import { ALLOWED_THEME_SOURCES, isStudioThemeSourceType } from "../../../../platform/onboarding/theme/theme-input";
 import { getStudioStore, replaceStore } from "../_lib/store";
 import { isStrapiConfigured, requestStrapi, StudioApiError, unwrapStrapiEntity } from "../_lib/strapi";
 
 type StrapiCollectionResponse = {
   data?: Array<Record<string, unknown>>;
+};
+
+type ThemePostPayload = {
+  theme?: unknown;
+  mode?: "create" | "upsert";
+  sourceType?: unknown;
 };
 
 function toIsoDate(input?: unknown): string {
@@ -142,6 +149,15 @@ function upsertThemeInFallback(theme: StudioTheme): StudioTheme[] {
   return themes;
 }
 
+function findDuplicateTheme(themes: StudioTheme[], theme: StudioTheme): StudioTheme | null {
+  const normalizedName = theme.name.trim().toLowerCase();
+  return (
+    themes.find((candidate) => candidate.themeKey === theme.themeKey && candidate.id !== theme.id) ??
+    themes.find((candidate) => candidate.name.trim().toLowerCase() === normalizedName && candidate.id !== theme.id) ??
+    null
+  );
+}
+
 export async function GET(): Promise<Response> {
   if (isStrapiConfigured()) {
     try {
@@ -167,11 +183,39 @@ export async function GET(): Promise<Response> {
 
 export async function POST(request: Request): Promise<Response> {
   try {
-    const payload = (await request.json()) as { theme?: unknown };
+    const payload = (await request.json()) as ThemePostPayload;
+    if (payload.sourceType !== undefined && !isStudioThemeSourceType(payload.sourceType)) {
+      return Response.json(
+        {
+          ok: false,
+          error: `Unsupported theme source type. Allowed values: ${ALLOWED_THEME_SOURCES.join(", ")}.`,
+          code: "theme.source_type_invalid"
+        },
+        { status: 400 }
+      );
+    }
+
     const theme = normalizeTheme(payload.theme);
+    const mode = payload.mode === "create" ? "create" : "upsert";
 
     if (isStrapiConfigured()) {
       try {
+        const existingThemes = await listThemesFromStrapi();
+        if (mode === "create") {
+          const duplicateTheme = findDuplicateTheme(existingThemes, theme);
+          if (duplicateTheme) {
+            return Response.json(
+              {
+                ok: false,
+                error: `A theme with key "${duplicateTheme.themeKey}" already exists.`,
+                code: "theme.duplicate",
+                duplicateThemeId: duplicateTheme.id
+              },
+              { status: 409 }
+            );
+          }
+        }
+
         await upsertThemeInStrapi(theme);
         const themes = await listThemesFromStrapi();
         return Response.json({
@@ -180,12 +224,42 @@ export async function POST(request: Request): Promise<Response> {
           source: "strapi"
         });
       } catch {
+        if (mode === "create") {
+          const duplicateTheme = findDuplicateTheme(getStudioStore().themes, theme);
+          if (duplicateTheme) {
+            return Response.json(
+              {
+                ok: false,
+                error: `A theme with key "${duplicateTheme.themeKey}" already exists.`,
+                code: "theme.duplicate",
+                duplicateThemeId: duplicateTheme.id
+              },
+              { status: 409 }
+            );
+          }
+        }
+
         const fallbackThemes = upsertThemeInFallback(theme);
         return Response.json({
           ok: true,
           data: fallbackThemes,
           source: "fallback"
         });
+      }
+    }
+
+    if (mode === "create") {
+      const duplicateTheme = findDuplicateTheme(getStudioStore().themes, theme);
+      if (duplicateTheme) {
+        return Response.json(
+          {
+            ok: false,
+            error: `A theme with key "${duplicateTheme.themeKey}" already exists.`,
+            code: "theme.duplicate",
+            duplicateThemeId: duplicateTheme.id
+          },
+          { status: 409 }
+        );
       }
     }
 

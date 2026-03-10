@@ -8,6 +8,8 @@ export type StudioListContainerProps<TItem extends { id: string }> = {
   getItemTitle: (item: TItem) => string;
   getItemSubtitle?: (item: TItem) => string;
   getItemMeta?: (item: TItem) => string;
+  onSelectItem?: (item: TItem) => void;
+  getItemTestId?: (item: TItem) => string | undefined;
   emptyTitle?: string;
   emptyDescription?: string;
   testId?: string;
@@ -22,6 +24,8 @@ export function StudioListContainer<TItem extends { id: string }>(props: StudioL
     getItemTitle,
     getItemSubtitle,
     getItemMeta,
+    onSelectItem,
+    getItemTestId,
     emptyTitle = "No records yet",
     emptyDescription = "Items from future workflows will appear here.",
     testId = "studio-list-container"
@@ -52,18 +56,34 @@ export function StudioListContainer<TItem extends { id: string }>(props: StudioL
             const subtitle = getItemSubtitle ? getItemSubtitle(item) : undefined;
             const meta = getItemMeta ? getItemMeta(item) : undefined;
             const isSelected = selectedId === item.id;
+            const testIdForItem = getItemTestId ? getItemTestId(item) : undefined;
             return (
               <li
                 key={item.id}
+                data-testid={testIdForItem}
                 className={`rounded-xl border px-3 py-2.5 ${
                   isSelected
                     ? "border-blue-500/35 bg-blue-500/[0.09]"
                     : "border-white/[0.07] bg-white/[0.015]"
                 }`}
               >
-                <p className="text-xs font-semibold text-slate-200">{itemTitle}</p>
-                {subtitle ? <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p> : null}
-                {meta ? <p className="mt-1 text-[11px] text-slate-600">{meta}</p> : null}
+                {onSelectItem ? (
+                  <button
+                    type="button"
+                    className="w-full text-left"
+                    onClick={() => onSelectItem(item)}
+                  >
+                    <p className="text-xs font-semibold text-slate-200">{itemTitle}</p>
+                    {subtitle ? <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p> : null}
+                    {meta ? <p className="mt-1 text-[11px] text-slate-600">{meta}</p> : null}
+                  </button>
+                ) : (
+                  <>
+                    <p className="text-xs font-semibold text-slate-200">{itemTitle}</p>
+                    {subtitle ? <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p> : null}
+                    {meta ? <p className="mt-1 text-[11px] text-slate-600">{meta}</p> : null}
+                  </>
+                )}
               </li>
             );
           })}

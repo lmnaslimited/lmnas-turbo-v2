@@ -69,6 +69,13 @@ function mapShellActions(actions: unknown): StudioShell["actions"] {
     .filter((entry): entry is StudioShell["actions"][number] => entry !== null);
 }
 
+function normalizeBlockArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0);
+}
+
 function normalizeShell(value: unknown): StudioShell {
   const row = (value ?? {}) as Record<string, unknown>;
   const rawId = row.documentId ?? row.id;
@@ -92,6 +99,8 @@ function normalizeShell(value: unknown): StudioShell {
     updatedAt: typeof row.updatedAt === "string" ? row.updatedAt.slice(0, 10) : new Date().toISOString().slice(0, 10),
     menuItems: mapMenuItemsFromStrapi(menu.items),
     actions: mapShellActions(row.actions),
+    navbarBlocks: normalizeBlockArray(row.navbarBlocks ?? shell.navbarBlocks),
+    footerBlocks: normalizeBlockArray(row.footerBlocks ?? shell.footerBlocks),
     previewHtml: typeof row.previewHtml === "string" ? row.previewHtml : "<div>No preview</div>"
   };
 }

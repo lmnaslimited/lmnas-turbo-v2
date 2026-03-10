@@ -95,6 +95,8 @@ function createSeedStore(): StudioStore {
           { id: "sa-book-demo", label: "Book Demo", type: "open_modal", target: "#book-demo" },
           { id: "sa-sign-in", label: "Sign In", type: "link_url", target: "/login" }
         ],
+        navbarBlocks: ["blk-hero-1"],
+        footerBlocks: ["blk-cta-1"],
         previewHtml:
           "<nav style=\"display:flex;justify-content:space-between;align-items:center;padding:14px 28px;background:#0f172a;color:#f8fafc;font-family:system-ui\"><strong style=\"font-size:16px\">LMNAs</strong><div style=\"display:flex;gap:20px\"><a href='#' style=\"color:#94a3b8;text-decoration:none;font-size:13px\">Products</a><a href='#' style=\"color:#94a3b8;text-decoration:none;font-size:13px\">Solutions</a><a href='#' style=\"color:#94a3b8;text-decoration:none;font-size:13px\">Pricing</a></div><div style=\"display:flex;gap:8px\"><button style=\"background:transparent;border:1px solid #334155;color:#94a3b8;padding:6px 14px;border-radius:6px;font-size:12px\">Sign In</button><button style=\"background:#3b82f6;border:none;color:white;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600\">Book Demo</button></div></nav>"
       },
@@ -110,6 +112,8 @@ function createSeedStore(): StudioStore {
           { id: "mm2", label: "About", href: "/about" }
         ]),
         actions: [{ id: "mm-action", label: "Get Started", type: "link_url", target: "/signup" }],
+        navbarBlocks: ["blk-hero-1"],
+        footerBlocks: ["blk-cta-1"],
         previewHtml:
           "<nav style=\"display:flex;justify-content:space-between;align-items:center;padding:12px 24px;background:#111827;color:#e2e8f0;font-family:system-ui\"><span style=\"font-size:14px;font-weight:700\">LMNAs</span><div style=\"display:flex;gap:16px;align-items:center\"><a href='#' style=\"color:#64748b;text-decoration:none;font-size:13px\">Home</a><a href='#' style=\"color:#64748b;text-decoration:none;font-size:13px\">About</a><button style=\"background:#22c55e;border:none;color:white;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600\">Get Started</button></div></nav>"
       }
