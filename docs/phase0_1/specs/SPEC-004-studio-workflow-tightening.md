@@ -1,39 +1,87 @@
 # SPEC-004 - Studio Workflow Tightening Specification
 
 ## Linked Intake: INT-004
+## Governance Note
+*This tightening package governs the current Studio workflow hardening pass. Earlier RR debt from Phase 0.1 inception (e.g. 001/002) may still exist outside this patch and must be tracked separately for future cleanup.*
 
-## Scope
-Formalizing workflow limitations preventing Claude/Codex execution drift. Defines the strict UX bounds for Themes, Blocks, Pages, Rules, Widgets, and the centralized fidelity configuration matrix.
+---
 
-## Non-goals
-- Adding dynamic routing.
-- Re-theming the Studio frontend UI styling.
+## 1. Studio-Wide Common Capabilities
+- **[REQ-STU-01] Reusable Design Parity**
+  - *Rationale*: Browse, edit, delete, and preview UX must not fragment across workflows.
+  - *Statement*: All list/detail views must implement common class-based reusable designs.
+  - *Acceptance*: Shell, Page, and Block workflows share identical UX list containers and action menu behaviors.
 
-## UX Flow Constraints
-- **Theme**: Users must be able to upload sources, activate ONE target theme, preview swatches globally, and delete archived themes. Deletion requires refresh persistence.
-- **Block**: Browse is default view. Detection Review must visually include/incorporate Action Mapping natively. Final Review view leverages strictly active Production state. Overlap/overlay viewing is present for fidelity calculation.
-- **Shell**: Configure Navbar/Footer behaviors natively inside Shell list context.
-- **Page**: Pages are composed dynamically from studio blocks.
+## 2. Theme Workflow
+- **[REQ-THM-01] Bounded Inputs**
+  - *Rationale*: Prevents ingestion of unparseable formats.
+  - *Statement*: Allowed inputs are strictly: URL, HTML upload, Figma/Stitch export code, ZIP upload, and local repo/test path.
+  - *Acceptance*: Reject uploads outside this MIME/source boundary with a clear UI error.
 
-## Data Flow
-- Inputs -> [Duplicate Validation] -> [Extraction] -> Output Object
-- No `theme-timestamp` key conflicts are permissible. 
+- **[REQ-THM-02] Theme State & Hierarchy**
+  - *Rationale*: Safe browsing requires temporary visual states.
+  - *Statement*: Themes exist as Active, Archived, or Preview-Only (Swatch). Swatches alter the UI but do not alter the production Active backend state.
+  - *Acceptance*: Engaging a swatch alters the UI visually. A browser refresh reverts to the Active production theme.
 
-## Interfaces / Contracts impacted
-- `apps/site/app/platform/onboarding/*` UI Routes.
-- `apps/site/app/api/platform/studio/themes*` API handlers.
+- **[REQ-THM-03] Sample Previews & Duplicate Trap**
+  - *Rationale*: Users must see the theme before activation; react key collisions crash the app.
+  - *Statement*: Theme views must render a sample preview. Uploading identical themes must trigger a clean error trap preventing duplicate DB keys.
+  - *Acceptance*: Duplicate uploads yield a warning dialog without a React render crash.
 
-## Files to Create/Modify
-| Path | Change Type | Reason |
-| --- | --- | --- |
-| `AGENTS.md` | MODIFY | Enforce agent gate discipline and publish API parity. |
-| `docs/phase0_1/templates/*` | MODIFY | Inject Gate rules and explicit failure log structs. |
-| `Studio Block UIs` | MODIFY | Refactor action mapping natively to the detection step. |
+## 3. Block Workflow
+- **[REQ-BLK-01] Browse as Default & Lifecycle Parity**
+  - *Rationale*: UX consistency guarantees logical discovery.
+  - *Statement*: Navigating to `/blocks` defaults to the grouped Browse view. Users can preview, edit, delete, activate, deactivate, and view a "where-used" list.
+  - *Acceptance*: A block linked to an active Page cannot be deleted without satisfying the "where-used" dependency check.
 
-## Test Plan
-See strictly documented `TEST-004` pack to be executed unconditionally by the Gemini Validator.
+- **[REQ-BLK-02] Detection Review UX**
+  - *Rationale*: Removes orphan generic action mappings.
+  - *Statement*: Action Mapping exists exclusively inside the Block Detection Review UI.
+  - *Acceptance*: Standalone action mapping routes 404. Actions save natively to block instances.
 
-## Links
-- Tasks: TASK-004
-- Proof: PROOF-004
-- Tests: TEST-004
+- **[REQ-BLK-03] Fallback Rendering**
+  - *Rationale*: Broken CDNs shouldn't crash previews.
+  - *Statement*: Source rendering lacking an available CDN must fallback gracefully to the platform's Tailwind configuration.
+  - *Acceptance*: Disconnecting the source network still allows structural block rendering in Studio preview.
+
+## 4. Publish / Fidelity Behavior
+- **[REQ-PUB-01] Active Theme Authorization**
+  - *Rationale*: WYSIWYG guarantee limits deployment surprises.
+  - *Statement*: Final Publish Review rendering relies 100% on the backend Active Production Theme (ignoring swatches).
+  - *Acceptance*: Verification overlay directly calls the active Strapi Theme reference.
+
+- **[REQ-PUB-02] Fidelity Configuration Toggle**
+  - *Rationale*: Phase 0.1 agility vs Phase 1 strictness.
+  - *Statement*: The fidelity threshold exists as a global Studio setting allowing "publish-below-threshold". The engine identifies Dark/Light fidelity diffs specifically when source HTML defines `@media(dark)`.
+  - *Acceptance*: Dark mode inversions trigger threshold logs but do not block ingestion during Phase 0.1 settings.
+
+## 5. Shell Workflow
+- **[REQ-SHL-01] Global App Configuration**
+  - *Rationale*: Current routing avoids tenancy complexity.
+  - *Statement*: The platform operates a single global shell. The Shell Workflow natively supports browse, edit, config (Navbar/Footer), delete, and import parity mirroring blocks.
+  - *Acceptance*: Navbar/Footer configuration updates are universally reflected.
+
+## 6. Page Workflow
+- **[REQ-PAG-01] Block-Exclusive Assembly**
+  - *Rationale*: Prevent unstructured HTML blobs inside routing.
+  - *Statement*: Pages generate exclusively via composition of approved Blocks. A full-page HTML import strictly extracts blocks; it never generates a Page route slug directly.
+  - *Acceptance*: Full page HTML ingestion yields 0 new Route Slugs and X new Blocks in the DB.
+
+- **[REQ-PAG-02] Preview & Edit Parity**
+  - *Statement*: Pages mandate draft + production previews, alongside list, browse, and edit capabilities.
+
+## 7. Widget Workflow
+- **[REQ-WID-01] Repo-First Logic Separation**
+  - *Rationale*: Secure Interactive code execution bounds.
+  - *Statement*: Widgets represent Interactive Code. They onboard exclusively via repo-paths. URL/HTML ingestion is for visual mocking only. Widget placement supports both embed (inside Block) and reference (standalone).
+  - *Acceptance*: Uploading raw `<script>` HTML logic fails ingestion; repo paths succeed.
+
+## 8. Cleanup / Test Baseline
+- **[REQ-CLN-01] Strapi Testing Hygiene**
+  - *Statement*: E2E testing strictly evaluates against a wiped/sterile Strapi instance deleting legacy demo blocks (faq/hero).
+  - *Acceptance*: Test logs demonstrate baseline table wipe prior to HTML ingestion.
+
+## 9. Validation / Governance Constraints
+- **[REQ-GOV-01] Test Traceability**
+  - *Statement*: Every `REQ` ID above mandates an explicit test row inside `TEST-004` and a designated evidence row inside `PROOF-004`.
+  - *Acceptance*: Validator agent rejects tasks if `PROOF` lacks evidence explicitly linking the ID.

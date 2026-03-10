@@ -1,7 +1,7 @@
 # TEST OWNERSHIP AND VALIDATION ADDENDUM
 
 **Role:** Requirements, Validation, and Test Governance Owner  
-**Objective:** Eliminate ambiguity in test ownership by formalizing the 4-Persona delivery cycle and strict Phase Gates for LMNAs Studio Phase 0.1.
+**Objective:** Eliminate ambiguity in test ownership by formalizing the 4-Persona delivery cycle, strict Phase Gates, and exact Proof expectations.
 
 ---
 
@@ -10,16 +10,14 @@
 Testing responsibilities are explicitly segregated to prevent implementation drift and bias. 
 
 - **Unit Tests**: Owned and executed by Implementers (`Claude` / `Codex`).
-- **Implementation-Side E2E Tests**: Owned and executed by Implementers (`Claude` / `Codex`) to verify their own code structural integrity before handoff.
+- **Implementation-Side E2E Tests**: Owned and executed by Implementers (`Claude` / `Codex`).
 - **Independent Validation Tests**: Owned and executed by the Validator (`Gemini`).
 - **UI Workflow Validation**: Owned by the Validator (`Gemini`).
-- **Strapi Persistence Validation**: Owned by the Validator (`Gemini`), though Implementers create the verification paths.
+- **Strapi Persistence Validation**: Owned by the Validator (`Gemini`).
 - **Integration Validation**: Owned by the Validator (`Gemini`).
 - **Regression Validation**: Owned by the Validator (`Gemini`).
 - **Defect Triage After Validation**: Owned by the Validator (`Gemini`), returning categorized gap reports.
 - **Sign-Off Recommendation**: Owned exclusively by the Validator (`Gemini`).
-
-**Crucial Constraint:** The Validator (`Gemini`) *never* writes implementation code, unit tests, or fixes bugs. The Implementers (`Claude`/`Codex`) *never* validate their own final delivery against the formal RR artifacts.
 
 ---
 
@@ -29,86 +27,93 @@ The Phase 0.1 Development Lifecycle consists of rigorous gates. No gate may be s
 
 | Gate | Name | Owner | Entry Criteria | Exit Criteria | Required Artifacts |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Gate 1** | Architecture Locked | `ChatGPT` | Problem defined; product boundary identified. | Phase 0 rules and fixed boundaries legally established. | `Constitution`, `ARCHITECTURE.md` |
-| **Gate 2** | Requirements + RR Artifacts Locked | `Gemini` | Gate 1 complete; Intake drafted. | Specifications, Test Plans, ADRs, and Task matrices finalized. | `INT`, `SPEC`, `ADR`, `TASK` |
+| **Gate 1** | Architecture Locked | `ChatGPT` | Problem defined; product boundary identified. | Phase 0 rules established. | `Constitution`, `ARCHITECTURE.md` |
+| **Gate 2** | Requirements + RR Artifacts Locked | `Gemini` | Gate 1 complete; Intake drafted. | Specifications, Test Plans, ADRs finalized. | `INT`, `SPEC`, `ADR`, `TASK` |
 | **Gate 3** | Implementation Complete (w/ Unit Tests) | `Claude`/`Codex` | Tasks assigned; Dev starts. | Feature integrated; unit tests pass locally. | Unit test logs |
-| **Gate 4** | Implementation-Side E2E Complete | `Claude`/`Codex` | Gate 3 complete. | Dev-side E2E scripts pass without fatal crashes. | Local E2E test logs |
-| **Gate 5** | Independent Validation Complete | `Gemini` | `PROOF` draft submitted by Implementers. | Gap Report generated detailing pass/fail constraints. | `PROOF` doc updated with findings |
-| **Gate 6** | Gap Remediation | `Claude`/`Codex` | Gap Report is populated with failures. | All assigned gaps are re-coded and re-tested locally. | Updated local test logs |
-| **Gate 7** | Final Validation & Sign-Off | `Gemini` | Implementers submit remediated `PROOF`. | Zero critical/high gaps. Sign-off Recommended. | Finalized `PROOF` |
+| **Gate 4** | Implementation-Side E2E Complete | `Claude`/`Codex` | Gate 3 complete. | Dev-side E2E scripts pass without crash. | Local E2E test logs |
+| **Gate 5** | Independent Validation Complete | `Gemini` | `PROOF` draft submitted. | Gap Report generated detailing pass/fail constraints. | `PROOF` updated with Issue formats |
+| **Gate 6** | Gap Remediation | `Claude`/`Codex` | Gap log is populated with failures. | Assigned gaps re-coded and re-tested locally. | Updated local test logs |
+| **Gate 7** | Final Validation & Sign-Off | `Gemini` | Remediated `PROOF` submitted. | Zero critical/high gaps. Sign-off Recommended. | Finalized `PROOF` |
 
 ---
 
 ## 3. TEST EXECUTION SPLIT
 
 ### A. Claude/Codex (Implementation Testing)
-**Mandatory Minimums:**
-- Must write execution-level unit tests for all created UI components and API handlers.
-- Must perform local UI workflow tests to ensure components load visually.
-- Must run implementation-side E2E (e.g., Playwright/Cypress) checking standard happy-paths.
-- Must execute Strapi persistence checks locally to verify data writes do not throw 500 errors.
+Required: Unit tests for components; local workflow tests; implementation-side E2E checks ensuring basic logic operates; manual console persistence checks.
 
 ### B. Gemini (Independent Validation Testing)
-**Mandatory Minimums:**
-- Must map every observable output against the `SPEC`/`INT` acceptance criteria.
-- Must perform UI workflow validation to ensure user intent pathways work.
-- Must validate Strapi persistence by directly querying output entities.
-- Must detect UX/Logic mismatch between documented architecture and actual render (e.g., "Page blob creation" vs "Atomic Block creation").
-- Must generate and return actionable gap reports back to the Implementer.
+Required: Requirement-to-implementation mapping validation; strict UI testing; independent DB persistence validation; mismatch detection vs Architecture boundaries; execution of explicit `TEST-004` pack. Gemini never writes patches.
 
 ---
 
 ## 4. GEMINI VALIDATOR ROLE
-
-The Gemini Validator acts strictly as a quality control agent anchored to the Specification. 
-1. **No Auto-Fixing:** Gemini will strictly NOT fix implementation code. 
-2. **No Scope Creep:** Gemini will strictly NOT silently reinterpret requirements or accept "better looking" code if it violates the `SPEC`.
-3. **Artifact Supremacy:** Tests are conducted exclusively against the approved RR boundary.
-4. **Classification:** Every finding must be classified as:
-    - *Requirement Gap*: Feature not built.
-    - *Implementation Bug*: Feature built but crashes / errors.
-    - *UX Inconsistency*: Built, but diverges from UI standards or architectural definitions.
-    - *Documentation Drift*: The implementation requires a docs update (requires `ChatGPT` approval).
-    - *Test Coverage Gap*: Implementer failed to write adequate unit/E2E test layers.
+- **Constraint 1:** Gemini must NOT fix code.
+- **Constraint 2:** Gemini must NOT silently reinterpret requirements.
+- **Constraint 3:** Gemini must test specifically against the approved RR boundary.
+- **Categorization:** Reports identify: `requirement gap`, `implementation bug`, `UX inconsistency`, `documentation drift`, or `test coverage gap`.
 
 ---
 
 ## 5. ISSUE ASSIGNMENT FORMAT
 
-When an issue is discovered at Gate 5/7, Gemini must output a gap log using exactly this format in the PROOF artifact:
+Gemini uses the exact block below when halting Gate 5:
 
 ```markdown
 ### Gap ID: [G-001]
 - **Workflow**: [Theme / Block / Page / Shell / Widget]
 - **Severity**: [Critical / High / Medium / Low]
-- **Category**: [Requirement Gap / Implementation Bug / UX Inconsistency / Documentation Drift / Test Coverage Gap]
+- **Category**: [Gap Category]
 - **Requirement/Test Reference**: [SPEC-### / TEST-###]
-- **Observed Behavior**: [What actually happened]
-- **Expected Behavior**: [What should have happened according to SPEC]
+- **Observed Behavior**: [Actual]
+- **Expected Behavior**: [According to SPEC]
 - **Reproduction Path**: 
   1. [Step 1]
-  2. [Step 2]
-- **Evidence Expected**: [e.g., Strapi record link, Screenshot of overlap viewer]
-- **Recommended Owner**: [Claude (UI) / Codex (Integration)]
-- **Retest Condition**: [Exact condition that triggers Gate 5 re-evaluation]
+- **Evidence Expected**: [Visual / Log proof]
+- **Recommended Owner**: [Claude / Codex]
+- **Retest Condition**: [Gate 5 exit trigger]
 ```
 
 ---
 
-## 6. FAILURE / REWORK LOOP
+## 6. REQUIRED VALIDATION PACK
 
-When a Gap is logged during Gate 5 Validation:
-1. **Assignment**: Gemini shifts the phase status to Gate 6, returning the filled Issue Assignment Format to Claude/Codex.
-2. **Implementer Constraint**: Claude/Codex must fix the specified gaps. They may *not* invent new features to bypass the gap.
-3. **Retesting rules**: 
-    - If the gap is *Medium/Low* (e.g., CSS drift), Gemini executes a **Targeted Retest** on that specific component.
-    - If the gap is *Critical/High* (e.g., Duplicate ID injection, Strapi save failure), Gemini must execute a **Full Regression Rerun** of the entire required validation test pack.
+The exact matrix mapped into `docs/phase0_1/tests/TEST-004-studio-workflow-tightening.md` must be executed rigidly matching `TV-E2E-01` through `TV-MTR-10`.
 
 ---
 
-## 7. SIGN-OFF RULE
+## 7. EVIDENCE STANDARD FOR VALIDATION
 
-- Gemini retains absolute, independent authority over the recommendation of "Sign-Off" for Phase Implementation.
-- Gemini may ONLY recommend sign-off if Gate 7 evaluates to 0 Critical/0 High severity bugs, and all observable outputs adhere tightly to the `SPEC`.
-- Gemini is forbidden from arbitrarily altering the `SPEC` to force a sign-off.
-- Final Architectural / Merge Sign-off remains the sole authority of the Master Architect (`ChatGPT`) reading Gemini's recommendation.
+Implementer assertions (e.g., "Files generated") are universally invalid. Gemini must collect:
+- **Screenshots:** Validating overlaps, Swatch toggles, error traps, or Draft/Prod views.
+- **State Comparisons:** Before/After states of Where-Used logic blocks.
+- **Strapi Entity Dumps:** JSON outputs mapping block UI arrays.
+- **Logs:** Fidelity calculation numeric shifts or GitHub CI E2E run outputs.
+- **Identifers:** Specific node limits.
+
+---
+
+## 8. FAILURE / REWORK LOOP
+
+When an issue logs during Gate 5 Validation:
+1. Gemini shifts phase status to Gate 6 returning the format to Claude/Codex.
+2. Implementers fix specifically identified gaps without scope-bloat.
+3. Gemini reruns Targeted Pack for Low/Med severity or Full Regression Pack for High/Critical bugs.
+
+---
+
+## 9. SIGN-OFF RULE
+
+Gemini explicitly commands the Sign-Off recommendation at Gate 7 only when evidence passes against approved RR requirements. Architecture sign-off (Gate 1 boundary changes) remains outside Gemini's authority and sits strictly with ChatGPT.
+
+---
+
+## 10. INSERTION MAP
+
+This addendum governs Phase 0.1 testing execution. It is centrally anchored:
+- **Primary Source:** `docs/phase0_1/tests/TEST_OWNERSHIP_AND_VALIDATION_ADDENDUM.md`
+- **Governed Files:**
+    - `README.md` (Pointers updated protecting Phase 0.1 7-Gate Rules)
+    - `AGENTS.md` (Requires adherence to Gemini Validator limits)
+    - `docs/phase0_1/templates/proof.template.md` (Embeds Section 5 Issue format)
+    - `docs/phase0_1/templates/tasks.template.md` (Embeds Section 2 Gate Map)
