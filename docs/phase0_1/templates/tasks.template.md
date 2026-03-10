@@ -8,11 +8,18 @@
 - [ ] Required contracts/schemas are ready.
 - [ ] Dependencies and environment constraints are clear.
 
-## Step-by-step tasks
+## Delivery Gates & Step-by-step tasks
 
-| Step | File paths | Definition of done |
-| --- | --- | --- |
-| 1 |  |  |
+*(Implementation map bounded by TEST_OWNERSHIP_AND_VALIDATION_ADDENDUM.md)*
+
+| Gate | Step | Owner | File paths | Definition of done |
+| --- | --- | --- | --- | --- |
+| 1 | Arch | ChatGPT | Constitution | Product bounds defined |
+| 2 | Req | Gemini | `docs/phase0_1/*` | Specs, Intake, Tasks drafted |
+| 3/4 | Dev | Claude/Codex | `apps/*` | Feature integrated; unit/local E2E tests pass locally |
+| 5 | Val | Gemini | Gap Report | Gap Report generated / Test Pack complete |
+| 6 | Fix | Claude/Codex | `apps/*` | All gaps resolved and re-tested locally |
+| 7 | Sign-Off | Gemini | PROOF | Zero critical/high gaps. Sign-off Recommended |
 
 ## Commands to run (pnpm lint/typecheck/test or repo-equivalents)
 

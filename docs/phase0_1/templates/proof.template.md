@@ -46,3 +46,24 @@
 [ ] Ready
 [ ] Ready with exceptions
 [ ] Not ready
+
+---
+
+## Gap Remediation Logs (Validator Use Only)
+*(Do not delete. Gemini will append Issue Assignments here blocking Gate 7 completion).*
+
+```markdown
+### Gap ID: [G-001]
+- **Workflow**: [Theme / Block / Page / Shell / Widget]
+- **Severity**: [Critical / High / Medium / Low]
+- **Category**: [Requirement Gap / Implementation Bug / UX Inconsistency / Documentation Drift / Test Coverage Gap]
+- **Requirement/Test Reference**: [SPEC-### / TEST-###]
+- **Observed Behavior**: [What actually happened]
+- **Expected Behavior**: [What should have happened according to SPEC]
+- **Reproduction Path**: 
+  1. [Step 1]
+  2. [Step 2]
+- **Evidence Expected**: [e.g., Strapi record link, Screenshot of overlap viewer]
+- **Recommended Owner**: [Claude (UI) / Codex (Integration)]
+- **Retest Condition**: [Exact condition that triggers Gate 5 re-evaluation]
+```

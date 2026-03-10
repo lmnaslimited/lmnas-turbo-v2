@@ -2,7 +2,8 @@
 
 ## Read-first (in this order)
 1) ARCHITECTURE.md
-2) docs/architecture/LMNAs_Platform_Operating_Constitution_v2_1.md
+2) docs/architecture/LMNAs_Platform_Operating_Constitution_v2_2.md
+3) docs/phase0_1/tests/TEST_OWNERSHIP_AND_VALIDATION_ADDENDUM.md
 3) docs/operating/strategy/2026-02-17-LMNAS_OPERATING_BRIEF.md
 4) docs/operating/strategy/2026-02-17-LMNAS_AI_Website_MVP_Operating_Brief.md
 5) docs/operating/strategy/LMNAs_Master_Operating_Prompt_v1.2_Product_Architecture.md
@@ -32,6 +33,11 @@ Codex MUST NOT implement Phase 0.1 features unless:
 - Spec exists
 - Tasks doc exists
 - Guard validation passes
+
+## Phase 0.1 Test Ownership & Validator Constraints
+- **Claude / Codex (Implementers)**: Own local implementation, Unit tests, and local workflow E2E.
+- **Gemini (Validator)**: Tests exclusively against `SPEC` requirements producing Gap reports. Gemini NEVER writes code or auto-fixes implementations.
+- Implementers never independent-validate their own work.
 
 ## Non-negotiables
 
@@ -90,6 +96,6 @@ Theme/integration rules:
 
 - Operator flow: `apps/site/app/platform/onboarding`
 - Analyze API: `apps/site/app/api/platform/onboarding/analyze/route.ts`
-- Publish API: `apps/site/app/api/platform/onboarding/publish/route.ts`
+- Block Publish API: `apps/site/app/api/platform/studio/blocks/publish/route.ts`
 - Exit execution API: `apps/site/app/api/platform/exits/execute/route.ts`
 - Onboarding modules: `packages/integrations/src/onboarding/*`
