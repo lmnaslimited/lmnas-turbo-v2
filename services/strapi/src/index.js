@@ -166,7 +166,11 @@ module.exports = {
       const existing = await findManyEntries(strapi, "api::page.page", { slug: page.slug });
 
       if (!existing || existing.length === 0) {
-        await createPublishedEntry(strapi, "api::page.page", page);
+        try {
+          await createPublishedEntry(strapi, "api::page.page", page);
+        } catch (error) {
+          strapi.log.warn(`Skipping bootstrap page seed for slug="${page.slug}": ${error.message}`);
+        }
       }
     }
 
@@ -201,7 +205,11 @@ module.exports = {
       const existing = await findManyEntries(strapi, "api::navigation.navigation", { key: navigation.key });
 
       if (!existing || existing.length === 0) {
-        await createPublishedEntry(strapi, "api::navigation.navigation", navigation);
+        try {
+          await createPublishedEntry(strapi, "api::navigation.navigation", navigation);
+        } catch (error) {
+          strapi.log.warn(`Skipping bootstrap navigation seed for key="${navigation.key}": ${error.message}`);
+        }
       }
     }
 
@@ -210,18 +218,22 @@ module.exports = {
     });
 
     if (!existingBlogPost || existingBlogPost.length === 0) {
-      await createPublishedEntry(strapi, "api::blog-post.blog-post", {
-        slug: "phase-0-baseline",
-        title: "Phase 0 Baseline Upgrade",
-        excerpt: "How LMNAs aligned the scaffold with Constitution v2.1.",
-        body: "Phase 0 baseline content.",
-        seo: {
-          metaTitle: "Phase 0 Baseline Upgrade",
-          metaDescription: "How LMNAs aligned the scaffold with Constitution v2.1.",
-          canonical: "https://lmnas.com/blogs/phase-0-baseline",
-          robots: "index,follow"
-        }
-      });
+      try {
+        await createPublishedEntry(strapi, "api::blog-post.blog-post", {
+          slug: "phase-0-baseline",
+          title: "Phase 0 Baseline Upgrade",
+          excerpt: "How LMNAs aligned the scaffold with Constitution v2.1.",
+          body: "Phase 0 baseline content.",
+          seo: {
+            metaTitle: "Phase 0 Baseline Upgrade",
+            metaDescription: "How LMNAs aligned the scaffold with Constitution v2.1.",
+            canonical: "https://lmnas.com/blogs/phase-0-baseline",
+            robots: "index,follow"
+          }
+        });
+      } catch (error) {
+        strapi.log.warn(`Skipping bootstrap blog seed for slug="phase-0-baseline": ${error.message}`);
+      }
     }
 
     try {
@@ -239,7 +251,11 @@ module.exports = {
         "api::navigation.navigation.find",
         "api::navigation.navigation.findOne",
         "api::blog-post.blog-post.find",
-        "api::blog-post.blog-post.findOne"
+        "api::blog-post.blog-post.findOne",
+        "api::theme-variant.theme-variant.find",
+        "api::theme-variant.theme-variant.findOne",
+        "api::theme-variant.theme-variant.create",
+        "api::theme-variant.theme-variant.update"
       ];
       const permissionQuery = strapi.query("plugin::users-permissions.permission");
 

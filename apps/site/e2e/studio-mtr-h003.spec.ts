@@ -120,7 +120,7 @@ test.describe("H-003 matrix tests (TV-MTR)", () => {
     await expect(page.getByTestId("publish-active-theme")).toContainText("LMNAs Default");
     await expect(page.getByTestId("publish-ignored-swatch")).toContainText("H003 Preview Swatch");
     await page.getByTestId("publish-open-overlay").click();
-    await page.getByTestId("publish-commit-button").click();
+    await page.getByTestId("studio-action-publish-commit").click();
     await expect(page.getByTestId("publish-payload-json")).toBeVisible();
 
     const payload = JSON.parse((await page.getByTestId("publish-payload-json").innerText()) || "{}") as {
@@ -160,7 +160,7 @@ test.describe("H-003 matrix tests (TV-MTR)", () => {
     );
 
     await page.getByTestId("publish-open-overlay").click();
-    await page.getByTestId("publish-commit-button").click();
+    await page.getByTestId("studio-action-publish-commit").click();
     await expect(page.getByTestId("publish-warning-overlay")).toBeVisible();
     await expect(page.getByTestId("publish-rejection-overlay")).toHaveCount(0);
 
@@ -198,7 +198,7 @@ test.describe("H-003 matrix tests (TV-MTR)", () => {
     );
 
     await page.getByTestId("publish-open-overlay").click();
-    await page.getByTestId("publish-commit-button").click();
+    await page.getByTestId("studio-action-publish-commit").click();
     await expect(page.getByTestId("publish-rejection-overlay")).toBeVisible();
 
     const payload = JSON.parse((await page.getByTestId("publish-payload-json").innerText()) || "{}") as {

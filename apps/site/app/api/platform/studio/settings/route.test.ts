@@ -1,5 +1,12 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getStudioStore, resetStore } from "../_lib/store";
+
+vi.mock("../_lib/strapi", () => ({
+  isStrapiConfigured: () => false,
+  requestStrapi: vi.fn(),
+  unwrapStrapiEntity: (value: unknown) => value
+}));
+
 import { GET, POST } from "./route";
 
 function buildRequest(payload: Record<string, unknown>): Request {

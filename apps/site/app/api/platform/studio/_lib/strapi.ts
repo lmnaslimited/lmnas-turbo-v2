@@ -27,16 +27,16 @@ type StrapiEntity = Record<string, unknown> & {
 
 const DEFAULT_TIMEOUT_MS = 12_000;
 
-export function readStrapiConfig(): { url: string; token: string } | null {
+export function readStrapiConfig(): { url: string; token?: string } | null {
   loadProjectEnv();
   const url = process.env.STRAPI_URL?.trim();
   const token = process.env.STRAPI_API_TOKEN?.trim();
-  if (!url || !token) {
+  if (!url) {
     return null;
   }
   return {
     url: url.replace(/\/$/, ""),
-    token
+    ...(token ? { token } : {})
   };
 }
 
@@ -57,7 +57,7 @@ export async function requestStrapi<T = unknown>(path: string, init: StrapiReque
     throw new StudioApiError({
       status: 503,
       operatorMessage: "Strapi is not configured in this environment.",
-      developerMessage: "Missing STRAPI_URL or STRAPI_API_TOKEN."
+      developerMessage: "Missing STRAPI_URL."
     });
   }
 
@@ -68,7 +68,7 @@ export async function requestStrapi<T = unknown>(path: string, init: StrapiReque
       method: init.method ?? "GET",
       headers: {
         "content-type": "application/json",
-        Authorization: `Bearer ${config.token}`
+        ...(config.token ? { Authorization: `Bearer ${config.token}` } : {})
       },
       body: init.body ? JSON.stringify({ data: init.body }) : undefined,
       signal: controller.signal

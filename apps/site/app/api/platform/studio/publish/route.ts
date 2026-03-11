@@ -27,6 +27,19 @@ function toIsoDate(input?: unknown): string {
   return input.slice(0, 10);
 }
 
+function normalizeTokenCoverage(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return 0;
+}
+
 function normalizeTheme(value: unknown): StudioTheme {
   const row = (value ?? {}) as Record<string, unknown>;
   const id = typeof row.id === "string" && row.id.length > 0 ? row.id : `theme-${Date.now()}`;
@@ -38,7 +51,7 @@ function normalizeTheme(value: unknown): StudioTheme {
     sourceRef: typeof row.sourceRef === "string" ? row.sourceRef : "unknown",
     createdAt: toIsoDate(row.createdAt),
     updatedAt: toIsoDate(row.updatedAt),
-    tokenCoverage: typeof row.tokenCoverage === "number" ? row.tokenCoverage : 0,
+    tokenCoverage: normalizeTokenCoverage(row.tokenCoverage),
     themeDebt: typeof row.themeDebt === "string" ? row.themeDebt : "",
     darkMode: Boolean(row.darkMode),
     tokens: Array.isArray(row.tokens) ? (row.tokens as StudioTheme["tokens"]) : []
@@ -51,6 +64,23 @@ async function listThemesFromStrapi(): Promise<StudioTheme[]> {
   );
   const rows = Array.isArray(response.data) ? response.data : [];
   return rows.map((row) => normalizeTheme(unwrapStrapiEntity(row)));
+}
+
+async function resolveThemeVariantMutationId(themeKey: string): Promise<string | null> {
+  const lookup = await requestStrapi<StrapiCollectionResponse>(
+    `/api/theme-variants?filters[themeKey][$eq]=${encodeURIComponent(themeKey)}&pagination[pageSize]=1`
+  );
+  const existing = Array.isArray(lookup.data) ? lookup.data[0] : undefined;
+  if (!existing) {
+    return null;
+  }
+  if (typeof existing.documentId === "string" && existing.documentId.length > 0) {
+    return existing.documentId;
+  }
+  if (typeof existing.id === "number" || typeof existing.id === "string") {
+    return String(existing.id);
+  }
+  return null;
 }
 
 async function resolveActiveTheme(): Promise<{ theme: StudioTheme | null; source: "strapi" | "fallback" }> {
@@ -168,6 +198,30 @@ function markFallbackCommitApplied(activeThemeId: string): void {
   });
 }
 
+async function persistPublishToStrapi(activeTheme: StudioTheme): Promise<{ themeId: string }> {
+  const mutationId = await resolveThemeVariantMutationId(activeTheme.themeKey);
+  if (!mutationId) {
+    throw new Error(`Unable to resolve Strapi mutation id for themeKey="${activeTheme.themeKey}".`);
+  }
+
+  await requestStrapi(`/api/theme-variants/${encodeURIComponent(mutationId)}`, {
+    method: "PUT",
+    body: {
+      themeKey: activeTheme.themeKey,
+      name: activeTheme.name,
+      status: activeTheme.status,
+      sourceRef: activeTheme.sourceRef,
+      tokenCoverage: activeTheme.tokenCoverage,
+      themeDebt: activeTheme.themeDebt,
+      darkMode: activeTheme.darkMode,
+      tokens: activeTheme.tokens
+    }
+  });
+  return {
+    themeId: mutationId
+  };
+}
+
 export async function POST(request: Request): Promise<Response> {
   try {
     const payload = (await request.json()) as PublishRequestPayload;
@@ -196,15 +250,37 @@ export async function POST(request: Request): Promise<Response> {
       validationToken: normalizeValidationToken(payload.validationToken)
     });
     const blocked = mode === "apply" && settings.fidelity.mode === "disallow-below-threshold" && fidelityReport.exceedsThreshold;
-    const applied = mode === "apply" && !blocked;
+    let applied = mode === "apply" && !blocked;
     const warnings = buildWarnings({
       report: fidelityReport,
       fidelityMode: settings.fidelity.mode,
       blocked
     });
+    const persistence = {
+      source,
+      mutated: false,
+      themeId: null as string | null
+    };
 
-    if (applied && source === "fallback") {
-      markFallbackCommitApplied(activeTheme.id);
+    if (applied) {
+      if (source === "fallback") {
+        markFallbackCommitApplied(activeTheme.id);
+        persistence.mutated = true;
+        persistence.themeId = activeTheme.id;
+      } else {
+        try {
+          const persisted = await persistPublishToStrapi(activeTheme);
+          persistence.mutated = true;
+          persistence.themeId = persisted.themeId;
+        } catch (error) {
+          warnings.push({
+            code: "publish.strapi_persist_failed",
+            message: `Publish persistence failed in Strapi: ${error instanceof Error ? error.message : String(error)}`,
+            severity: "error"
+          });
+          applied = false;
+        }
+      }
     }
 
     const publishPayload = {
@@ -238,7 +314,8 @@ export async function POST(request: Request): Promise<Response> {
         ignoredPreviewSwatchThemeId: previewSwatchThemeId,
         rejectionReason: blocked ? "Fidelity threshold rejection in disallow mode." : null,
         fidelity: fidelityReport,
-        payload: publishPayload
+        payload: publishPayload,
+        persistence
       }
     });
   } catch (error) {
