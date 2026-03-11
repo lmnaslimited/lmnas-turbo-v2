@@ -5,6 +5,10 @@
 - **Claude / Codex**: Responsible for Implementation-side local E2E ensuring these tests do not hard-crash (Gate 4).
 - **Gemini**: Responsible for Independent Validation against these precise requirements (Gate 5).
 
+## Governance Normalization (2026-03-11)
+- Publish Verification sequence coverage is governed by `TV-E2E-06` only.
+- `TV-E2E-02` remains the HTML ingestion baseline and is not the governing Publish Verification boundary.
+
 ---
 
 ## Part 1: Mandatory Validator E2E Baseline
@@ -17,6 +21,7 @@
 | `TV-E2E-03` | REQ-THM-03 | `TV-E2E-02` passed | Re-upload `docs/testing-artifacts/code.html` maintaining identical names. | System triggers duplicate warning dialogue. No React collision / DB overwrite occurs. | UI error screenshot / JSON reject log. |
 | `TV-E2E-04` | REQ-PAG-01 | Blocks exist | Assemble new Page consuming isolated extracted blocks. | Page persists natively inside DB. | Strapi Page payload block. |
 | `TV-E2E-05` | REQ-[WID-01/PAG-01] | `TV-E2E-04` passed | Inject repo-first Logic Widget (calendar) into Page. Assemble a second Page re-using blocks. | Widget integrates successfully. Second Page constructs independently sharing block structures safely. | UI rendering screenshot of both pages. |
+| `TV-E2E-06` | REQ-PUB-[01/02] | `TV-E2E-01` passed | Execute live Publish Verification Overlay and Settings Panel configuration updates. | Real Strapi mutation persists Publish states and Fidelity Settings modes accurately, entirely separate from HTML ingestion. | Strapi network JSON log / Strapi Terminal PUT log. |
 
 ---
 

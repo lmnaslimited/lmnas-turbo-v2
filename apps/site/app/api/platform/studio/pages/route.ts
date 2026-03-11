@@ -3,19 +3,53 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import type { StudioPageDocument } from "../../../../platform/onboarding/_lib/studio-types";
+import type { StudioActionType, StudioBlockTemplate, StudioPageDocument } from "../../../../platform/onboarding/_lib/studio-types";
+import { isStudioActionType } from "../../../../platform/onboarding/_lib/studio-types";
 import { loadProjectEnv } from "../../../../lib/env";
 import { getStudioStore, replaceStore } from "../_lib/store";
-import { isStrapiConfigured } from "../_lib/strapi";
+import { isStrapiConfigured, requestStrapi } from "../_lib/strapi";
 
 type PageSaveRequest = {
   page?: Partial<StudioPageDocument>;
-  mode?: "save" | "apply";
+  mode?: "save" | "apply" | "import-blocks";
+  html?: unknown;
+  sourceRef?: unknown;
+  createRouteSlug?: unknown;
+  routeSlug?: unknown;
 };
 
 type PageApplyResult = {
   applied: boolean;
   warnings: string[];
+};
+
+type BlockTemplateUpsert = {
+  key: string;
+  name: string;
+  family: string;
+  status: "active" | "inactive" | "draft";
+  themeKey: string;
+  sourceType: string;
+  sourceRef: string;
+  confidence: number;
+  editableFields: string[];
+  actions: Array<{ id: string; label: string; type: StudioActionType; target: string }>;
+  previewHtml: string;
+  inUseCount: number;
+};
+
+type StrapiCollectionResponse = {
+  data?: Array<Record<string, unknown>>;
+  meta?: {
+    pagination?: {
+      total?: number;
+    };
+  };
+};
+
+type ImportNormalization = {
+  html: string;
+  sourceRef: string;
 };
 
 function normalizePage(input: Partial<StudioPageDocument>): StudioPageDocument {
@@ -133,6 +167,251 @@ async function applyPageToStrapi(page: StudioPageDocument): Promise<PageApplyRes
   }
 }
 
+function normalizeActionType(value: unknown): StudioActionType {
+  if (isStudioActionType(value)) {
+    return value;
+  }
+  return "workflow";
+}
+
+async function upsertBlockTemplateInStrapi(template: BlockTemplateUpsert): Promise<void> {
+  const lookup = await requestStrapi<StrapiCollectionResponse>(
+    `/api/block-templates?filters[templateKey][$eq]=${encodeURIComponent(template.key)}&pagination[pageSize]=1`
+  );
+  const existing = Array.isArray(lookup.data) ? lookup.data[0] : undefined;
+  const existingId =
+    existing && typeof existing.documentId === "string"
+      ? existing.documentId
+      : existing && (typeof existing.id === "number" || typeof existing.id === "string")
+        ? String(existing.id)
+        : undefined;
+
+  const payload = {
+    templateKey: template.key,
+    name: template.name,
+    family: template.family,
+    status: template.status,
+    themeKey: template.themeKey,
+    sourceType: template.sourceType,
+    sourceRef: template.sourceRef,
+    confidence: template.confidence,
+    editableFields: template.editableFields,
+    actions: template.actions,
+    previewHtml: template.previewHtml,
+    inUseCount: template.inUseCount
+  };
+
+  if (existingId !== undefined) {
+    await requestStrapi(`/api/block-templates/${encodeURIComponent(existingId)}`, {
+      method: "PUT",
+      body: payload
+    });
+    return;
+  }
+
+  await requestStrapi("/api/block-templates", {
+    method: "POST",
+    body: payload
+  });
+}
+
+function upsertBlockTemplateInFallback(template: BlockTemplateUpsert): void {
+  const store = getStudioStore();
+  const blocks = [...store.blocks];
+  const index = blocks.findIndex((entry) => entry.key === template.key || entry.id === template.key);
+  const now = new Date().toISOString().slice(0, 10);
+
+  const next: StudioBlockTemplate = {
+    id: index >= 0 ? blocks[index].id : template.key,
+    key: template.key,
+    name: template.name,
+    family: template.family,
+    status: template.status,
+    themeKey: template.themeKey,
+    sourceType: template.sourceType,
+    sourceRef: template.sourceRef,
+    confidence: template.confidence,
+    editableFields: template.editableFields,
+    actions: template.actions,
+    previewHtml: template.previewHtml,
+    inUseCount: index >= 0 ? blocks[index].inUseCount : template.inUseCount,
+    createdAt: index >= 0 ? blocks[index].createdAt : now,
+    updatedAt: now
+  };
+
+  if (index >= 0) {
+    blocks[index] = next;
+  } else {
+    blocks.unshift(next);
+  }
+
+  replaceStore({
+    ...store,
+    blocks
+  });
+}
+
+function normalizeSourceRef(value: unknown): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return "docs/testing-artifacts/code.html";
+  }
+  return value.trim();
+}
+
+function extractBlockSnippets(fullHtml: string): string[] {
+  const sectionMatches = fullHtml.match(/<section[\s\S]*?<\/section>/gi);
+  if (Array.isArray(sectionMatches) && sectionMatches.length > 0) {
+    return sectionMatches.map((entry) => entry.trim()).filter((entry) => entry.length > 0);
+  }
+
+  const mainMatches = fullHtml.match(/<main[\s\S]*?<\/main>/gi);
+  if (Array.isArray(mainMatches) && mainMatches.length > 0) {
+    return mainMatches.map((entry) => entry.trim()).filter((entry) => entry.length > 0);
+  }
+
+  return [`<section>${fullHtml.trim()}</section>`];
+}
+
+function inferFamily(snippet: string, index: number): string {
+  const text = snippet.toLowerCase();
+  if (text.includes("faq")) {
+    return "faq";
+  }
+  if (text.includes("testimonial") || text.includes("case studies")) {
+    return "testimonial_list";
+  }
+  if (text.includes("cta") || text.includes("contact us") || text.includes("book")) {
+    return "cta_banner";
+  }
+  if (text.includes("hero") || (index === 0 && text.includes("<h1"))) {
+    return "hero";
+  }
+  return "rich_text_section";
+}
+
+function inferActions(snippet: string, index: number): BlockTemplateUpsert["actions"] {
+  const hrefMatch = snippet.match(/href\s*=\s*["']([^"']+)["']/i);
+  if (!hrefMatch || !hrefMatch[1]) {
+    return [];
+  }
+
+  return [
+    {
+      id: `import-action-${index + 1}`,
+      label: "Imported Link",
+      type: normalizeActionType("link_url"),
+      target: hrefMatch[1]
+    }
+  ];
+}
+
+function buildImportedTemplates(payload: ImportNormalization): BlockTemplateUpsert[] {
+  const snippets = extractBlockSnippets(payload.html).slice(0, 24);
+  const stamp = Date.now();
+  return snippets.map((snippet, index) => {
+    const sequence = String(index + 1).padStart(2, "0");
+    return {
+      key: `page-import-${stamp}-${sequence}`,
+      name: `Imported Block ${index + 1}`,
+      family: inferFamily(snippet, index),
+      status: "draft",
+      themeKey: "default",
+      sourceType: "full_page_html_ingest",
+      sourceRef: payload.sourceRef,
+      confidence: 0.75,
+      editableFields: [],
+      actions: inferActions(snippet, index),
+      previewHtml: snippet,
+      inUseCount: 0
+    };
+  });
+}
+
+function normalizeImportPayload(payload: PageSaveRequest): ImportNormalization {
+  if (payload.mode !== "import-blocks") {
+    throw new Error("pages.import_mode_required");
+  }
+
+  const attemptsRouteSlugGeneration =
+    payload.createRouteSlug === true ||
+    (typeof payload.routeSlug === "string" && payload.routeSlug.trim().length > 0) ||
+    (payload.page?.slug !== undefined && typeof payload.page.slug === "string" && payload.page.slug.trim().length > 0);
+
+  if (attemptsRouteSlugGeneration) {
+    throw new Error("pages.import_slug_generation_forbidden");
+  }
+
+  const html = typeof payload.html === "string" ? payload.html.trim() : "";
+  if (html.length === 0) {
+    throw new Error("pages.import_html_required");
+  }
+
+  return {
+    html,
+    sourceRef: normalizeSourceRef(payload.sourceRef)
+  };
+}
+
+async function readStrapiPageCount(): Promise<number | null> {
+  try {
+    const response = await requestStrapi<StrapiCollectionResponse>("/api/pages?pagination[pageSize]=1");
+    const total = response.meta?.pagination?.total;
+    if (typeof total === "number" && Number.isFinite(total)) {
+      return total;
+    }
+    if (Array.isArray(response.data)) {
+      return response.data.length;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function importBlocksOnly(payload: PageSaveRequest): Promise<{
+  source: "strapi" | "fallback";
+  imported: BlockTemplateUpsert[];
+  warnings: string[];
+  pageCountBefore: number | null;
+  pageCountAfter: number | null;
+}> {
+  const normalized = normalizeImportPayload(payload);
+  const imported = buildImportedTemplates(normalized);
+  const warnings: string[] = [];
+  const fallbackPageCount = getStudioStore().pages.length;
+  const pageCountBefore = isStrapiConfigured() ? await readStrapiPageCount() : fallbackPageCount;
+
+  if (isStrapiConfigured()) {
+    try {
+      for (const template of imported) {
+        await upsertBlockTemplateInStrapi(template);
+      }
+      const pageCountAfter = await readStrapiPageCount();
+      return {
+        source: "strapi",
+        imported,
+        warnings,
+        pageCountBefore,
+        pageCountAfter
+      };
+    } catch (error) {
+      warnings.push(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  for (const template of imported) {
+    upsertBlockTemplateInFallback(template);
+  }
+
+  return {
+    source: "fallback",
+    imported,
+    warnings,
+    pageCountBefore,
+    pageCountAfter: getStudioStore().pages.length
+  };
+}
+
 export async function GET(request: Request): Promise<Response> {
   const requestUrl = new URL(request.url);
   const slug = requestUrl.searchParams.get("slug");
@@ -156,6 +435,34 @@ export async function GET(request: Request): Promise<Response> {
 export async function POST(request: Request): Promise<Response> {
   try {
     const payload = (await request.json()) as PageSaveRequest;
+
+    if (payload.mode === "import-blocks") {
+      const result = await importBlocksOnly(payload);
+      const createdRouteSlugEntities =
+        typeof result.pageCountBefore === "number" && typeof result.pageCountAfter === "number"
+          ? Math.max(0, result.pageCountAfter - result.pageCountBefore)
+          : 0;
+
+      return Response.json({
+        ok: true,
+        data: {
+          mode: "import-blocks",
+          importedBlocks: result.imported.map((entry) => ({
+            key: entry.key,
+            name: entry.name,
+            family: entry.family,
+            sourceRef: entry.sourceRef
+          })),
+          blockCount: result.imported.length,
+          pageCountBefore: result.pageCountBefore,
+          pageCountAfter: result.pageCountAfter,
+          routeSlugEntitiesCreated: createdRouteSlugEntities,
+          warnings: result.warnings
+        },
+        source: result.source
+      });
+    }
+
     const page = normalizePage(payload.page ?? {});
     savePageInFallback(page);
 
@@ -197,10 +504,33 @@ export async function POST(request: Request): Promise<Response> {
       source: applied.applied ? "strapi" : "fallback"
     });
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message === "pages.import_slug_generation_forbidden") {
+      return Response.json(
+        {
+          ok: false,
+          code: "pages.import_slug_generation_forbidden",
+          error: "Full-page HTML import may only generate block rows. Route slug creation is forbidden in import mode."
+        },
+        { status: 400 }
+      );
+    }
+
+    if (message === "pages.import_html_required") {
+      return Response.json(
+        {
+          ok: false,
+          code: "pages.import_html_required",
+          error: "Import HTML is required for mode=import-blocks."
+        },
+        { status: 400 }
+      );
+    }
+
     return Response.json(
       {
         ok: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: message
       },
       { status: 400 }
     );

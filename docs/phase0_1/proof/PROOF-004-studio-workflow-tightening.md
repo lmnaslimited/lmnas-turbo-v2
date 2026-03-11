@@ -2,8 +2,12 @@
 
 ## Linked Spec: SPEC-004
 
+## Governance Normalization (2026-03-11)
+- Publish Verification evidence mapping is normalized to `TV-E2E-06`.
+- Any older `TV-E2E-02` association for Publish/Settings payload validation is superseded.
+
 ## Evidence requirements (Claims are insufficient)
-*(To be completed by Implementers. Gemini must scrutinize links mapping explicitly to the test bounds in TEST-004*)
+*(To be completed by Implementers. Gemini must scrutinize links mapping explicitly to the test bounds in TEST-004*) 
 
 - **Test logs**: [Link to Implementer Unit/Local Test outputs here]
 - **E2E results**: [Link to local E2E output here]
@@ -35,6 +39,8 @@
 | `PR-16` | REQ-[All]-01 | `TV-E2E-02` | `code.html` E2E Log | Total E2E sequence runs extracting Blocks cleanly without crashing. | | |
 | `PR-17` | REQ-PAG-01 | `TV-E2E-04` | UI Link / Screenshot | First Page composed entirely of `code.html` extracted blocks. | | |
 | `PR-18` | REQ-PAG-01 | `TV-E2E-05` | Schema JSON Link | Secondary Page composition succeeds utilizing isolated module instances. | | |
+| `PR-19` | REQ-PUB-[01/02] | `TV-E2E-06` | UI Screenshot / Network JSON | Publish Verification Overlay and Settings map accurately into shared UX container patterns. | | |
+| `PR-20` | REQ-PUB-[01/02] | `TV-E2E-06` | Terminal / Network Log | Publisher successfully commits active-theme and fidelity settings into live Strapi state via DB mutation tracing. | | |
 
 ---
 

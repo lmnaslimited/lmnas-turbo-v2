@@ -1,0 +1,19 @@
+{
+  "pageDocument": {
+    "ok": true,
+    "data": {
+      "id": "page-1773215323597-1",
+      "name": "TV-E2E-04 Page",
+      "slug": "tv-e2e-04-page",
+      "locale": "en",
+      "blockOrder": [
+        "block-1773215323504"
+      ],
+      "fieldValues": {},
+      "actionOverrides": {},
+      "previewHtml": "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><style>html,body{margin:0;padding:0}body{background:#0b1120}</style></head><body><nav>diag</nav><script src='https://cdn.tailwindcss.com'></script><script id='tailwind-config'>window.tailwind={};</script><section class='p-8'><h2>Fallback Block</h2></section></body></html>",
+      "updatedAt": "2026-03-11"
+    },
+    "source": "fallback"
+  }
+}
