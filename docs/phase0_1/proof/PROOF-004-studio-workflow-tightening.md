@@ -41,6 +41,12 @@
 | `PR-18` | REQ-PAG-01 | `TV-E2E-05` | Schema JSON Link | Secondary Page composition succeeds utilizing isolated module instances. | | |
 | `PR-19` | REQ-PUB-[01/02] | `TV-E2E-06` | UI Screenshot / Network JSON | Publish Verification Overlay and Settings map accurately into shared UX container patterns. | | |
 | `PR-20` | REQ-PUB-[01/02] | `TV-E2E-06` | Terminal / Network Log | Publisher successfully commits active-theme and fidelity settings into live Strapi state via DB mutation tracing. | | |
+| `PR-21` | `REQ-REC-01` | `TV-E2E-07` | UX Screenshots / DB Logs | Validates unified E2E operator studio workflow. | `docs/phase0_1/proof/evidence/h007/` | |
+| `PR-22` | `REQ-REC-02` | `TV-E2E-07` | UX Screenshots / DB Logs | Validates in-page content edit behavior separation. | `docs/phase0_1/proof/evidence/h007/` | |
+| `PR-23` | `REQ-REC-03` | `TV-E2E-07` | UX Screenshots / DB Logs | Validates operator-language binding and mapping. | `docs/phase0_1/proof/evidence/h007/` | |
+| `PR-24` | `REQ-REC-04` | `TV-E2E-07` | UX Screenshots / DB Logs | Validates visual theme swatch management/preview. | `docs/phase0_1/proof/evidence/h007/` | |
+| `PR-25` | `REQ-REC-05` | `TV-E2E-07` | UX Screenshots / DB Logs | Validates interaction grammar consistency. | `docs/phase0_1/proof/evidence/h007/` | |
+| `PR-26` | `REQ-STU-01` | `TV-E2E-07` | UX Screenshots | Validates shared design/container continuity in recovery. | `docs/phase0_1/proof/evidence/h007/` | |
 
 ---
 

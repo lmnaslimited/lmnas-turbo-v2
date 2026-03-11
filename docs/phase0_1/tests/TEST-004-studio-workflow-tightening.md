@@ -22,6 +22,7 @@
 | `TV-E2E-04` | REQ-PAG-01 | Blocks exist | Assemble new Page consuming isolated extracted blocks. | Page persists natively inside DB. | Strapi Page payload block. |
 | `TV-E2E-05` | REQ-[WID-01/PAG-01] | `TV-E2E-04` passed | Inject repo-first Logic Widget (calendar) into Page. Assemble a second Page re-using blocks. | Widget integrates successfully. Second Page constructs independently sharing block structures safely. | UI rendering screenshot of both pages. |
 | `TV-E2E-06` | REQ-PUB-[01/02] | `TV-E2E-01` passed | Execute live Publish Verification Overlay and Settings Panel configuration updates. | Real Strapi mutation persists Publish states and Fidelity Settings modes accurately, entirely separate from HTML ingestion. | Strapi network JSON log / Strapi Terminal PUT log. |
+| `TV-E2E-07` | REQ-REC-[01-05], REQ-STU-01 | Pre-existing technical foundations | Execute the full Unified Operator Usability Flow (Import-to-Publish). Import source, refine blocks, assemble page, edit content in-page (distinguishing local/reusable), bind widgets/actions in operator language, apply theme swatches (with preview), preview layout, and publish. Then reopen and modify. | Seamless UX flow with exact entities changed, exact entities confirmed unchanged, preservation of Strapi governance, slug suppression, publish safeguards, and non-executable widget safety. | Comprehensive screenshots per step + API logs of entity updates under `docs/phase0_1/proof/evidence/h007/`. |
 
 ---
 

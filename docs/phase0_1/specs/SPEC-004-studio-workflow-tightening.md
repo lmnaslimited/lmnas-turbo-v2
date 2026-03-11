@@ -4,13 +4,25 @@
 ## Governance Note
 *This tightening package governs the current Studio workflow hardening pass. Earlier RR debt from Phase 0.1 inception (e.g. 001/002) may still exist outside this patch and must be tracked separately for future cleanup.*
 
+### Product Recovery Requirements Designation
+
+**Canonical Delegation Notice:**
+The product and UX behavior for the LMNAs Studio is now definitively governed by `docs/phase0_1/specs/lmnas_studio_product_recovery_spec_v_1.md`.
+
+The following requirement IDs are formally registered into this technical specification, but their full narrative definitions are canonically housed in the Recovery Spec. The recovery spec may supersede prior product-layer UX and interaction expectations where inconsistent, but must not override accepted safety constraints, schema boundaries, slug suppression rules, publish safeguards, routing protections, or governed integration behavior:
+- `REQ-REC-01` — Unified operator Studio workflow from import to publish
+- `REQ-REC-02` — In-page content editing with clear page-local vs reusable-block behavior
+- `REQ-REC-03` — First-class widget binding and action mapping in operator language
+- `REQ-REC-04` — First-class theme swatch management and preview
+- `REQ-REC-05` — Consistent create/edit/delete/duplicate/reorder/preview/publish interaction grammar across Studio surfaces
+
 ---
 
 ## 1. Studio-Wide Common Capabilities
 - **[REQ-STU-01] Reusable Design Parity**
   - *Rationale*: Browse, edit, delete, and preview UX must not fragment across workflows.
   - *Statement*: All list/detail views must implement common class-based reusable designs.
-  - *Acceptance*: Shell, Page, and Block workflows share identical UX list containers and action menu behaviors.
+  - *Acceptance*: Shell, Page, and Block workflows share identical UX list containers and action menu behaviors. Publish Verification overlays and Settings panels must also inherit and map to these shared workflow containers.
 
 ## 2. Theme Workflow
 - **[REQ-THM-01] Bounded Inputs**
