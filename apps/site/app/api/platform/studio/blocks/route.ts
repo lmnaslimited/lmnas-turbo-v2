@@ -18,9 +18,12 @@ function normalizeActionType(value: unknown): StudioActionType {
 
 function normalizeTemplate(value: unknown): StudioBlockTemplate {
   const row = (value ?? {}) as Record<string, unknown>;
+  const rowId =
+    typeof row.id === "string" && row.id.length > 0 ? row.id : typeof row.id === "number" ? String(row.id) : undefined;
+  const fallbackId = `block-${Date.now()}`;
   return {
-    id: typeof row.id === "string" && row.id.length > 0 ? row.id : `block-${Date.now()}`,
-    key: typeof row.templateKey === "string" && row.templateKey.length > 0 ? row.templateKey : `block-${Date.now()}`,
+    id: rowId ?? fallbackId,
+    key: typeof row.templateKey === "string" && row.templateKey.length > 0 ? row.templateKey : rowId ?? fallbackId,
     name: typeof row.name === "string" && row.name.length > 0 ? row.name : "Block",
     family: typeof row.family === "string" && row.family.length > 0 ? row.family : "rich_text_section",
     status: row.status === "inactive" || row.status === "draft" ? row.status : "active",

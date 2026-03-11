@@ -9,7 +9,8 @@ const NAV_ITEMS = [
     { key: "blocks", label: "Blocks", href: "/platform/onboarding/blocks", icon: "dashboard_customize" },
     { key: "shells", label: "Shells", href: "/platform/onboarding/shells", icon: "web" },
     { key: "publish", label: "Publish", href: "/platform/onboarding/publish", icon: "publish" },
-    { key: "pages", label: "Pages", href: "/platform/onboarding/pages", icon: "article" }
+    { key: "pages", label: "Pages", href: "/platform/onboarding/pages", icon: "article" },
+    { key: "widgets", label: "Widgets", href: "/platform/onboarding/widgets", icon: "extension" }
 ] as const;
 
 export function StudioSidebar() {

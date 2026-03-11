@@ -7,12 +7,14 @@ function summarizeFallbackSnapshot(snapshot: ReturnType<typeof resetStore>): {
   shells: number;
   blocks: number;
   pages: number;
+  widgets: number;
 } {
   return {
     themes: snapshot.themes.length,
     shells: snapshot.shells.length,
     blocks: snapshot.blocks.length,
-    pages: snapshot.pages.length
+    pages: snapshot.pages.length,
+    widgets: snapshot.widgets.length
   };
 }
 

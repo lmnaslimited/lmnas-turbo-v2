@@ -36,6 +36,13 @@ const WORKFLOWS = [
     href: "/platform/onboarding/pages",
     icon: "article",
     iconColor: "text-amber-400"
+  },
+  {
+    title: "Widgets",
+    description: "Map interactive logic via approved repo paths with non-executable visual mocks.",
+    href: "/platform/onboarding/widgets",
+    icon: "extension",
+    iconColor: "text-cyan-400"
   }
 ] as const;
 

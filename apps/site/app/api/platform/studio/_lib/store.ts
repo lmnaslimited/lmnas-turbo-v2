@@ -4,7 +4,8 @@ import type {
   StudioPageDocument,
   StudioSettings,
   StudioShell,
-  StudioTheme
+  StudioTheme,
+  StudioWidgetRecord
 } from "../../../../platform/onboarding/_lib/studio-types";
 
 type StudioStore = {
@@ -12,6 +13,7 @@ type StudioStore = {
   shells: StudioShell[];
   blocks: StudioBlockTemplate[];
   pages: StudioPageDocument[];
+  widgets: StudioWidgetRecord[];
   settings: StudioSettings;
 };
 
@@ -162,6 +164,25 @@ function createSeedStore(): StudioStore {
       }
     ],
     pages: [],
+    widgets: [
+      {
+        id: "widget-calendar-booking",
+        key: "widget-calendar-booking",
+        name: "Calendar Booking Widget",
+        widgetType: "booking_popup",
+        surface: "modal",
+        status: "active",
+        repoPath: "/components/widgets/calendar-widget.ts",
+        description: "Repo-first booking widget mapping.",
+        editableFields: ["title", "ctaText"],
+        visualMockHtml:
+          "<div style=\"padding:14px;border:1px dashed #334155;border-radius:8px;font-family:system-ui\"><strong>Calendar Widget</strong><p style=\"margin-top:6px;color:#64748b;font-size:12px\">Visual mock only. Runtime executes from repo path.</p></div>",
+        placement: {
+          mode: "reference"
+        },
+        updatedAt: now
+      }
+    ],
     settings: {
       fidelity: {
         mode: "allow-below-threshold",

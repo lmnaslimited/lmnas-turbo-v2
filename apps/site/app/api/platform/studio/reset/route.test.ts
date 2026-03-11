@@ -41,7 +41,7 @@ describe("studio reset route", () => {
     const payload = (await response.json()) as {
       ok: boolean;
       source: string;
-      data: { themes: number; shells: number; blocks: number; pages: number };
+      data: { themes: number; shells: number; blocks: number; pages: number; widgets: number };
     };
 
     expect(payload.ok).toBe(true);
@@ -50,6 +50,7 @@ describe("studio reset route", () => {
     expect(payload.data.shells).toBeGreaterThan(0);
     expect(payload.data.blocks).toBeGreaterThan(0);
     expect(payload.data.pages).toBe(0);
+    expect(payload.data.widgets).toBeGreaterThan(0);
     expect(wipeLegacyStudioEntriesMock).not.toHaveBeenCalled();
   });
 

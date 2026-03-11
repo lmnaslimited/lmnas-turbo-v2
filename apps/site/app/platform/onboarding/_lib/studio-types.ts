@@ -19,6 +19,19 @@ export type StudioActionType =
   | "external_booking"
   | "workflow";
 
+export type StudioWidgetType =
+  | "modal"
+  | "drawer"
+  | "embedded_form"
+  | "subscription_popup"
+  | "booking_popup"
+  | "download_gate"
+  | "chat_launcher"
+  | "inline_expand_collapse"
+  | "below_fold_widget";
+
+export type StudioWidgetSurface = "modal" | "drawer" | "inline" | "popup" | "below_fold";
+
 const STUDIO_ACTION_TYPES = [
   "link_url",
   "scroll_to_section",
@@ -137,6 +150,29 @@ export interface StudioPageDocument {
   >;
   previewHtml: string;
   updatedAt: string;
+}
+
+export interface StudioWidgetPlacement {
+  mode: "embed" | "reference";
+  pageId?: string;
+  blockId?: string;
+}
+
+export interface StudioWidgetRecord {
+  id: string;
+  key: string;
+  name: string;
+  widgetType: StudioWidgetType;
+  surface: StudioWidgetSurface;
+  status: "active" | "inactive";
+  repoPath: string;
+  description?: string;
+  editableFields: string[];
+  defaultExitId?: string;
+  visualMockHtml?: string;
+  placement: StudioWidgetPlacement;
+  updatedAt: string;
+  lastExecutedAt?: string;
 }
 
 export interface StudioApiResponse<T> {
