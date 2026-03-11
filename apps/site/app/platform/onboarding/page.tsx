@@ -3,6 +3,13 @@ import Link from "next/link";
 
 const WORKFLOWS = [
   {
+    title: "Studio Flow",
+    description: "Run the full unified operator path from import to publish in one governed workflow.",
+    href: "/platform/onboarding/studio",
+    icon: "dashboard",
+    iconColor: "text-sky-400"
+  },
+  {
     title: "Theme",
     description: "Manage project themes. Derive, inspect, and freeze the active design system.",
     href: "/platform/onboarding/theme",

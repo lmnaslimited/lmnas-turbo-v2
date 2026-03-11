@@ -1,0 +1,392 @@
+{
+  "steps": {
+    "import": {
+      "request": {
+        "sourceRef": "docs/testing-artifacts/code.html"
+      },
+      "response": {
+        "ok": true,
+        "data": {
+          "mode": "import-blocks",
+          "importedBlocks": [
+            {
+              "key": "page-import-1773235941114-01",
+              "name": "Imported Block 1",
+              "family": "cta_banner",
+              "sourceRef": "docs/testing-artifacts/code.html"
+            },
+            {
+              "key": "page-import-1773235941114-02",
+              "name": "Imported Block 2",
+              "family": "rich_text_section",
+              "sourceRef": "docs/testing-artifacts/code.html"
+            },
+            {
+              "key": "page-import-1773235941114-03",
+              "name": "Imported Block 3",
+              "family": "faq",
+              "sourceRef": "docs/testing-artifacts/code.html"
+            }
+          ],
+          "blockCount": 3,
+          "pageCountBefore": 3,
+          "pageCountAfter": 3,
+          "routeSlugEntitiesCreated": 0,
+          "warnings": []
+        },
+        "source": "strapi"
+      }
+    },
+    "proposal": {
+      "importedProposalCount": 3
+    },
+    "blockNormalization": {
+      "saveStatus": 200,
+      "duplicateStatus": 200
+    },
+    "pageComposition": {
+      "selectedPageId": "page-1773235941618-1",
+      "selectedShellId": "jyb7jskgszgjcps0y1c1mikx",
+      "selectedThemeId": "theme-1773235941259",
+      "selectedSwatchId": "theme-1773235941259"
+    },
+    "contentEditing": {
+      "localScopeApplied": true,
+      "reusableScopeApplied": true,
+      "localScopeLeftReusableBlockUnchanged": true,
+      "reusableScopeLeftPageLocalHeadlineUnchanged": true,
+      "reusableScopeMutatedReusableBlock": true
+    },
+    "widgetActionBinding": {
+      "rejectionStatus": 400,
+      "rejectionPayload": {
+        "ok": false,
+        "code": "widgets.raw_script_forbidden",
+        "error": "Raw executable script uploads are forbidden. Widgets must map to approved repo paths."
+      },
+      "successStatus": 200,
+      "actionMapping": {
+        "id": "action-1773235942453",
+        "blockId": "127",
+        "label": "Hero CTA Button",
+        "type": "open_widget",
+        "target": "widget-calendar-booking"
+      }
+    },
+    "preview": {
+      "frameVisible": true,
+      "swatchPreviewBannerVisible": true
+    },
+    "publish": {
+      "status": 200,
+      "payload": {
+        "ok": true,
+        "data": {
+          "mode": "apply",
+          "applied": true,
+          "blocked": false,
+          "source": "strapi",
+          "fidelityMode": "allow-below-threshold",
+          "warnings": [
+            {
+              "code": "publish.fidelity_dark_mode_mismatch",
+              "message": "Dark-mode mismatch 0.500 exceeds threshold 0.270.",
+              "severity": "warning"
+            },
+            {
+              "code": "publish.fidelity_typography_mismatch",
+              "message": "Typography mismatch 1.000 exceeds threshold 0.270.",
+              "severity": "warning"
+            }
+          ],
+          "activeTheme": {
+            "id": "theme-1773235942999",
+            "themeKey": "h004-live-active",
+            "name": "H004 Live Active",
+            "darkMode": true,
+            "status": "active"
+          },
+          "ignoredPreviewSwatchThemeId": "theme-1773235941259",
+          "rejectionReason": null,
+          "fidelity": {
+            "threshold": 0.27,
+            "hasDarkMediaQuery": false,
+            "darkModeMismatchRatio": 0.5,
+            "typographyMismatchRatio": 1,
+            "highestMismatchRatio": 1,
+            "exceedsThreshold": true,
+            "sourceFonts": [
+              "system-ui"
+            ],
+            "themeTypographyFonts": [
+              "manrope",
+              "sans-serif"
+            ],
+            "figmaTypographyFonts": [
+              "manrope",
+              "inter"
+            ]
+          },
+          "payload": {
+            "generatedAt": "2026-03-11T13:32:23.026Z",
+            "mode": "apply",
+            "activeTheme": {
+              "id": "theme-1773235942999",
+              "themeKey": "h004-live-active",
+              "name": "H004 Live Active",
+              "darkMode": true,
+              "status": "active"
+            },
+            "sourceHtml": "<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><style>html,body{margin:0;padding:0;background:#020617}</style></head><body><div style=\"padding:8px 14px;font-family:system-ui;font-size:11px;background:#0b1120;color:#f8fafc\">Preview Theme: H004 Live Active (swatch preview)</div><nav><strong>E2E Shell</strong></nav><section style=\"padding:24px 32px;border:1px dashed #334155;border-radius:12px;margin:16px;font-family:system-ui;background:#0f172a;color:#f8fafc\"><h2 style=\"margin:0;font-size:20px\">H007 Local Page Headline</h2><p style=\"margin-top:6px;font-size:12px;color:#93c5fd\">Page-local edit</p></section><section>\n      <h2>FAQ</h2>\n      <p>How does the recovery flow ensure safe publishing?</p>\n    </section>\n<section>\n      <h2>FAQ</h2>\n      <p>How does the recovery flow ensure safe publishing?</p>\n    </section></body></html>",
+            "fidelity": {
+              "mode": "allow-below-threshold",
+              "threshold": 0.27,
+              "report": {
+                "hasDarkMediaQuery": false,
+                "darkModeMismatchRatio": 0.5,
+                "typographyMismatchRatio": 1,
+                "highestMismatchRatio": 1,
+                "exceedsThreshold": true
+              }
+            }
+          },
+          "persistence": {
+            "source": "strapi",
+            "mutated": true,
+            "themeId": "ooo64phlz9wdqqtbu0lv3asw"
+          }
+        }
+      }
+    },
+    "reopen": {
+      "status": "modified"
+    }
+  },
+  "entitiesChanged": {
+    "pages": [
+      {
+        "id": "page-1773235941618-1",
+        "slug": "recovery-page-1",
+        "updatedAt": "2026-03-11"
+      }
+    ],
+    "blocks": [
+      {
+        "id": "129",
+        "name": "H007 Refined Reusable Block Copy",
+        "updatedAt": "2026-03-11"
+      },
+      {
+        "id": "127",
+        "name": "H007 Refined Reusable Block Copy",
+        "updatedAt": "2026-03-11"
+      },
+      {
+        "id": "125",
+        "name": "H007 Refined Reusable Block",
+        "updatedAt": "2026-03-11"
+      },
+      {
+        "id": "123",
+        "name": "Imported Block 3",
+        "updatedAt": "2026-03-11"
+      },
+      {
+        "id": "121",
+        "name": "Imported Block 2",
+        "updatedAt": "2026-03-11"
+      },
+      {
+        "id": "119",
+        "name": "Imported Block 1",
+        "updatedAt": "2026-03-11"
+      }
+    ],
+    "widgets": [
+      {
+        "id": "widget-1773235942385",
+        "name": "Recovery Widget Binding",
+        "repoPath": "/components/widgets/calendar-widget.ts"
+      }
+    ],
+    "themes": [
+      {
+        "id": "theme-1773235943588",
+        "themeKey": "h004-live-active",
+        "status": "active"
+      },
+      {
+        "id": "theme-1773235943588",
+        "themeKey": "tv-mtr-01",
+        "status": "draft"
+      },
+      {
+        "id": "theme-1773235943588",
+        "themeKey": "derived-1773126417933",
+        "status": "draft"
+      },
+      {
+        "id": "theme-1773235943588",
+        "themeKey": "default",
+        "status": "inactive"
+      },
+      {
+        "id": "theme-1773235943588",
+        "themeKey": "theme-e2e-1773080055816",
+        "status": "inactive"
+      },
+      {
+        "id": "theme-1773235943588",
+        "themeKey": "theme-e2e-1773080022615",
+        "status": "inactive"
+      },
+      {
+        "id": "theme-1773235943588",
+        "themeKey": "theme-e2e-1773079851226",
+        "status": "inactive"
+      },
+      {
+        "id": "theme-1773235943588",
+        "themeKey": "theme-e2e-1773079715218",
+        "status": "inactive"
+      },
+      {
+        "id": "theme-1773235943588",
+        "themeKey": "theme-e2e-1773079555989",
+        "status": "inactive"
+      },
+      {
+        "id": "theme-1773235943588",
+        "themeKey": "theme-e2e-1773079347885",
+        "status": "inactive"
+      },
+      {
+        "id": "theme-1773235943588",
+        "themeKey": "theme-e2e-1773079167061",
+        "status": "inactive"
+      },
+      {
+        "id": "theme-1773235943588",
+        "themeKey": "theme-e2e-1773078946714",
+        "status": "inactive"
+      },
+      {
+        "id": "theme-1773235943588",
+        "themeKey": "theme-e2e-1773078789513",
+        "status": "inactive"
+      }
+    ],
+    "shells": [
+      {
+        "id": "jyb7jskgszgjcps0y1c1mikx",
+        "key": "diag-shell-1773082989464",
+        "status": "active"
+      },
+      {
+        "id": "k5tg148073zh834uh2m9wedu",
+        "key": "shell-e2e-1773081014821",
+        "status": "inactive"
+      }
+    ]
+  },
+  "entitiesConfirmedUnchanged": {
+    "pageIds": [],
+    "blockIds": [
+      "117",
+      "115",
+      "113",
+      "111",
+      "109",
+      "107",
+      "105",
+      "103",
+      "101",
+      "99",
+      "97",
+      "95",
+      "93",
+      "91",
+      "89",
+      "87",
+      "85",
+      "83",
+      "81",
+      "79",
+      "77",
+      "75",
+      "73",
+      "71",
+      "69",
+      "67",
+      "65",
+      "63",
+      "61",
+      "59",
+      "57",
+      "55",
+      "53",
+      "51",
+      "49",
+      "47",
+      "45",
+      "43",
+      "41",
+      "39",
+      "37",
+      "35",
+      "33",
+      "31",
+      "29",
+      "27",
+      "24",
+      "22",
+      "20",
+      "18",
+      "16",
+      "14",
+      "12",
+      "10"
+    ],
+    "widgetIds": [
+      "widget-calendar-booking"
+    ],
+    "themeIds": [],
+    "shellIds": [
+      "hrbd1zw68lyi99ns2o52eg6c",
+      "nqph206ecjcxfp8uizh8m5re",
+      "wpb4byte44h7ywupphjpkbue",
+      "k2bp4og7980z4ac38isq5quq",
+      "d1ne9f06rxe390o3h4sri98w",
+      "viswom4ckuh35huvtgreanj6",
+      "ub1b5uqv8n0lksvlfv5d6yv7",
+      "jdkgxvy97scr29did5um61ma",
+      "rz3xlzc8dqa4sc9i8nw1cyql",
+      "n4oqh0ap8yms8iyq3uyx8l59",
+      "mxbok4iuecg6bz21sjqttr5e",
+      "k7rvblrqcyhiwrgpfwqwba2b",
+      "bn1x8kkuecds9oh4cz6azh1s",
+      "w7lh95cvbez3u6pahpn8j2m2",
+      "z3y7qkipayzpsfckbodo0txj",
+      "pn3n9v8x0k2qobvbp4xa0tpd",
+      "iy0olu9gsi8aeup1vguojp7c",
+      "a0h2dc7v3om8et2u9nq37we7",
+      "vhos6kqjysk07vl1jgota9kb",
+      "tz427q3z77cvz2zncmznplu6",
+      "ij4zsxbre7jv3v06lulvvowu",
+      "yg2634zxoqcqdm1k6b7v3yv1",
+      "drhutbak7bwtq9rhku2hy14o",
+      "a4ocpxm3s4qgf2zk42bbjijd",
+      "ze7lz622jotg33mdqaxqil7p"
+    ],
+    "routeSlugEntitiesCreated": 0,
+    "rawExecutableWidgetScriptPersisted": false,
+    "localScopeLeftReusableBlockUnchanged": true,
+    "reusableScopeLeftPageLocalHeadlineUnchanged": true
+  },
+  "boundariesPreserved": {
+    "strapiGovernance": true,
+    "slugSuppression": true,
+    "publishSafeguards": true,
+    "nonExecutableWidgetSafety": true
+  }
+}

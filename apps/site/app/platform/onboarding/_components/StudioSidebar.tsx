@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
+    { key: "studio", label: "Studio Flow", href: "/platform/onboarding/studio", icon: "dashboard" },
     { key: "theme", label: "Theme", href: "/platform/onboarding/theme", icon: "palette" },
     { key: "blocks", label: "Blocks", href: "/platform/onboarding/blocks", icon: "dashboard_customize" },
     { key: "shells", label: "Shells", href: "/platform/onboarding/shells", icon: "web" },
