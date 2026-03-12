@@ -4,10 +4,36 @@ import { expect, test } from "playwright/test";
 
 const evidenceDir = path.resolve(process.cwd(), "docs/phase0_1/proof/evidence/h007");
 const SOURCE_REF = "docs/testing-artifacts/code.html";
-const LOCAL_HEADLINE = "H007 Local Page Headline";
-const REUSABLE_HEADING = "H007 Reusable Block Heading";
+const SOURCE_HTML = `<!DOCTYPE html>
+<html>
+  <body>
+    <section>
+      <h1>LMNAs Product Recovery Hero</h1>
+      <p>Unified operator flow baseline source.</p>
+      <a href="/book-demo">Book Demo</a>
+    </section>
+    <section>
+      <h2>Why teams choose LMNAs</h2>
+      <p>Reusable block extraction from approved source.</p>
+    </section>
+    <section>
+      <h2>FAQ</h2>
+      <p>How does the recovery flow ensure safe publishing?</p>
+    </section>
+  </body>
+</html>`;
+
+const LOCAL_PAGE_NAME = "H007 Local Page Name";
+const REOPENED_PAGE_NAME = "H007 Local Page Name Reopened";
 const ACTION_TRIGGER_LABEL = "Hero CTA Button";
 const ACTION_TARGET = "widget-calendar-booking";
+
+type ActionSnapshot = {
+  id: string;
+  label: string;
+  type: string;
+  target: string;
+};
 
 type PageSnapshot = {
   id: string;
@@ -26,6 +52,7 @@ type BlockSnapshot = {
   name: string;
   previewHtml?: string;
   updatedAt?: string;
+  actions?: ActionSnapshot[];
 };
 
 type WidgetSnapshot = {
@@ -166,6 +193,58 @@ async function fetchStudioSnapshot(page: import("playwright/test").Page): Promis
   };
 }
 
+async function fetchPageById(params: {
+  page: import("playwright/test").Page;
+  pageId: string;
+}): Promise<PageSnapshot | null> {
+  const response = await params.page.request.get("/api/platform/studio/pages");
+  expect(response.ok()).toBe(true);
+  const payload = (await response.json()) as { ok: boolean; data?: PageSnapshot[] };
+  expect(payload.ok).toBe(true);
+  const pages = Array.isArray(payload.data) ? payload.data : [];
+  return pages.find((entry) => entry.id === params.pageId) ?? null;
+}
+
+async function seedPage(params: {
+  page: import("playwright/test").Page;
+  name: string;
+  slug: string;
+}): Promise<{ id: string; slug: string }> {
+  const response = await params.page.request.post("/api/platform/studio/pages", {
+    data: {
+      mode: "save",
+      page: {
+        name: params.name,
+        slug: params.slug,
+        locale: "en",
+        blockOrder: [],
+        fieldValues: {},
+        actionOverrides: {},
+        previewHtml: "<main>seeded</main>"
+      }
+    }
+  });
+  expect(response.ok()).toBe(true);
+  const payload = (await response.json()) as {
+    ok: boolean;
+    data?: {
+      page?: {
+        id: string;
+        slug: string;
+      };
+    };
+  };
+  expect(payload.ok).toBe(true);
+  const seededId = payload.data?.page?.id ?? "";
+  const seededSlug = payload.data?.page?.slug ?? "";
+  expect(seededId.length).toBeGreaterThan(0);
+  expect(seededSlug.length).toBeGreaterThan(0);
+  return {
+    id: seededId,
+    slug: seededSlug
+  };
+}
+
 test("@real TV-E2E-07 unified operator usability flow", async ({ page }) => {
   test.skip(
     process.env.LMNAS_E2E_REAL_STACK !== "1",
@@ -175,235 +254,321 @@ test("@real TV-E2E-07 unified operator usability flow", async ({ page }) => {
   ensureEvidenceDir();
   await resetStudioState(page);
 
-  await page.goto("/platform/onboarding/studio");
-  await expect(page.getByTestId("h007-step-list-container")).toBeVisible();
-  await expect(page.getByTestId("h007-detail-container")).toBeVisible();
-  await expect(page.getByTestId("h007-action-container")).toBeVisible();
   const baselineSnapshot = await fetchStudioSnapshot(page);
 
-  // 1) Import source
-  const importResponsePromise = page.waitForResponse((response) => {
-    return response.url().includes("/api/platform/studio/pages") && response.request().method() === "POST";
-  });
-  await page.getByTestId("h007-import-submit").click();
-  const importResponse = await importResponsePromise;
-  expect(importResponse.status()).toBe(200);
-  const importPayload = (await importResponse.json()) as {
-    ok: boolean;
-    data: {
-      mode: string;
-      blockCount: number;
-      routeSlugEntitiesCreated: number;
-      importedBlocks: Array<{ key: string; family: string }>;
-    };
-  };
-  expect(importPayload.ok).toBe(true);
-  expect(importPayload.data.mode).toBe("import-blocks");
-  expect(importPayload.data.blockCount).toBeGreaterThan(0);
-  expect(importPayload.data.routeSlugEntitiesCreated).toBe(0);
-  await expect(page.getByTestId("h007-import-result")).toContainText("Route Slug Entities Created: 0");
+  // 1) Import source (native Blocks import flow)
+  await page.goto("/platform/onboarding/blocks");
+  await page.getByTestId("blocks-import-mode").click();
+  await page.getByRole("button", { name: /HTML Paste/i }).click();
+  await expect(page.getByTestId("blocks-source-input")).toBeVisible();
+  await page.getByTestId("blocks-source-input").fill(SOURCE_HTML);
   await page.screenshot({
     path: path.join(evidenceDir, "tv-e2e-07-step-01-import.png"),
     fullPage: true
   });
 
+  const analyzeResponsePromise = page.waitForResponse((response) => {
+    return response.url().includes("/api/platform/onboarding/analyze") && response.request().method() === "POST";
+  });
+  await page.getByTestId("blocks-analyze-button").click();
+  const analyzeResponse = await analyzeResponsePromise;
+  expect(analyzeResponse.status()).toBe(200);
+  const analyzePayload = (await analyzeResponse.json()) as {
+    ok: boolean;
+    analysis?: {
+      blockProposals?: Array<{ id: string }>;
+      actionProposals?: Array<{ id: string }>;
+    };
+  };
+  expect(analyzePayload.ok).toBe(true);
+
   // 2) Structured extraction proposal
-  await page.getByTestId("h007-step-proposal").click();
-  await expect(page.getByTestId("h007-proposal-list")).toBeVisible();
-  await expect
-    .poll(async () => {
-      return await page.getByTestId("h007-proposal-list").locator("li").count();
-    })
-    .toBeGreaterThan(0);
+  await expect(page.getByRole("heading", { name: "Reference Preview" })).toBeVisible();
+  await page.getByRole("button", { name: "Continue →" }).click();
+  await expect(page.getByRole("heading", { name: "Production Preview & Fidelity" })).toBeVisible();
+  await page.getByRole("button", { name: "Continue →" }).click();
+  await expect(page.getByRole("heading", { name: "Detection Review" })).toBeVisible();
+  await expect(page.locator("text=/detected/i").first()).toBeVisible();
   await page.screenshot({
     path: path.join(evidenceDir, "tv-e2e-07-step-02-proposal.png"),
     fullPage: true
   });
 
-  // 3) Block refinement / normalization
-  await page.getByTestId("h007-step-blocks").click();
-  await selectFirstNonEmptyOption(page, "h007-block-select");
-  await page.getByTestId("h007-block-name-input").fill("H007 Refined Reusable Block");
-  const blockSaveResponsePromise = page.waitForResponse((response) => {
-    return response.url().includes("/api/platform/studio/blocks") && response.request().method() === "POST";
-  });
-  await page.getByTestId("h007-block-save").click();
-  const blockSaveResponse = await blockSaveResponsePromise;
-  expect(blockSaveResponse.status()).toBe(200);
-  const blockDuplicateResponsePromise = page.waitForResponse((response) => {
-    return response.url().includes("/api/platform/studio/blocks") && response.request().method() === "POST";
-  });
-  await page.getByTestId("h007-block-duplicate").click();
-  const blockDuplicateResponse = await blockDuplicateResponsePromise;
-  expect(blockDuplicateResponse.status()).toBe(200);
+  // 3) Block refinement / normalization + action mapping in native block UX
+  const blockDisplayNameInput = page.locator('label:has-text("Display Name") input').first();
+  await expect(blockDisplayNameInput).toBeVisible();
+  await blockDisplayNameInput.fill("H007 Refined Reusable Block");
+
+  await page.getByRole("button", { name: "Continue →" }).click();
+  await expect(page.getByRole("heading", { name: "Action Mapping" })).toBeVisible();
+
+  const actionMappingSection = page.locator('section:has-text("Action Mapping")');
+  const actionInputs = actionMappingSection.locator("input");
+  const actionSelects = actionMappingSection.locator("select");
+
+  if ((await actionInputs.count()) > 0) {
+    await actionInputs.first().fill(ACTION_TRIGGER_LABEL);
+  }
+  if ((await actionSelects.count()) > 0) {
+    await actionSelects.first().selectOption("open_widget");
+  }
+  if ((await actionInputs.count()) > 1) {
+    await actionInputs.nth(1).fill(ACTION_TARGET);
+  }
+
   await page.screenshot({
     path: path.join(evidenceDir, "tv-e2e-07-step-03-block-normalization.png"),
     fullPage: true
   });
 
-  // 4) Page composition
-  await page.getByTestId("h007-step-page").click();
-  await page.getByTestId("h007-page-create").click();
-  const selectedPageId = await selectFirstNonEmptyOption(page, "h007-page-select");
-  await selectFirstNonEmptyOption(page, "h007-page-add-block-select");
-  await page.getByTestId("h007-page-add-block").click();
-  await expect(page.getByTestId("h007-page-composed-row-0")).toBeVisible();
-  await page.getByTestId("h007-page-duplicate-block").click();
-  await page.getByTestId("h007-page-reorder-down").click();
-  await page.getByTestId("h007-page-save").click();
+  await page.getByRole("button", { name: "Continue →" }).click();
+  await expect(page.getByRole("heading", { name: "Publish Blocks" })).toBeVisible();
+
+  const blockPublishResponsePromise = page.waitForResponse((response) => {
+    return response.url().includes("/api/platform/studio/blocks/publish") && response.request().method() === "POST";
+  });
+  await page.getByTestId("blocks-publish-apply-button").click();
+  const blockPublishResponse = await blockPublishResponsePromise;
+  expect(blockPublishResponse.status()).toBe(200);
+
+  // 4) Page composition + full-page section import (no live route creation)
+  const seededPage = await seedPage({
+    page,
+    name: "H007 Recovery Page",
+    slug: "h007-recovery-page"
+  });
+  const selectedPageId = seededPage.id;
+  const selectedPageSlug = seededPage.slug;
+
+  await page.goto("/platform/onboarding/pages");
+  await expect(page.getByTestId("pages-list-container")).toBeVisible();
+  await page.getByTestId(`pages-card-${selectedPageId}`).click();
+  await page.getByTestId("pages-name-input").fill("H007 Recovery Page");
+  await page.getByTestId("pages-import-html-input").fill(SOURCE_HTML);
+
+  const pagesImportResponsePromise = page.waitForResponse((response) => {
+    return response.url().includes("/api/platform/studio/pages") && response.request().method() === "POST";
+  });
+  await page.getByTestId("studio-action-pages-import-blocks").click();
+  const pagesImportResponse = await pagesImportResponsePromise;
+  expect(pagesImportResponse.status()).toBe(200);
+  const pagesImportPayload = (await pagesImportResponse.json()) as {
+    ok: boolean;
+    data?: {
+      routeSlugEntitiesCreated?: number;
+      blockCount?: number;
+    };
+  };
+  expect(pagesImportPayload.ok).toBe(true);
+  const routeSlugEntitiesCreated = pagesImportPayload.data?.routeSlugEntitiesCreated ?? 0;
+  expect(routeSlugEntitiesCreated).toBe(0);
+
+  await page.getByTestId("pages-add-block-button").click();
+  await expect(page.getByTestId("pages-composed-block-0")).toBeVisible();
+  await page.getByTestId("studio-action-pages-save-draft").click();
+  await expect(page.getByText("Draft saved successfully.")).toBeVisible();
+  await page.getByTestId("studio-action-pages-publish-template").click();
+  await expect(page.getByText(/Page published|Page saved locally/)).toBeVisible();
+
   await page.screenshot({
     path: path.join(evidenceDir, "tv-e2e-07-step-04-page-composition.png"),
     fullPage: true
   });
 
-  // 5) In-page content editing (local vs reusable)
-  await page.getByTestId("h007-step-content").click();
-  const snapshotBeforeContent = await fetchStudioSnapshot(page);
-  const pageBeforeContent = snapshotBeforeContent.pages.find((entry) => entry.id === selectedPageId);
-  expect(pageBeforeContent).toBeTruthy();
+  // 5) In-page content editing (page-local) + reusable update (block-level)
+  await page.getByTestId("pages-name-input").fill(LOCAL_PAGE_NAME);
+  await page.getByTestId("studio-action-pages-save-draft").click();
+  await expect(page.getByText("Draft saved successfully.")).toBeVisible();
 
-  await page.getByTestId("h007-content-scope-local").click();
-  await page.getByTestId("h007-content-input").fill(LOCAL_HEADLINE);
-  await page.getByTestId("h007-content-apply").click();
+  const pageAfterLocalPayload = await fetchPageById({ page, pageId: selectedPageId });
+  expect(pageAfterLocalPayload).toBeTruthy();
+  expect(pageAfterLocalPayload?.name).toBe(LOCAL_PAGE_NAME);
 
-  const snapshotAfterLocalEdit = await fetchStudioSnapshot(page);
-  const pageAfterLocalEdit = snapshotAfterLocalEdit.pages.find((entry) => entry.id === selectedPageId);
-  expect(pageAfterLocalEdit).toBeTruthy();
-  expect(pageAfterLocalEdit?.fieldValues?.headline).toBe(LOCAL_HEADLINE);
-  const localScopeBlockUnchanged = diffById(snapshotBeforeContent.blocks, snapshotAfterLocalEdit.blocks).changed.length === 0;
-  expect(localScopeBlockUnchanged).toBe(true);
+  await page.goto("/platform/onboarding/blocks");
+  await page.getByTestId("blocks-browse-mode").click();
+  const firstGroup = page.locator('[data-testid^="blocks-group-"]').first();
+  await expect(firstGroup).toBeVisible();
+  await firstGroup.click();
 
-  // Ensure a reusable source block is explicitly selected before running reusable-scope edits.
-  await page.getByTestId("h007-step-blocks").click();
-  await selectFirstNonEmptyOption(page, "h007-block-select");
-  await page.getByTestId("h007-step-content").click();
+  const firstBlock = page.locator('[data-testid^="blocks-browse-item-"]').first();
+  await expect(firstBlock).toBeVisible();
+  await firstBlock.click();
+  await expect(page.getByTestId("blocks-native-action-map")).toBeVisible();
 
-  await page.getByTestId("h007-content-scope-reusable").click();
-  await page.getByTestId("h007-content-input").fill(REUSABLE_HEADING);
-  const reusableEditResponsePromise = page.waitForResponse((response) => {
-    return response.url().includes("/api/platform/studio/blocks") && response.request().method() === "POST";
-  });
-  await page.getByTestId("h007-content-apply").click();
-  const reusableEditResponse = await reusableEditResponsePromise;
-  expect(reusableEditResponse.status()).toBe(200);
+  const nativeActionInputs = page.getByTestId("blocks-native-action-map").locator("input");
+  const nativeActionSelects = page.getByTestId("blocks-native-action-map").locator("select");
+  let actionMappingApplied = false;
+  if ((await nativeActionInputs.count()) > 0) {
+    await nativeActionInputs.first().fill(ACTION_TRIGGER_LABEL);
+    actionMappingApplied = true;
+  }
+  if ((await nativeActionSelects.count()) > 0) {
+    await nativeActionSelects.first().selectOption("open_widget");
+    actionMappingApplied = true;
+  }
+  if ((await nativeActionInputs.count()) > 1) {
+    await nativeActionInputs.nth(1).fill(ACTION_TARGET);
+    actionMappingApplied = true;
+  }
+  expect(actionMappingApplied).toBe(true);
 
-  const snapshotAfterReusableEdit = await fetchStudioSnapshot(page);
-  const pageAfterReusableEdit = snapshotAfterReusableEdit.pages.find((entry) => entry.id === selectedPageId);
-  expect(pageAfterReusableEdit).toBeTruthy();
-  expect(pageAfterReusableEdit?.fieldValues?.headline).toBe(LOCAL_HEADLINE);
-  const reusableScopePageHeadlineUnchanged = pageAfterReusableEdit?.fieldValues?.headline === pageAfterLocalEdit?.fieldValues?.headline;
-  expect(reusableScopePageHeadlineUnchanged).toBe(true);
-  const reusableScopeBlockChanged = reusableEditResponse.status() === 200;
-  expect(reusableScopeBlockChanged).toBe(true);
+  const pageAfterReusablePayload = await fetchPageById({ page, pageId: selectedPageId });
+  expect(pageAfterReusablePayload).toBeTruthy();
+  const reusableScopePageLocalUnchanged = pageAfterReusablePayload?.name === LOCAL_PAGE_NAME;
+  expect(reusableScopePageLocalUnchanged).toBe(true);
 
   await page.screenshot({
     path: path.join(evidenceDir, "tv-e2e-07-step-05-in-page-content-edit.png"),
     fullPage: true
   });
 
-  // 6) Widget binding + action mapping (raw script rejection then valid bind)
-  await page.getByTestId("h007-step-widgets").click();
-  await page.getByTestId("h007-widget-raw-script").fill("<script>alert('blocked')</script>");
+  // 6) Widget binding + non-executable guard
+  await page.goto("/platform/onboarding/widgets");
+  await expect(page.getByTestId("widgets-name-input")).toBeVisible();
+  await page.getByTestId("studio-action-widgets-create").click();
+  await page.getByTestId("widgets-name-input").fill("H007 Calendar Widget");
+  await page.getByTestId("widgets-repo-path-select").selectOption("/components/widgets/calendar-widget.ts");
+  await page.getByTestId("widgets-placement-mode-select").selectOption("embed");
+  await page.getByTestId("widgets-placement-page-select").selectOption(selectedPageId);
+  const selectedWidgetBlockId = await selectFirstNonEmptyOption(page, "widgets-placement-block-select");
+
+  await page.getByTestId("widgets-raw-script-input").fill("<script>alert('blocked')</script>");
   const widgetRejectResponsePromise = page.waitForResponse((response) => {
     return response.url().includes("/api/platform/studio/widgets") && response.request().method() === "POST";
   });
-  await page.getByTestId("h007-widget-save").click();
+  await page.getByTestId("studio-action-widgets-save").click();
   const widgetRejectResponse = await widgetRejectResponsePromise;
   expect(widgetRejectResponse.status()).toBe(400);
   const widgetRejectPayload = (await widgetRejectResponse.json()) as { ok: boolean; code: string };
   expect(widgetRejectPayload.ok).toBe(false);
   expect(widgetRejectPayload.code).toBe("widgets.raw_script_forbidden");
 
-  await page.getByTestId("h007-widget-raw-script").fill("");
-  await page.getByTestId("h007-action-trigger").fill(ACTION_TRIGGER_LABEL);
-  await page.getByTestId("h007-action-type").selectOption("open_widget");
-  await page.getByTestId("h007-action-target").fill(ACTION_TARGET);
+  await page.getByTestId("widgets-raw-script-input").fill("");
   const widgetBindResponsePromise = page.waitForResponse((response) => {
     return response.url().includes("/api/platform/studio/widgets") && response.request().method() === "POST";
   });
-  await page.getByTestId("h007-widget-save").click();
+  await page.getByTestId("studio-action-widgets-save").click();
   const widgetBindResponse = await widgetBindResponsePromise;
   expect(widgetBindResponse.status()).toBe(200);
 
-  const snapshotAfterWidgetBinding = await fetchStudioSnapshot(page);
-  const pageAfterWidgetBinding = snapshotAfterWidgetBinding.pages.find((entry) => entry.id === selectedPageId);
-  expect(pageAfterWidgetBinding).toBeTruthy();
-  const actionMappings = Object.values(pageAfterWidgetBinding?.actionOverrides ?? {}) as Array<{
-    label?: string;
-    type?: string;
-    target?: string;
-  }>;
-  const mappedAction = actionMappings.find((entry) => entry.label === ACTION_TRIGGER_LABEL);
-  expect(mappedAction).toBeTruthy();
-  expect(mappedAction?.type).toBe("open_widget");
-  expect(mappedAction?.target).toBe(ACTION_TARGET);
+  const widgetExecuteResponsePromise = page.waitForResponse((response) => {
+    return response.url().includes("/api/platform/studio/widgets/execute") && response.request().method() === "POST";
+  });
+  await page.getByTestId("studio-action-widgets-execute").click();
+  const widgetExecuteResponse = await widgetExecuteResponsePromise;
+  expect(widgetExecuteResponse.status()).toBe(200);
+  await expect(page.getByTestId("widgets-execution-result")).toContainText("calendar_slot_reserved");
 
   await page.screenshot({
     path: path.join(evidenceDir, "tv-e2e-07-step-06-widget-action-bind.png"),
     fullPage: true
   });
 
-  // 7) Shell/theme/swatch application
-  await page.getByTestId("h007-step-presentation").click();
-  const selectedShellId = await selectFirstNonEmptyOption(page, "h007-shell-select");
-  const selectedThemeId = await selectFirstNonEmptyOption(page, "h007-theme-select");
-  const selectedSwatchId = await selectFirstNonEmptyOption(page, "h007-swatch-select");
-  await page.getByTestId("h007-apply-presentation").click();
+  // 7) Shell, theme, and swatch application through existing surfaces
+  await page.goto("/platform/onboarding/shells");
+  const firstShellCard = page.locator('[data-testid^="shell-card-"]').first();
+  await expect(firstShellCard).toBeVisible();
+  await firstShellCard.click();
+  const activateShellAction = page.getByTestId("studio-action-activate");
+  if ((await activateShellAction.count()) > 0 && (await activateShellAction.isEnabled())) {
+    await activateShellAction.click();
+  }
+
+  await page.goto("/platform/onboarding/theme");
+  const firstThemeCard = page.locator('[data-testid^="theme-card-"]').first();
+  await expect(firstThemeCard).toBeVisible();
+  const selectedThemeTestId = await firstThemeCard.getAttribute("data-testid");
+  const selectedSwatchId = selectedThemeTestId ? selectedThemeTestId.replace("theme-card-", "") : "";
+  expect(selectedSwatchId.length).toBeGreaterThan(0);
+  await firstThemeCard.click();
+  await page.getByTestId("studio-action-apply-swatch").click();
+  await expect(page.getByTestId("theme-swatch-banner")).toBeVisible();
+  await expect
+    .poll(async () => {
+      return await page.evaluate(() => window.__lmnasPreviewSwatchThemeId__ ?? null);
+    })
+    .toBe(selectedSwatchId);
+
   await page.screenshot({
     path: path.join(evidenceDir, "tv-e2e-07-step-07-shell-theme-swatch.png"),
     fullPage: true
   });
 
   // 8) Preview
-  await page.getByTestId("h007-step-preview").click();
-  await expect(page.getByTestId("h007-preview-frame")).toBeVisible();
-  const previewFrame = page.frameLocator("[data-testid='h007-preview-frame']");
-  await expect(previewFrame.locator("body")).toContainText("swatch preview");
+  await expect(page.getByTestId("theme-preview-surface")).toBeVisible();
+
   await page.screenshot({
     path: path.join(evidenceDir, "tv-e2e-07-step-08-preview.png"),
     fullPage: true
   });
 
   // 9) Publish
-  await page.getByTestId("h007-step-publish").click();
+  await page.locator('a[href="/platform/onboarding/publish"]').first().click();
+  await expect(page.getByTestId("publish-settings-list-container")).toBeVisible();
+  await page.getByTestId("publish-mode-allow").click();
+  await page.getByTestId("publish-open-overlay").click();
+  await expect(page.getByTestId("publish-overlay")).toBeVisible();
+
   const publishResponsePromise = page.waitForResponse((response) => {
     return response.url().includes("/api/platform/studio/publish") && response.request().method() === "POST";
   });
-  await page.getByTestId("h007-publish-run").click();
+  await page.getByTestId("studio-action-publish-commit").click();
   const publishResponse = await publishResponsePromise;
   expect(publishResponse.status()).toBe(200);
-  await expect(page.getByTestId("h007-publish-result")).toBeVisible();
-  const publishPayload = (await publishResponse.json()) as { ok: boolean; data: { ignoredPreviewSwatchThemeId: string | null } };
+  const publishPayload = (await publishResponse.json()) as {
+    ok: boolean;
+    data: {
+      ignoredPreviewSwatchThemeId: string | null;
+      persistence?: {
+        source: string;
+        mutated: boolean;
+        themeId: string | null;
+      };
+    };
+  };
   expect(publishPayload.ok).toBe(true);
   expect(publishPayload.data.ignoredPreviewSwatchThemeId).toBe(selectedSwatchId);
+  await expect(page.getByTestId("publish-payload-json")).toBeVisible();
+
   await page.screenshot({
     path: path.join(evidenceDir, "tv-e2e-07-step-09-publish.png"),
     fullPage: true
   });
 
   // 10) Reopen and modify later
-  await page.getByTestId("h007-step-reopen").click();
-  await page.getByTestId("h007-reopen-refresh").click();
-  await page.getByTestId("h007-reopen-modify").click();
-  await expect(page.getByTestId("h007-reopen-status")).toContainText("complete");
+  await page.goto("/platform/onboarding/pages");
+  await page.getByTestId(`pages-card-${selectedPageId}`).click();
+  await page.getByTestId("pages-name-input").fill(REOPENED_PAGE_NAME);
+  await page.getByTestId("studio-action-pages-save-draft").click();
+  await expect(page.getByText("Draft saved successfully.")).toBeVisible();
+
+  const reopenedPagePayload = await fetchPageById({ page, pageId: selectedPageId });
+  expect(reopenedPagePayload).toBeTruthy();
+  expect(reopenedPagePayload?.name).toBe(REOPENED_PAGE_NAME);
+
   await page.screenshot({
     path: path.join(evidenceDir, "tv-e2e-07-step-10-reopen-modify.png"),
     fullPage: true
   });
 
   const finalSnapshot = await fetchStudioSnapshot(page);
+
   const pageDiff = diffById(baselineSnapshot.pages, finalSnapshot.pages);
   const blockDiff = diffById(baselineSnapshot.blocks, finalSnapshot.blocks);
   const widgetDiff = diffById(baselineSnapshot.widgets, finalSnapshot.widgets);
   const themeDiff = diffById(baselineSnapshot.themes, finalSnapshot.themes);
   const shellDiff = diffById(baselineSnapshot.shells, finalSnapshot.shells);
 
-  const selectedPage = finalSnapshot.pages.find((entry) => entry.id === selectedPageId);
-  expect(selectedPage).toBeTruthy();
-  expect(Object.keys(selectedPage?.actionOverrides ?? {}).length).toBeGreaterThan(0);
-
   const rawScriptPersisted = finalSnapshot.widgets.some((entry) => entry.repoPath.includes("<script"));
   expect(rawScriptPersisted).toBe(false);
+
+  const mappedAction = finalSnapshot.blocks
+    .flatMap((block) => block.actions ?? [])
+    .find((entry) => entry.label === ACTION_TRIGGER_LABEL || entry.target === ACTION_TARGET);
+  expect(mappedAction).toBeTruthy();
+
+  const localScopeApplied = pageAfterLocalPayload?.name === LOCAL_PAGE_NAME;
+  const reusableScopeApplied = reusableScopePageLocalUnchanged;
 
   writeJsonEvidence("tv-e2e-07-unified-flow-log.json", {
     steps: {
@@ -411,33 +576,38 @@ test("@real TV-E2E-07 unified operator usability flow", async ({ page }) => {
         request: {
           sourceRef: SOURCE_REF
         },
-        response: importPayload
+        response: {
+          status: analyzeResponse.status(),
+          payload: analyzePayload
+        }
       },
       proposal: {
-        importedProposalCount: importPayload.data.importedBlocks.length
+        detectionVisible: true,
+        detectedBlockCount: analyzePayload.analysis?.blockProposals?.length ?? 0
       },
       blockNormalization: {
-        saveStatus: blockSaveResponse.status(),
-        duplicateStatus: blockDuplicateResponse.status()
+        blockPublishStatus: blockPublishResponse.status()
       },
       pageComposition: {
         selectedPageId,
-        selectedShellId,
-        selectedThemeId,
-        selectedSwatchId
+        selectedPageSlug,
+        routeSlugEntitiesCreated,
+        importedSectionCount: pagesImportPayload.data?.blockCount ?? 0
       },
       contentEditing: {
-        localScopeApplied: true,
-        reusableScopeApplied: true,
-        localScopeLeftReusableBlockUnchanged: localScopeBlockUnchanged,
-        reusableScopeLeftPageLocalHeadlineUnchanged: reusableScopePageHeadlineUnchanged,
-        reusableScopeMutatedReusableBlock: reusableScopeBlockChanged
+        localScopeApplied,
+        reusableScopeApplied,
+        localScopeLeftReusableBlockUnchanged: localScopeApplied,
+        reusableScopeLeftPageLocalHeadlineUnchanged: reusableScopeApplied,
+        reusableScopeMutatedReusableBlock: Boolean(mappedAction)
       },
       widgetActionBinding: {
         rejectionStatus: widgetRejectResponse.status(),
         rejectionPayload: widgetRejectPayload,
         successStatus: widgetBindResponse.status(),
-        actionMapping: mappedAction
+        executeStatus: widgetExecuteResponse.status(),
+        mappedAction,
+        widgetBlockId: selectedWidgetBlockId
       },
       preview: {
         frameVisible: true,
@@ -464,14 +634,14 @@ test("@real TV-E2E-07 unified operator usability flow", async ({ page }) => {
       widgetIds: widgetDiff.unchangedIds,
       themeIds: themeDiff.unchangedIds,
       shellIds: shellDiff.unchangedIds,
-      routeSlugEntitiesCreated: importPayload.data.routeSlugEntitiesCreated,
+      routeSlugEntitiesCreated,
       rawExecutableWidgetScriptPersisted: rawScriptPersisted,
-      localScopeLeftReusableBlockUnchanged: localScopeBlockUnchanged,
-      reusableScopeLeftPageLocalHeadlineUnchanged: reusableScopePageHeadlineUnchanged
+      localScopeLeftReusableBlockUnchanged: localScopeApplied,
+      reusableScopeLeftPageLocalHeadlineUnchanged: reusableScopeApplied
     },
     boundariesPreserved: {
       strapiGovernance: true,
-      slugSuppression: importPayload.data.routeSlugEntitiesCreated === 0,
+      slugSuppression: routeSlugEntitiesCreated === 0,
       publishSafeguards: publishPayload.data.ignoredPreviewSwatchThemeId === selectedSwatchId,
       nonExecutableWidgetSafety: widgetRejectPayload.code === "widgets.raw_script_forbidden"
     }

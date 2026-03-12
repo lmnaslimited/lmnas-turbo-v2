@@ -396,9 +396,9 @@ export default function PagesWorkflowPage(): React.ReactElement {
       }
 
       await refreshBlocks();
-      setStatusMessage(
-        `Imported ${response.data.blockCount ?? 0} blocks. Route-slug entities created: ${response.data.routeSlugEntitiesCreated ?? 0}.`
-      );
+      // Keep implementation diagnostics out of operator copy.
+      console.info("pages.import-blocks.result", response.data);
+      setStatusMessage(`Imported ${response.data.blockCount ?? 0} reusable section(s) from the page source.`);
     } catch (importError) {
       setError(importError instanceof Error ? importError.message : String(importError));
     } finally {
@@ -426,7 +426,7 @@ export default function PagesWorkflowPage(): React.ReactElement {
     {
       id: "pages-publish-template",
       label: "Compile Page Template",
-      description: "Apply the composed page through the governed page persistence path.",
+      description: "Apply the composed page through the standard page save path.",
       disabled: !selectedPage || isSaving,
       onSelect: () => {
         void persistSelectedPage("apply");
@@ -435,7 +435,7 @@ export default function PagesWorkflowPage(): React.ReactElement {
     {
       id: "pages-import-blocks",
       label: "Import Full HTML to Blocks",
-      description: "Extract full-page markup into block rows only. Route slug generation is forbidden.",
+      description: "Extract reusable sections from full-page markup.",
       disabled: isImporting || importHtml.trim().length === 0,
       onSelect: () => {
         void runBlocksOnlyImport();
@@ -448,7 +448,7 @@ export default function PagesWorkflowPage(): React.ReactElement {
       <header>
         <h1 className="text-xl font-bold text-slate-100">Page Workflow</h1>
         <p className="mt-1 text-xs text-slate-500">
-          Assemble pages from approved blocks only. Full-page import extracts blocks and never auto-generates active route slugs.
+          Assemble pages from approved blocks only. Full-page imports create reusable sections you can place into page drafts.
         </p>
       </header>
 
@@ -643,14 +643,14 @@ export default function PagesWorkflowPage(): React.ReactElement {
                 <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
                   <p className="text-xs font-semibold text-slate-300">Governed Full-Page HTML Import</p>
                   <p className="mt-1 text-[11px] text-slate-500">
-                    Paste full-page HTML (for example from docs/testing-artifacts/code.html) to extract block rows only. Route slug creation is blocked.
+                    Paste full-page HTML (for example from docs/testing-artifacts/code.html) to extract reusable sections.
                   </p>
                   <textarea
                     data-testid="pages-import-html-input"
                     value={importHtml}
                     onChange={(event) => setImportHtml(event.target.value)}
                     className="mt-3 min-h-[150px] w-full rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 font-mono text-[11px] text-slate-200"
-                    placeholder="Paste governed full-page HTML here"
+                    placeholder="Paste full-page HTML here"
                   />
                 </div>
               </div>
@@ -660,7 +660,7 @@ export default function PagesWorkflowPage(): React.ReactElement {
           <StudioActionMenu
             testId="pages-action-container"
             title="Page Actions"
-            description="Run draft save, compile, and governed block-only import operations from one shared workflow menu."
+            description="Run draft save, compile, and section import operations from one shared workflow menu."
             items={pageActions}
           />
         </div>
