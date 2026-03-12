@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1162d4",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101822",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .active-link {
+            background-color: rgba(17, 98, 212, 0.15);
+            border-left: 3px solid #1162d4;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased overflow-hidden">
+<div class="flex h-screen w-full">
+<!-- Sidebar Navigation -->
+<aside class="w-64 border-r border-slate-200 dark:border-slate-800 flex flex-col bg-background-light dark:bg-background-dark">
+<div class="p-6 flex items-center gap-3">
+<div class="size-8 bg-primary rounded flex items-center justify-center text-white">
+<span class="material-symbols-outlined">layers</span>
+</div>
+<h1 class="text-lg font-bold tracking-tight">LMNAs Studio</h1>
+</div>
+<nav class="flex-1 px-3 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">download</span>
+<span class="text-sm font-medium">Import</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 active-link text-primary rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1">view_quilt</span>
+<span class="text-sm font-medium">Blocks</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">description</span>
+<span class="text-sm font-medium">Pages</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">widgets</span>
+<span class="text-sm font-medium">Widgets</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">palette</span>
+<span class="text-sm font-medium">Theme &amp; Shell</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">rocket_launch</span>
+<span class="text-sm font-medium">Publish</span>
+</a>
+</nav>
+<div class="p-4 border-t border-slate-200 dark:border-slate-800">
+<div class="flex items-center gap-3 px-2 py-2">
+<div class="size-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold">JD</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-medium truncate">Jane Doe</p>
+<p class="text-xs text-slate-500 truncate">Admin</p>
+</div>
+<span class="material-symbols-outlined text-slate-400 text-[18px]">settings</span>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+<!-- Header -->
+<header class="h-20 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 bg-white dark:bg-background-dark">
+<div>
+<h2 class="text-xl font-bold">Reusable Blocks</h2>
+<p class="text-sm text-slate-500 dark:text-slate-400">Manage and edit your library of reusable content blocks.</p>
+</div>
+<div class="flex items-center gap-3 mr-6 pr-6 border-r border-slate-200 dark:border-slate-800">
+<div class="flex -space-x-1.5">
+<div class="size-6 rounded-full border-2 border-white dark:border-background-dark bg-[#1162d4] cursor-pointer ring-2 ring-primary ring-offset-2 ring-offset-white dark:ring-offset-background-dark"></div>
+<div class="size-6 rounded-full border-2 border-white dark:border-background-dark bg-emerald-500 cursor-pointer hover:scale-110 transition-transform"></div>
+<div class="size-6 rounded-full border-2 border-white dark:border-background-dark bg-purple-500 cursor-pointer hover:scale-110 transition-transform"></div>
+<div class="size-6 rounded-full border-2 border-white dark:border-background-dark bg-orange-500 cursor-pointer hover:scale-110 transition-transform"></div>
+</div>
+<span class="text-xs font-bold text-slate-400 uppercase tracking-tighter">Presets</span>
+</div><button class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 transition-all">
+<span class="material-symbols-outlined text-[20px]">add</span>
+                    New Block
+                </button>
+</header>
+<div class="flex-1 flex overflow-hidden">
+<!-- Left Column: List -->
+<div class="w-[450px] border-r border-slate-200 dark:border-slate-800 flex flex-col bg-slate-50 dark:bg-background-dark/50">
+<div class="p-4 border-b border-slate-200 dark:border-slate-800">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-[20px]">search</span>
+<input class="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all" placeholder="Search blocks..." type="text"/>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto">
+<!-- Block Item -->
+<!-- Block Item Active -->
+<div class="p-3 border-b border-slate-200 dark:border-slate-800 bg-primary/5 dark:bg-primary/10 border-l-4 border-l-primary cursor-pointer">
+<div class="flex gap-3">
+<div class="w-24 h-16 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center gap-1 shrink-0">
+<div class="w-12 h-1 bg-primary/40 rounded-full"></div>
+<div class="grid grid-cols-3 gap-1">
+<div class="size-2 bg-slate-300 dark:bg-slate-600 rounded-sm"></div>
+<div class="size-2 bg-slate-300 dark:bg-slate-600 rounded-sm"></div>
+<div class="size-2 bg-slate-300 dark:bg-slate-600 rounded-sm"></div>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<h3 class="font-semibold text-sm text-primary truncate">Feature Grid</h3>
+<span class="material-symbols-outlined text-slate-400 text-[18px]">more_vert</span>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-[9px] uppercase font-bold bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded">Section</span>
+<span class="text-[10px] text-slate-500">1d ago</span>
+</div>
+<div class="flex items-center gap-1 text-[10px] text-slate-400 mt-1">
+<span class="material-symbols-outlined text-[12px]">link</span> 12 pages
+            </div>
+</div>
+</div>
+</div>
+<!-- Block Item -->
+<div class="p-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 group">
+<div class="flex gap-3">
+<div class="w-24 h-16 rounded bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0">
+<div class="w-16 h-8 bg-primary/10 rounded flex flex-col items-center justify-center gap-1">
+<div class="w-8 h-1 bg-primary/30 rounded-full"></div>
+<div class="w-10 h-0.5 bg-primary/10 rounded-full"></div>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<h3 class="font-semibold text-sm truncate">Primary Hero</h3>
+<span class="material-symbols-outlined text-slate-400 text-[18px] opacity-0 group-hover:opacity-100">more_vert</span>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-[9px] uppercase font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded">Hero</span>
+<span class="text-[10px] text-slate-500">2h ago</span>
+</div>
+<div class="flex items-center gap-1 text-[10px] text-slate-400 mt-1">
+<span class="material-symbols-outlined text-[12px]">link</span> 4 pages
+            </div>
+</div>
+</div>
+</div>
+<!-- Block Item -->
+<div class="p-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 group">
+<div class="flex gap-3">
+<div class="w-24 h-16 rounded bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center gap-1 shrink-0">
+<div class="w-12 h-6 border-2 border-green-500/20 rounded-sm flex items-center justify-center"><div class="w-8 h-1 bg-green-500/10 rounded-full"></div></div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<h3 class="font-semibold text-sm truncate">Pricing Table</h3>
+<span class="material-symbols-outlined text-slate-400 text-[18px] opacity-0 group-hover:opacity-100">more_vert</span>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-[9px] uppercase font-bold bg-green-500/10 text-green-500 px-1.5 py-0.5 rounded">Conversion</span>
+<span class="text-[10px] text-slate-500">3d ago</span>
+</div>
+<div class="flex items-center gap-1 text-[10px] text-slate-400 mt-1">
+<span class="material-symbols-outlined text-[12px]">link</span> 2 pages
+            </div>
+</div>
+</div>
+</div>
+<!-- Block Item Active -->
+<!-- Block Item Active -->
+<div class="p-3 border-b border-slate-200 dark:border-slate-800 bg-primary/5 dark:bg-primary/10 border-l-4 border-l-primary cursor-pointer">
+<div class="flex gap-3">
+<div class="w-24 h-16 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center gap-1 shrink-0">
+<div class="w-12 h-1 bg-primary/40 rounded-full"></div>
+<div class="grid grid-cols-3 gap-1">
+<div class="size-2 bg-slate-300 dark:bg-slate-600 rounded-sm"></div>
+<div class="size-2 bg-slate-300 dark:bg-slate-600 rounded-sm"></div>
+<div class="size-2 bg-slate-300 dark:bg-slate-600 rounded-sm"></div>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<h3 class="font-semibold text-sm text-primary truncate">Feature Grid</h3>
+<span class="material-symbols-outlined text-slate-400 text-[18px]">more_vert</span>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-[9px] uppercase font-bold bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded">Section</span>
+<span class="text-[10px] text-slate-500">1d ago</span>
+</div>
+<div class="flex items-center gap-1 text-[10px] text-slate-400 mt-1">
+<span class="material-symbols-outlined text-[12px]">link</span> 12 pages
+            </div>
+</div>
+</div>
+</div>
+<!-- Block Item -->
+<div class="p-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 group">
+<div class="flex gap-3">
+<div class="w-24 h-16 rounded bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0">
+<div class="w-16 h-8 bg-primary/10 rounded flex flex-col items-center justify-center gap-1">
+<div class="w-8 h-1 bg-primary/30 rounded-full"></div>
+<div class="w-10 h-0.5 bg-primary/10 rounded-full"></div>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<h3 class="font-semibold text-sm truncate">Primary Hero</h3>
+<span class="material-symbols-outlined text-slate-400 text-[18px] opacity-0 group-hover:opacity-100">more_vert</span>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-[9px] uppercase font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded">Hero</span>
+<span class="text-[10px] text-slate-500">2h ago</span>
+</div>
+<div class="flex items-center gap-1 text-[10px] text-slate-400 mt-1">
+<span class="material-symbols-outlined text-[12px]">link</span> 4 pages
+            </div>
+</div>
+</div>
+</div>
+<!-- Block Item -->
+<div class="p-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 group">
+<div class="flex gap-3">
+<div class="w-24 h-16 rounded bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center gap-1 shrink-0">
+<div class="w-12 h-6 border-2 border-green-500/20 rounded-sm flex items-center justify-center"><div class="w-8 h-1 bg-green-500/10 rounded-full"></div></div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<h3 class="font-semibold text-sm truncate">Pricing Table</h3>
+<span class="material-symbols-outlined text-slate-400 text-[18px] opacity-0 group-hover:opacity-100">more_vert</span>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-[9px] uppercase font-bold bg-green-500/10 text-green-500 px-1.5 py-0.5 rounded">Conversion</span>
+<span class="text-[10px] text-slate-500">3d ago</span>
+</div>
+<div class="flex items-center gap-1 text-[10px] text-slate-400 mt-1">
+<span class="material-symbols-outlined text-[12px]">link</span> 2 pages
+            </div>
+</div>
+</div>
+</div>
+<!-- Block Item -->
+<!-- Block Item Active -->
+<div class="p-3 border-b border-slate-200 dark:border-slate-800 bg-primary/5 dark:bg-primary/10 border-l-4 border-l-primary cursor-pointer">
+<div class="flex gap-3">
+<div class="w-24 h-16 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center gap-1 shrink-0">
+<div class="w-12 h-1 bg-primary/40 rounded-full"></div>
+<div class="grid grid-cols-3 gap-1">
+<div class="size-2 bg-slate-300 dark:bg-slate-600 rounded-sm"></div>
+<div class="size-2 bg-slate-300 dark:bg-slate-600 rounded-sm"></div>
+<div class="size-2 bg-slate-300 dark:bg-slate-600 rounded-sm"></div>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<h3 class="font-semibold text-sm text-primary truncate">Feature Grid</h3>
+<span class="material-symbols-outlined text-slate-400 text-[18px]">more_vert</span>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-[9px] uppercase font-bold bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded">Section</span>
+<span class="text-[10px] text-slate-500">1d ago</span>
+</div>
+<div class="flex items-center gap-1 text-[10px] text-slate-400 mt-1">
+<span class="material-symbols-outlined text-[12px]">link</span> 12 pages
+            </div>
+</div>
+</div>
+</div>
+<!-- Block Item -->
+<div class="p-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 group">
+<div class="flex gap-3">
+<div class="w-24 h-16 rounded bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0">
+<div class="w-16 h-8 bg-primary/10 rounded flex flex-col items-center justify-center gap-1">
+<div class="w-8 h-1 bg-primary/30 rounded-full"></div>
+<div class="w-10 h-0.5 bg-primary/10 rounded-full"></div>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<h3 class="font-semibold text-sm truncate">Primary Hero</h3>
+<span class="material-symbols-outlined text-slate-400 text-[18px] opacity-0 group-hover:opacity-100">more_vert</span>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-[9px] uppercase font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded">Hero</span>
+<span class="text-[10px] text-slate-500">2h ago</span>
+</div>
+<div class="flex items-center gap-1 text-[10px] text-slate-400 mt-1">
+<span class="material-symbols-outlined text-[12px]">link</span> 4 pages
+            </div>
+</div>
+</div>
+</div>
+<!-- Block Item -->
+<div class="p-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 group">
+<div class="flex gap-3">
+<div class="w-24 h-16 rounded bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center gap-1 shrink-0">
+<div class="w-12 h-6 border-2 border-green-500/20 rounded-sm flex items-center justify-center"><div class="w-8 h-1 bg-green-500/10 rounded-full"></div></div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<h3 class="font-semibold text-sm truncate">Pricing Table</h3>
+<span class="material-symbols-outlined text-slate-400 text-[18px] opacity-0 group-hover:opacity-100">more_vert</span>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-[9px] uppercase font-bold bg-green-500/10 text-green-500 px-1.5 py-0.5 rounded">Conversion</span>
+<span class="text-[10px] text-slate-500">3d ago</span>
+</div>
+<div class="flex items-center gap-1 text-[10px] text-slate-400 mt-1">
+<span class="material-symbols-outlined text-[12px]">link</span> 2 pages
+            </div>
+</div>
+</div>
+</div>
+<!-- Block Item -->
+<!-- Block Item Active -->
+<div class="p-3 border-b border-slate-200 dark:border-slate-800 bg-primary/5 dark:bg-primary/10 border-l-4 border-l-primary cursor-pointer">
+<div class="flex gap-3">
+<div class="w-24 h-16 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center gap-1 shrink-0">
+<div class="w-12 h-1 bg-primary/40 rounded-full"></div>
+<div class="grid grid-cols-3 gap-1">
+<div class="size-2 bg-slate-300 dark:bg-slate-600 rounded-sm"></div>
+<div class="size-2 bg-slate-300 dark:bg-slate-600 rounded-sm"></div>
+<div class="size-2 bg-slate-300 dark:bg-slate-600 rounded-sm"></div>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<h3 class="font-semibold text-sm text-primary truncate">Feature Grid</h3>
+<span class="material-symbols-outlined text-slate-400 text-[18px]">more_vert</span>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-[9px] uppercase font-bold bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded">Section</span>
+<span class="text-[10px] text-slate-500">1d ago</span>
+</div>
+<div class="flex items-center gap-1 text-[10px] text-slate-400 mt-1">
+<span class="material-symbols-outlined text-[12px]">link</span> 12 pages
+            </div>
+</div>
+</div>
+</div>
+<!-- Block Item -->
+<div class="p-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 group">
+<div class="flex gap-3">
+<div class="w-24 h-16 rounded bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0">
+<div class="w-16 h-8 bg-primary/10 rounded flex flex-col items-center justify-center gap-1">
+<div class="w-8 h-1 bg-primary/30 rounded-full"></div>
+<div class="w-10 h-0.5 bg-primary/10 rounded-full"></div>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<h3 class="font-semibold text-sm truncate">Primary Hero</h3>
+<span class="material-symbols-outlined text-slate-400 text-[18px] opacity-0 group-hover:opacity-100">more_vert</span>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-[9px] uppercase font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded">Hero</span>
+<span class="text-[10px] text-slate-500">2h ago</span>
+</div>
+<div class="flex items-center gap-1 text-[10px] text-slate-400 mt-1">
+<span class="material-symbols-outlined text-[12px]">link</span> 4 pages
+            </div>
+</div>
+</div>
+</div>
+<!-- Block Item -->
+<div class="p-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 group">
+<div class="flex gap-3">
+<div class="w-24 h-16 rounded bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center gap-1 shrink-0">
+<div class="w-12 h-6 border-2 border-green-500/20 rounded-sm flex items-center justify-center"><div class="w-8 h-1 bg-green-500/10 rounded-full"></div></div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<h3 class="font-semibold text-sm truncate">Pricing Table</h3>
+<span class="material-symbols-outlined text-slate-400 text-[18px] opacity-0 group-hover:opacity-100">more_vert</span>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-[9px] uppercase font-bold bg-green-500/10 text-green-500 px-1.5 py-0.5 rounded">Conversion</span>
+<span class="text-[10px] text-slate-500">3d ago</span>
+</div>
+<div class="flex items-center gap-1 text-[10px] text-slate-400 mt-1">
+<span class="material-symbols-outlined text-[12px]">link</span> 2 pages
+            </div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Detail/Editor -->
+<div class="flex-1 flex flex-col overflow-y-auto bg-white dark:bg-background-dark">
+<!-- Preview Area -->
+<div class="p-10 border-b border-slate-200 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/10">
+<div class="flex items-center justify-between mb-6">
+<h4 class="text-sm font-bold uppercase tracking-widest text-slate-500">Visual Preview</h4>
+<div class="flex gap-2">
+<button class="p-1.5 bg-slate-100 dark:bg-slate-800 rounded hover:text-primary"><span class="material-symbols-outlined text-[18px]">desktop_windows</span></button>
+<button class="p-1.5 bg-slate-100 dark:bg-slate-800 rounded hover:text-primary"><span class="material-symbols-outlined text-[18px]">tablet_android</span></button>
+<button class="p-1.5 bg-slate-100 dark:bg-slate-800 rounded hover:text-primary"><span class="material-symbols-outlined text-[18px]">smartphone</span></button>
+</div>
+</div>
+<div class="aspect-[21/9] w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl shadow-slate-200/50 dark:shadow-none overflow-hidden relative group">
+<!-- Visual snippet representation -->
+<div class="absolute inset-0 p-12 flex flex-col items-center justify-center text-center">
+<div class="w-20 h-1 bg-primary/40 rounded-full mb-6"></div>
+<h2 class="text-3xl font-bold mb-4">Our Powerful Features</h2>
+<p class="text-slate-500 max-w-md mb-8">Everything you need to build faster and more efficiently with our modern UI kit.</p>
+<div class="grid grid-cols-3 gap-4 w-full">
+<div class="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm">
+<div class="size-8 bg-primary/20 rounded mb-2"></div>
+<div class="h-2 w-12 bg-slate-200 dark:bg-slate-700 rounded mb-1"></div>
+<div class="h-1.5 w-16 bg-slate-100 dark:bg-slate-800 rounded"></div>
+</div>
+<div class="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm">
+<div class="size-8 bg-primary/20 rounded mb-2"></div>
+<div class="h-2 w-12 bg-slate-200 dark:bg-slate-700 rounded mb-1"></div>
+<div class="h-1.5 w-16 bg-slate-100 dark:bg-slate-800 rounded"></div>
+</div>
+<div class="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm">
+<div class="size-8 bg-primary/20 rounded mb-2"></div>
+<div class="h-2 w-12 bg-slate-200 dark:bg-slate-700 rounded mb-1"></div>
+<div class="h-1.5 w-16 bg-slate-100 dark:bg-slate-800 rounded"></div>
+</div>
+</div>
+</div>
+<div class="absolute inset-0 bg-primary/0 group-hover:bg-primary/5 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+<button class="bg-white dark:bg-slate-900 shadow-xl px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 border border-slate-200 dark:border-slate-700">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+                                    Edit Visuals
+                                </button>
+</div>
+</div>
+</div>
+<!-- Properties Area -->
+<div class="p-8">
+<h4 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6">Properties</h4>
+<div class="grid grid-cols-2 gap-8">
+<div class="space-y-4">
+<div>
+<label class="block text-xs font-semibold text-slate-400 uppercase mb-1.5">Block Name</label>
+<input class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none" type="text" value="Feature Grid"/>
+</div>
+<div>
+<label class="block text-xs font-semibold text-slate-400 uppercase mb-1.5">Block Type</label>
+<div class="grid grid-cols-4 gap-2">
+<button class="flex flex-col items-center gap-2 p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-primary/50 transition-colors">
+<span class="material-symbols-outlined text-slate-400 text-[20px]">view_day</span>
+<span class="text-[10px] font-bold uppercase">Hero</span>
+</button>
+<button class="flex flex-col items-center gap-2 p-2 rounded-lg border-2 border-primary bg-primary/5">
+<span class="material-symbols-outlined text-primary text-[20px]">dashboard</span>
+<span class="text-[10px] font-bold uppercase text-primary">Section</span>
+</button>
+<button class="flex flex-col items-center gap-2 p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-primary/50 transition-colors">
+<span class="material-symbols-outlined text-slate-400 text-[20px]">shopping_cart</span>
+<span class="text-[10px] font-bold uppercase">Conv.</span>
+</button>
+<button class="flex flex-col items-center gap-2 p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-primary/50 transition-colors">
+<span class="material-symbols-outlined text-slate-400 text-[20px]">south</span>
+<span class="text-[10px] font-bold uppercase">Footer</span>
+</button>
+</div>
+</div>
+</div>
+<div class="space-y-4">
+<div>
+<label class="block text-xs font-semibold text-slate-400 uppercase mb-1.5">Visibility</label>
+<div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
+<span class="text-sm">Published</span>
+<div class="w-10 h-5 bg-primary rounded-full relative">
+<div class="size-4 bg-white rounded-full absolute right-0.5 top-0.5"></div>
+</div>
+</div>
+</div>
+<div>
+<label class="block text-xs font-semibold text-slate-400 uppercase mb-1.5">Caching Strategy</label>
+<div class="flex gap-2">
+<button class="flex-1 text-xs font-medium py-2 rounded-lg bg-primary/10 border border-primary/20 text-primary">Static</button>
+<button class="flex-1 text-xs font-medium py-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400">SSR</button>
+</div>
+</div>
+</div>
+<div class="col-span-2">
+<label class="block text-xs font-semibold text-slate-400 uppercase mb-1.5">Internal Description</label>
+<textarea class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none resize-none" rows="3">Standard 3-column feature section for product showcase pages.</textarea>
+</div>
+</div>
+<div class="mt-10 pt-8 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
+<button class="px-6 py-2 rounded-lg text-sm font-semibold border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Discard Changes</button>
+<button class="px-6 py-2 rounded-lg text-sm font-semibold bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all">Save Changes</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

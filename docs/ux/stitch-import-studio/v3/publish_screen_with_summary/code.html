@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LMNAs Studio - Publish Center</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1162d4",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101822",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased">
+<div class="flex h-screen overflow-hidden">
+<!-- Sidebar -->
+<aside class="w-64 flex-shrink-0 flex flex-col bg-slate-50 dark:bg-slate-900/50 border-r border-slate-200 dark:border-slate-800">
+<div class="p-6 flex items-center gap-3">
+<div class="size-10 rounded-lg bg-primary flex items-center justify-center text-white">
+<span class="material-symbols-outlined">auto_awesome_motion</span>
+</div>
+<div>
+<h1 class="text-sm font-bold tracking-tight">LMNAs Studio</h1>
+<p class="text-xs text-slate-500 dark:text-slate-400">Premium B2B SaaS</p>
+</div>
+</div>
+<nav class="flex-1 px-4 space-y-1 overflow-y-auto mt-4">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">system_update_alt</span>
+<span class="text-sm font-medium">Import</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">widgets</span>
+<span class="text-sm font-medium">Blocks</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">description</span>
+<span class="text-sm font-medium">Pages</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">extension</span>
+<span class="text-sm font-medium">Widgets</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">palette</span>
+<span class="text-sm font-medium">Theme &amp; Shell</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">rocket_launch</span>
+<span class="text-sm font-semibold">Publish</span>
+</a>
+</nav>
+<div class="p-4 mt-auto border-t border-slate-200 dark:border-slate-800">
+<button class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white text-sm font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-[18px]">upgrade</span>
+<span>Upgrade Plan</span>
+</button>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col overflow-hidden">
+<!-- Header -->
+<header class="h-16 flex items-center justify-between px-8 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark/80 backdrop-blur-md">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary">cloud_upload</span>
+<h2 class="text-lg font-bold tracking-tight">Publish Center</h2>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700">
+<button class="size-7 flex items-center justify-center rounded-full bg-white dark:bg-transparent text-slate-900 dark:text-slate-400 shadow-sm">
+<span class="material-symbols-outlined text-sm">light_mode</span>
+</button>
+<button class="size-7 flex items-center justify-center rounded-full bg-transparent dark:bg-slate-900 text-slate-400 dark:text-primary shadow-none">
+<span class="material-symbols-outlined text-sm">dark_mode</span>
+</button>
+</div><div class="flex -space-x-2">
+<div class="size-8 rounded-full border-2 border-background-dark bg-slate-500" data-alt="User avatar 1"></div>
+<div class="size-8 rounded-full border-2 border-background-dark bg-slate-400" data-alt="User avatar 2"></div>
+</div>
+<div class="flex items-center gap-3 bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700"><div class="flex items-center gap-2 px-2"><span class="text-[10px] font-bold uppercase tracking-tighter text-slate-500">Safety Lock</span><div class="relative inline-flex items-center cursor-pointer"><input class="sr-only peer" id="publish-safety" type="checkbox" value=""/><div class="w-9 h-5 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div></div></div><button class="px-6 py-2 bg-primary text-white text-sm font-black rounded-lg hover:shadow-xl hover:shadow-primary/40 transition-all active:scale-95 flex items-center gap-2 group"><span class="material-symbols-outlined text-sm group-hover:rotate-12 transition-transform">rocket_launch</span><span>PUBLISH LIVE</span></button></div>
+</div>
+</header>
+<!-- Content Area -->
+<div class="flex-1 overflow-y-auto p-8 space-y-8 max-w-7xl mx-auto w-full pt-4">
+<!-- Summary Header -->
+<div class="space-y-2">
+<h3 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Review your changes</h3>
+<p class="text-slate-500 dark:text-slate-400 text-lg">You have 4 pending changes ready for production deployment.</p>
+</div>
+<!-- Ready State Alert -->
+<div class="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-center gap-4">
+<div class="size-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">check_circle</span>
+</div>
+<div>
+<h4 class="text-sm font-semibold text-primary">Ready to Publish</h4>
+<p class="text-sm text-slate-500 dark:text-slate-400">All checks passed. Your changes are optimized and ready for the edge network.</p>
+</div>
+<div class="ml-auto px-3 py-1 bg-primary/10 rounded-full text-[10px] font-bold uppercase tracking-wider text-primary">
+                    Validated
+                </div>
+</div><div class="grid grid-cols-1 lg:grid-cols-3 gap-6"><div class="lg:col-span-3 bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-6"><div class="flex items-center justify-between mb-6"><h4 class="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Validation Checklist</h4><span class="text-xs font-semibold text-emerald-500 flex items-center gap-1.5"><span class="size-2 rounded-full bg-emerald-500"></span> SYSTEM CLEAR</span></div><div class="grid grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-12"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-500">check_circle</span><div><p class="text-xs font-bold">Preview valid</p><p class="text-[10px] text-slate-500">Viewport tests passed</p></div></div><div class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-500">check_circle</span><div><p class="text-xs font-bold">Schema valid</p><p class="text-[10px] text-slate-500">JSON-LD structured data</p></div></div><div class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-500">check_circle</span><div><p class="text-xs font-bold">Product mapped</p><p class="text-[10px] text-slate-500">SKU inventory synced</p></div></div><div class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-500">check_circle</span><div><p class="text-xs font-bold">Primary CTA set</p><p class="text-[10px] text-slate-500">Lead capture active</p></div></div><div class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-500">check_circle</span><div><p class="text-xs font-bold">Conversion config</p><p class="text-[10px] text-slate-500">GTM &amp; Pixel verified</p></div></div><div class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-500">check_circle</span><div><p class="text-xs font-bold">SEO valid</p><p class="text-[10px] text-slate-500">Meta tags &amp; Sitemap</p></div></div></div></div></div>
+<!-- Comparison View -->
+<div class="space-y-8 pt-4">
+<!-- Hero Version Preview -->
+<div class="space-y-4">
+<div class="flex items-center justify-between">
+<h4 class="text-sm font-bold uppercase tracking-widest text-slate-500">Version Preview</h4>
+<div class="flex gap-4">
+<span class="text-[10px] font-medium text-slate-400 flex items-center gap-1"><span class="size-2 rounded-full bg-slate-400"></span> Production</span>
+<span class="text-[10px] font-medium text-primary flex items-center gap-1"><span class="size-2 rounded-full bg-primary animate-pulse"></span> Staging</span>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8 min-h-[500px]">
+<!-- Live Version (Hero Style) -->
+<div class="flex flex-col rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-50 dark:bg-slate-950/50 shadow-sm">
+<div class="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-slate-400">public</span>
+<span class="text-xs font-bold uppercase text-slate-500 tracking-wider">Live Production</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 text-[10px] font-bold">ONLINE</span>
+</div>
+<div class="flex-1 p-8 flex flex-col gap-6 opacity-40 grayscale">
+<div class="w-full h-40 rounded-xl bg-slate-200 dark:bg-slate-800"></div>
+<div class="space-y-3">
+<div class="h-4 w-3/4 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
+<div class="h-4 w-1/2 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
+</div>
+<div class="grid grid-cols-3 gap-4 mt-auto">
+<div class="h-24 rounded-lg bg-slate-200 dark:bg-slate-800"></div>
+<div class="h-24 rounded-lg bg-slate-200 dark:bg-slate-800"></div>
+<div class="h-24 rounded-lg bg-slate-200 dark:bg-slate-800"></div>
+</div>
+</div>
+</div>
+<!-- Draft Version (Hero Style) -->
+<div class="flex flex-col rounded-2xl border-2 border-primary overflow-hidden bg-white dark:bg-slate-900 shadow-2xl shadow-primary/20">
+<div class="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-primary/5">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-primary">science</span>
+<span class="text-xs font-bold uppercase text-primary tracking-wider">Draft Staging</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-bold">READY</span>
+</div>
+<div class="flex-1 p-8 flex flex-col gap-6">
+<div class="w-full h-40 rounded-xl bg-gradient-to-br from-primary/10 to-primary/30 flex items-center justify-center border border-primary/20">
+<span class="material-symbols-outlined text-6xl text-primary/30">image</span>
+</div>
+<div class="space-y-3">
+<div class="h-4 w-3/4 bg-primary/20 rounded-full"></div>
+<div class="h-4 w-2/3 bg-slate-100 dark:bg-slate-800 rounded-full"></div>
+</div>
+<div class="grid grid-cols-3 gap-4 mt-auto">
+<div class="h-24 rounded-lg bg-blue-500/5 border border-blue-500/10"></div>
+<div class="h-24 rounded-lg bg-blue-500/5 border border-blue-500/10"></div>
+<div class="h-24 rounded-lg bg-emerald-500/5 border border-emerald-500/10"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Summary of Changes -->
+<div class="space-y-4">
+<div class="flex items-center justify-between">
+<h4 class="text-sm font-bold uppercase tracking-widest text-slate-500">Summary of Changes</h4>
+<span class="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-[10px] font-bold text-slate-500">4 PENDING ITEMS</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+<!-- Change Item: Added -->
+<div class="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-4 rounded-xl flex flex-col gap-3 hover:border-emerald-500/50 transition-all group">
+<div class="flex justify-between items-start">
+<div class="size-10 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">add_circle</span>
+</div>
+<span class="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded uppercase">Added</span>
+</div>
+<div>
+<p class="text-sm font-bold">New Page: Features</p>
+<p class="text-xs text-slate-500 truncate">/marketing/features</p>
+</div>
+</div>
+<!-- Change Item: Modified -->
+<div class="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-4 rounded-xl flex flex-col gap-3 hover:border-blue-500/50 transition-all group">
+<div class="flex justify-between items-start">
+<div class="size-10 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:bg-blue-500 group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">published_with_changes</span>
+</div>
+<span class="text-[10px] font-bold text-blue-500 bg-blue-500/10 px-1.5 py-0.5 rounded uppercase">Modified</span>
+</div>
+<div>
+<p class="text-sm font-bold">Updated 2 blocks</p>
+<p class="text-xs text-slate-500 truncate">Hero &amp; Pricing</p>
+</div>
+</div>
+<!-- Change Item: Modified -->
+<div class="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-4 rounded-xl flex flex-col gap-3 hover:border-purple-500/50 transition-all group">
+<div class="flex justify-between items-start">
+<div class="size-10 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center group-hover:bg-purple-500 group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">widgets</span>
+</div>
+<span class="text-[10px] font-bold text-purple-500 bg-purple-500/10 px-1.5 py-0.5 rounded uppercase">Modified</span>
+</div>
+<div>
+<p class="text-sm font-bold">Global Widget</p>
+<p class="text-xs text-slate-500 truncate">Header Navigation</p>
+</div>
+</div>
+<!-- Change Item: Deleted -->
+<div class="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-4 rounded-xl flex flex-col gap-3 hover:border-rose-500/50 transition-all group opacity-70">
+<div class="flex justify-between items-start">
+<div class="size-10 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center group-hover:bg-rose-500 group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">delete_forever</span>
+</div>
+<span class="text-[10px] font-bold text-rose-500 bg-rose-500/10 px-1.5 py-0.5 rounded uppercase">Deleted</span>
+</div>
+<div>
+<p class="text-sm font-bold">Sandbox Page</p>
+<p class="text-xs text-slate-500 truncate">/temp directory</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Deployment Settings Card -->
+<div class="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden">
+<div class="p-6 border-b border-slate-200 dark:border-slate-800">
+<h4 class="text-sm font-bold uppercase tracking-widest text-slate-500">Deployment Config</h4>
+</div>
+<div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
+<div class="space-y-3">
+<label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Environment</label>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">dns</span>
+<div>
+<p class="text-sm font-bold">Production Edge</p>
+<p class="text-xs text-slate-500">Global Distribution</p>
+</div>
+</div>
+</div>
+<div class="space-y-3">
+<label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Deployment Note</label>
+<input class="w-full bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-lg text-sm px-4 py-2 focus:ring-primary focus:border-primary" placeholder="e.g. Q4 Marketing Updates" type="text"/>
+</div>
+<div class="space-y-3">
+<label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Auto-Backup</label>
+<div class="flex items-center gap-3">
+<div class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-200 dark:bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</div>
+<span class="text-sm font-medium">Create rollback point</span>
+</div>
+</div>
+</div>
+</div><!-- Summary of Changes -->
+<div class="space-y-4 mt-8">
+<div class="flex items-center justify-between">
+<h4 class="text-sm font-bold uppercase tracking-widest text-slate-500">Summary of Changes</h4>
+<span class="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-[10px] font-bold text-slate-500">4 PENDING ITEMS</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+<!-- Change Item: Added -->
+<div class="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-4 rounded-xl flex flex-col gap-3 hover:border-emerald-500/50 transition-all group">
+<div class="flex justify-between items-start">
+<div class="size-10 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">add_circle</span>
+</div>
+<span class="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded uppercase">Added</span>
+</div>
+<div>
+<p class="text-sm font-bold">New Page: Features</p>
+<p class="text-xs text-slate-500 truncate">/marketing/features</p>
+</div>
+</div>
+<!-- Change Item: Modified -->
+<div class="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-4 rounded-xl flex flex-col gap-3 hover:border-blue-500/50 transition-all group">
+<div class="flex justify-between items-start">
+<div class="size-10 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:bg-blue-500 group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">published_with_changes</span>
+</div>
+<span class="text-[10px] font-bold text-blue-500 bg-blue-500/10 px-1.5 py-0.5 rounded uppercase">Modified</span>
+</div>
+<div>
+<p class="text-sm font-bold">Updated 2 blocks</p>
+<p class="text-xs text-slate-500 truncate">Hero &amp; Pricing</p>
+</div>
+</div>
+<!-- Change Item: Modified -->
+<div class="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-4 rounded-xl flex flex-col gap-3 hover:border-purple-500/50 transition-all group">
+<div class="flex justify-between items-start">
+<div class="size-10 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center group-hover:bg-purple-500 group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">widgets</span>
+</div>
+<span class="text-[10px] font-bold text-purple-500 bg-purple-500/10 px-1.5 py-0.5 rounded uppercase">Modified</span>
+</div>
+<div>
+<p class="text-sm font-bold">Global Widget</p>
+<p class="text-xs text-slate-500 truncate">Header Navigation</p>
+</div>
+</div>
+<!-- Change Item: Deleted -->
+<div class="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-4 rounded-xl flex flex-col gap-3 hover:border-rose-500/50 transition-all group opacity-70">
+<div class="flex justify-between items-start">
+<div class="size-10 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center group-hover:bg-rose-500 group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">delete_forever</span>
+</div>
+<span class="text-[10px] font-bold text-rose-500 bg-rose-500/10 px-1.5 py-0.5 rounded uppercase">Deleted</span>
+</div>
+<div>
+<p class="text-sm font-bold">Sandbox Page</p>
+<p class="text-xs text-slate-500 truncate">/temp directory</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

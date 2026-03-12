@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LMNAs Studio - Import Content</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1162d4",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101822",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .active-tab {
+            border-bottom: 2px solid #1162d4;
+            color: #1162d4;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+<div class="flex h-screen overflow-hidden">
+<!-- Sidebar Navigation -->
+<aside class="w-64 flex-shrink-0 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between p-4">
+<div class="flex flex-col gap-6">
+<div class="flex items-center gap-3 px-2">
+<div class="w-8 h-8 rounded bg-primary flex items-center justify-center text-white">
+<span class="material-symbols-outlined">auto_awesome</span>
+</div>
+<h1 class="text-lg font-bold tracking-tight">LMNAs Studio</h1>
+</div>
+<nav class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary font-medium" href="#">
+<span class="material-symbols-outlined text-[20px]">download</span>
+<span class="text-sm">Import</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">grid_view</span>
+<span class="text-sm">Blocks</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">description</span>
+<span class="text-sm">Pages</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">extension</span>
+<span class="text-sm">Widgets</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">palette</span>
+<span class="text-sm">Theme &amp; Shell</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">send</span>
+<span class="text-sm">Publish</span>
+</a>
+</nav>
+</div>
+<div class="mt-auto">
+<button class="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-all">
+<span class="material-symbols-outlined text-[18px]">workspace_premium</span>
+                    Upgrade to Pro
+                </button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col overflow-hidden">
+<!-- Header -->
+<header class="h-16 flex items-center justify-between px-8 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
+<div class="flex flex-col">
+<h2 class="text-lg font-bold leading-tight">Import Content</h2>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full">
+<span class="w-2 h-2 rounded-full bg-green-500"></span>
+                        Ready to process
+                    </div>
+<div class="flex items-center gap-2 mr-2 border-r border-slate-200 dark:border-slate-800 pr-4">
+<button class="w-5 h-5 rounded-full bg-blue-600 border-2 border-white dark:border-slate-900 ring-2 ring-blue-600 shadow-sm"></button>
+<button class="w-5 h-5 rounded-full bg-purple-600 border-2 border-transparent hover:border-white dark:hover:border-slate-900 transition-all"></button>
+<button class="w-5 h-5 rounded-full bg-emerald-600 border-2 border-transparent hover:border-white dark:hover:border-slate-900 transition-all"></button>
+<button class="w-5 h-5 rounded-full bg-amber-600 border-2 border-transparent hover:border-white dark:hover:border-slate-900 transition-all"></button>
+</div><button class="px-5 py-2 bg-primary text-white text-sm font-bold rounded-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">Process Source</button>
+</div>
+</header>
+<div class="px-8 pt-4 pb-2">
+<p class="text-sm text-slate-600 dark:text-slate-400">Import from Figma, URL, or HTML to propose reusable blocks.</p>
+</div>
+<!-- Dashboard Body -->
+<div class="flex-1 flex overflow-hidden p-6 gap-6">
+<!-- Left Panel: Source Selection -->
+<section class="w-[380px] flex flex-col gap-4 overflow-y-auto">
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden flex flex-col">
+<div class="flex border-b border-slate-200 dark:border-slate-800">
+<button class="flex-1 py-3 text-xs font-bold uppercase tracking-wider text-primary border-b-2 border-primary">Figma</button>
+<button class="flex-1 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">URL</button>
+<button class="flex-1 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">HTML</button>
+</div>
+<div class="p-5 flex flex-col gap-5">
+<div class="flex flex-col gap-2">
+<label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Figma File URL</label>
+<input class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" placeholder="https://figma.com/file/..." type="text"/>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Personal Access Token</label>
+<input class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" placeholder="Enter your token" type="password"/>
+</div>
+<div class="p-3 bg-primary/5 rounded-lg border border-primary/10">
+<div class="flex gap-3">
+<span class="material-symbols-outlined text-primary text-[20px]">info</span>
+<p class="text-xs leading-relaxed text-slate-600 dark:text-slate-400">Our engine will automatically identify patterns, typography, and reusable layout structures from your frames.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+<h3 class="text-sm font-bold mb-3">Extraction Settings</h3>
+<div class="flex flex-col gap-3">
+<label class="flex items-center justify-between cursor-pointer">
+<span class="text-xs text-slate-600 dark:text-slate-400">Deep scanning</span>
+<input checked="" class="rounded text-primary focus:ring-primary/20 bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700" type="checkbox"/>
+</label>
+<label class="flex items-center justify-between cursor-pointer">
+<span class="text-xs text-slate-600 dark:text-slate-400">Extract assets</span>
+<input checked="" class="rounded text-primary focus:ring-primary/20 bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700" type="checkbox"/>
+</label>
+<label class="flex items-center justify-between cursor-pointer">
+<span class="text-xs text-slate-600 dark:text-slate-400">Smart naming</span>
+<input checked="" class="rounded text-primary focus:ring-primary/20 bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700" type="checkbox"/>
+</label>
+</div>
+</div><div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 mt-4">
+<h3 class="text-sm font-bold mb-4">Target Configuration</h3>
+<div class="flex flex-col gap-4">
+<div class="flex flex-col gap-1.5">
+<label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Target Theme</label>
+<select class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 outline-none">
+<option>Modern Dark (Default)</option>
+<option>Corporate Light</option>
+<option>High Contrast</option>
+</select>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Target Shell</label>
+<select class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 outline-none">
+<option>Dashboard Layout</option>
+<option>Landing Page Shell</option>
+<option>Blank Canvas</option>
+</select>
+</div>
+<div class="flex flex-col gap-1.5 mt-2">
+<label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Import Mode</label>
+<div class="flex p-1 bg-slate-100 dark:bg-slate-950 rounded-lg">
+<button class="flex-1 py-1.5 text-[10px] font-bold rounded-md bg-white dark:bg-slate-800 shadow-sm text-primary">AS PAGE</button>
+<button class="flex-1 py-1.5 text-[10px] font-bold rounded-md text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">AS BLOCKS</button>
+</div>
+</div>
+</div>
+</div><div class="bg-primary/10 border border-primary/20 rounded-xl p-5 mt-4">
+<h3 class="text-sm font-bold text-primary mb-3">Import Summary</h3>
+<div class="flex flex-col gap-2.5">
+<div class="flex justify-between items-center">
+<span class="text-xs text-slate-600 dark:text-slate-400">Blocks Detected</span>
+<span class="text-xs font-bold">12</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-xs text-slate-600 dark:text-slate-400">Ready to Import</span>
+<span class="text-xs font-bold text-green-500">0</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-xs text-slate-600 dark:text-slate-400">Estimated Fidelity</span>
+<span class="text-xs font-bold">High (88%)</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Center/Right Panel: Proposed Blocks Grid -->
+<section class="flex-1 overflow-y-auto">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-2">
+<h3 class="text-sm font-bold uppercase tracking-widest text-slate-500">Proposed Blocks</h3>
+<span class="bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded text-[10px] font-bold">12 DETECTED</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="text-xs font-medium text-slate-500 hover:text-primary transition-colors px-2 py-1">Accept All</button>
+<div class="w-[1px] h-3 bg-slate-300 dark:bg-slate-700"></div>
+<button class="text-xs font-medium text-slate-500 hover:text-red-500 transition-colors px-2 py-1">Discard All</button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+<!-- Block Card 1 -->
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden group hover:border-primary/40 transition-all flex flex-col shadow-sm">
+<div class="bg-slate-100 dark:bg-slate-950 relative overflow-hidden h-48">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent" data-alt="Abstract gradient representation of a hero section"></div>
+<div class="absolute inset-x-4 top-8 h-4 bg-slate-200 dark:bg-slate-800 rounded w-2/3 opacity-50"></div>
+<div class="absolute inset-x-4 top-14 h-3 bg-slate-200 dark:bg-slate-800 rounded w-1/2 opacity-30"></div>
+<div class="absolute bottom-3 left-4 h-6 w-16 bg-primary/20 rounded opacity-60"></div>
+<div class="absolute top-2 right-2 px-1.5 py-0.5 bg-green-500/10 text-green-500 text-[10px] font-bold rounded border border-green-500/20">98% Fidelity</div>
+</div>
+<div class="p-4 flex flex-col gap-3">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<input class="text-sm font-bold bg-transparent border-none p-0 focus:ring-0 w-full focus:text-primary transition-colors" type="text" value="Hero Section"/>
+<span class="text-[10px] text-slate-500 uppercase font-medium">Layout Component</span>
+</div>
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+</div>
+<div class="flex items-center gap-2 mt-2">
+<button class="flex-1 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-primary hover:text-white rounded text-[11px] font-bold transition-all uppercase tracking-wider">Accept</button>
+<button class="px-2 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-red-500 hover:text-white rounded transition-all">
+<span class="material-symbols-outlined text-[16px] block">delete</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Block Card 2 -->
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden group hover:border-primary/40 transition-all flex flex-col shadow-sm">
+<div class="bg-slate-100 dark:bg-slate-950 relative overflow-hidden h-48">
+<div class="absolute inset-0 bg-gradient-to-tr from-indigo-500/5 to-transparent" data-alt="Abstract grid pattern representing a feature block"></div>
+<div class="grid grid-cols-3 gap-2 p-4">
+<div class="h-12 bg-slate-200 dark:bg-slate-800 rounded opacity-40"></div>
+<div class="h-12 bg-slate-200 dark:bg-slate-800 rounded opacity-40"></div>
+<div class="h-12 bg-slate-200 dark:bg-slate-800 rounded opacity-40"></div>
+</div>
+<div class="absolute top-2 right-2 px-1.5 py-0.5 bg-green-500/10 text-green-500 text-[10px] font-bold rounded border border-green-500/20">98% Fidelity</div>
+</div>
+<div class="p-4 flex flex-col gap-3">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<input class="text-sm font-bold bg-transparent border-none p-0 focus:ring-0 w-full focus:text-primary transition-colors" type="text" value="Feature Grid"/>
+<span class="text-[10px] text-slate-500 uppercase font-medium">Grid Layout</span>
+</div>
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+</div>
+<div class="flex items-center gap-2 mt-2">
+<button class="flex-1 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-primary hover:text-white rounded text-[11px] font-bold transition-all uppercase tracking-wider">Accept</button>
+<button class="px-2 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-red-500 hover:text-white rounded transition-all">
+<span class="material-symbols-outlined text-[16px] block">delete</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Block Card 3 -->
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden group hover:border-primary/40 transition-all flex flex-col shadow-sm">
+<div class="bg-slate-100 dark:bg-slate-950 relative overflow-hidden h-48">
+<div class="absolute inset-0 bg-gradient-to-bl from-amber-500/5 to-transparent" data-alt="Abstract form layout representation"></div>
+<div class="flex flex-col gap-2 p-4 w-2/3">
+<div class="h-3 bg-slate-200 dark:bg-slate-800 rounded opacity-40"></div>
+<div class="h-3 bg-slate-200 dark:bg-slate-800 rounded opacity-40"></div>
+<div class="h-3 bg-slate-200 dark:bg-slate-800 rounded opacity-40 w-1/2"></div>
+</div>
+<div class="absolute top-2 right-2 px-1.5 py-0.5 bg-amber-500/10 text-amber-500 text-[10px] font-bold rounded border border-amber-500/20">74% Fidelity</div>
+</div>
+<div class="p-4 flex flex-col gap-3">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<input class="text-sm font-bold bg-transparent border-none p-0 focus:ring-0 w-full focus:text-primary transition-colors" type="text" value="Contact Form"/>
+<span class="text-[10px] text-slate-500 uppercase font-medium">Input Group</span>
+</div>
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+</div>
+<div class="flex items-center gap-2 mt-2">
+<button class="flex-1 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-primary hover:text-white rounded text-[11px] font-bold transition-all uppercase tracking-wider">Accept</button>
+<button class="px-2 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-red-500 hover:text-white rounded transition-all">
+<span class="material-symbols-outlined text-[16px] block">delete</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Block Card 4 -->
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden group hover:border-primary/40 transition-all flex flex-col shadow-sm">
+<div class="bg-slate-100 dark:bg-slate-950 relative overflow-hidden h-48">
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300 dark:text-slate-800 text-[48px]">image</span>
+</div>
+<div class="absolute top-2 right-2 px-1.5 py-0.5 bg-green-500/10 text-green-500 text-[10px] font-bold rounded border border-green-500/20">98% Fidelity</div>
+</div>
+<div class="p-4 flex flex-col gap-3">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<input class="text-sm font-bold bg-transparent border-none p-0 focus:ring-0 w-full focus:text-primary transition-colors" type="text" value="Image Gallery"/>
+<span class="text-[10px] text-slate-500 uppercase font-medium">Media Component</span>
+</div>
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+</div>
+<div class="flex items-center gap-2 mt-2">
+<button class="flex-1 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-primary hover:text-white rounded text-[11px] font-bold transition-all uppercase tracking-wider">Accept</button>
+<button class="px-2 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-red-500 hover:text-white rounded transition-all">
+<span class="material-symbols-outlined text-[16px] block">delete</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Block Card 5 -->
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden group hover:border-primary/40 transition-all flex flex-col shadow-sm opacity-60">
+<div class="bg-slate-100 dark:bg-slate-950 relative overflow-hidden h-48">
+<div class="absolute inset-x-4 bottom-4 h-8 bg-slate-200 dark:bg-slate-800 rounded-full opacity-40"></div>
+<div class="absolute top-2 right-2 px-1.5 py-0.5 bg-slate-500/10 text-slate-500 text-[10px] font-bold rounded border border-slate-500/20">42% Fidelity</div>
+</div>
+<div class="p-4 flex flex-col gap-3">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<input class="text-sm font-bold bg-transparent border-none p-0 focus:ring-0 w-full focus:text-primary transition-colors" type="text" value="Footer Nav"/>
+<span class="text-[10px] text-slate-500 uppercase font-medium">Navigation</span>
+</div>
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+</div>
+<div class="flex items-center gap-2 mt-2">
+<button class="flex-1 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-primary hover:text-white rounded text-[11px] font-bold transition-all uppercase tracking-wider">Accept</button>
+<button class="px-2 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-red-500 hover:text-white rounded transition-all">
+<span class="material-symbols-outlined text-[16px] block">delete</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Add New Block Trigger -->
+<button class="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl flex flex-col items-center justify-center p-8 text-slate-400 hover:border-primary hover:text-primary transition-all group min-h-[300px]">
+<span class="material-symbols-outlined text-[32px] mb-2 group-hover:scale-110 transition-transform">add_circle</span>
+<span class="text-sm font-bold">Custom Block</span>
+</button>
+</div>
+</section>
+</div>
+</main>
+</div>
+</body></html>

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1162d4",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101822",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .grid-bg {
+            background-image: radial-gradient(circle at 1px 1px, rgba(17, 98, 212, 0.1) 1px, transparent 0);
+            background-size: 24px 24px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="relative flex flex-col h-screen overflow-hidden">
+<!-- Header -->
+<header class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-background-light dark:bg-background-dark px-6 py-3 z-20">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3">
+<div class="text-primary flex items-center">
+<span class="material-symbols-outlined text-3xl">view_quilt</span>
+</div>
+<div class="flex flex-col">
+<h2 class="text-slate-900 dark:text-slate-100 text-sm font-bold leading-tight">LMNAs Studio</h2>
+<span class="text-slate-500 text-xs">Page Composer</span>
+</div>
+</div>
+<div class="h-6 w-px bg-slate-200 dark:bg-slate-800"></div>
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm font-medium">
+<span class="material-symbols-outlined text-[20px]">side_navigation</span>
+<span>Show Panels</span>
+</button>
+</div>
+<div class="flex items-center gap-8">
+<!-- Theme Swatches -->
+<div class="flex items-center gap-3">
+<label class="size-6 rounded-full border border-slate-300 dark:border-slate-700 cursor-pointer ring-primary ring-offset-2 ring-offset-background-dark has-[:checked]:ring-2" style="background-color: #ffffff;">
+<input class="hidden" name="theme-swatch" type="radio"/>
+</label>
+<label class="size-6 rounded-full border border-slate-300 dark:border-slate-700 cursor-pointer ring-primary ring-offset-2 ring-offset-background-dark has-[:checked]:ring-2" style="background-color: #1162d4;">
+<input checked="" class="hidden" name="theme-swatch" type="radio"/>
+</label>
+<label class="size-6 rounded-full border border-slate-300 dark:border-slate-700 cursor-pointer ring-primary ring-offset-2 ring-offset-background-dark has-[:checked]:ring-2" style="background-color: #ff3b30;">
+<input class="hidden" name="theme-swatch" type="radio"/>
+</label>
+<label class="size-6 rounded-full border border-slate-300 dark:border-slate-700 cursor-pointer ring-primary ring-offset-2 ring-offset-background-dark has-[:checked]:ring-2" style="background-color: #34c759;">
+<input class="hidden" name="theme-swatch" type="radio"/>
+</label>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
+<span class="material-symbols-outlined">light_mode</span>
+</button>
+<button class="p-2 rounded-lg text-primary bg-primary/10">
+<span class="material-symbols-outlined">dark_mode</span>
+</button>
+<div class="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-2"></div>
+<button class="flex items-center justify-center gap-2 px-4 h-10 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-bold transition-all shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+<span>Preview Page</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Workspace -->
+<main class="flex-1 overflow-auto grid-bg relative">
+<div class="max-w-[1000px] mx-auto py-12 px-6">
+<!-- Canvas Area -->
+<div class="flex flex-col gap-8">
+<!-- Hero Component -->
+<div class="group relative @container">
+<div class="absolute -left-12 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-2">
+<button class="p-2 rounded bg-slate-800 border border-slate-700 text-slate-400 hover:text-white"><span class="material-symbols-outlined text-sm">drag_indicator</span></button>
+<button class="p-2 rounded bg-slate-800 border border-slate-700 text-slate-400 hover:text-white"><span class="material-symbols-outlined text-sm">settings</span></button>
+</div>
+<div class="relative overflow-hidden rounded-xl border-2 border-transparent group-hover:border-primary/50 transition-all">
+<div class="min-h-[480px] flex flex-col gap-8 items-center justify-center p-8 text-center bg-slate-900 relative" data-alt="Abstract dark blue and black geometric pattern backdrop" style='background-image: linear-gradient(to bottom, rgba(16, 24, 34, 0.7), rgba(16, 24, 34, 0.9)), url("https://lh3.googleusercontent.com/aida-public/AB6AXuBZVk_Kwervum7ayxSAJpqkRlllc-eeDpx4X2AUgzK54Im-l1AemA7zuYDrvfeBiLxQ6Z3U3ZjnHw8msQ0FNfa0jTD0j4tpCl5uf1PVI3cbRluxUTkZem9Th6m_wwhXH98W4c5jMxaIXeiNlzpNDOlevH1fUppazzRaX9yeckjWT9FZ80sLQmHOGoE2i5vAjUWl7papXRO7x5v6OgqwUBgOdAT3I8Kf94OQtB_ayK11o1uPLL37joxnkhxnA2MOImFit9cx_V5SrZs"); background-size: cover; background-position: center;'>
+<div class="max-w-2xl space-y-4">
+<h1 class="text-white text-5xl font-black leading-tight tracking-tight @[480px]:text-6xl">
+                                        Scale your business
+                                    </h1>
+<p class="text-slate-300 text-lg font-medium leading-relaxed max-w-xl mx-auto">
+                                        The ultimate platform for modern creators and studios to build their digital presence with zero friction.
+                                    </p>
+</div>
+<button class="h-12 px-8 rounded-full bg-primary text-white text-base font-bold hover:scale-105 transition-transform shadow-xl shadow-primary/40">
+                                    Get Started
+                                </button>
+</div>
+</div>
+</div>
+<!-- Features Component -->
+<div class="group relative @container">
+<div class="absolute -left-12 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-2">
+<button class="p-2 rounded bg-slate-800 border border-slate-700 text-slate-400 hover:text-white"><span class="material-symbols-outlined text-sm">drag_indicator</span></button>
+<button class="p-2 rounded bg-slate-800 border border-slate-700 text-slate-400 hover:text-white"><span class="material-symbols-outlined text-sm">settings</span></button>
+</div>
+<div class="rounded-xl border-2 border-transparent group-hover:border-primary/50 bg-slate-900/50 backdrop-blur-sm p-10 transition-all">
+<div class="mb-10 space-y-2">
+<h2 class="text-3xl font-bold tracking-tight">Powerful Features</h2>
+<p class="text-slate-400">Everything you need to ship your ideas faster and reach more people.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="flex flex-col gap-4 p-6 rounded-xl border border-slate-800 bg-slate-900/80 hover:border-primary/30 transition-colors">
+<div class="size-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">ads_click</span>
+</div>
+<div class="space-y-1">
+<h3 class="font-bold text-lg">Visual Editor</h3>
+<p class="text-slate-400 text-sm leading-normal">Drag and drop components with intuitive controls.</p>
+</div>
+</div>
+<div class="flex flex-col gap-4 p-6 rounded-xl border border-slate-800 bg-slate-900/80 hover:border-primary/30 transition-colors">
+<div class="size-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">palette</span>
+</div>
+<div class="space-y-1">
+<h3 class="font-bold text-lg">Custom Themes</h3>
+<p class="text-slate-400 text-sm leading-normal">Switch between high-end professional themes instantly.</p>
+</div>
+</div>
+<div class="flex flex-col gap-4 p-6 rounded-xl border border-slate-800 bg-slate-900/80 hover:border-primary/30 transition-colors">
+<div class="size-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">bolt</span>
+</div>
+<div class="space-y-1">
+<h3 class="font-bold text-lg">Fast Performance</h3>
+<p class="text-slate-400 text-sm leading-normal">Optimized for extreme speed and global SEO ranking.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Add Section Placeholder -->
+<div class="flex items-center justify-center py-12 border-2 border-dashed border-slate-800 rounded-xl hover:border-primary/40 hover:bg-primary/5 cursor-pointer transition-all group">
+<div class="flex items-center gap-3 text-slate-500 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined">add_circle</span>
+<span class="font-bold">Add New Section</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Floating Tool Bar -->
+<div class="absolute bottom-8 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-md border border-slate-700 shadow-2xl rounded-2xl px-4 py-3 flex items-center gap-2 z-30">
+<button class="p-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition-all flex flex-col items-center gap-1 group">
+<span class="material-symbols-outlined">add</span>
+<span class="text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Add</span>
+</button>
+<div class="w-px h-8 bg-slate-700 mx-1"></div>
+<button class="p-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition-all flex flex-col items-center gap-1 group">
+<span class="material-symbols-outlined">layers</span>
+<span class="text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Layers</span>
+</button>
+<button class="p-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition-all flex flex-col items-center gap-1 group">
+<span class="material-symbols-outlined">title</span>
+<span class="text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Text</span>
+</button>
+<button class="p-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition-all flex flex-col items-center gap-1 group">
+<span class="material-symbols-outlined">image</span>
+<span class="text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Media</span>
+</button>
+<div class="w-px h-8 bg-slate-700 mx-1"></div>
+<button class="p-3 rounded-xl bg-primary text-white hover:scale-105 transition-all shadow-lg shadow-primary/30 flex flex-col items-center gap-1">
+<span class="material-symbols-outlined">rocket_launch</span>
+<span class="text-[10px] font-bold uppercase tracking-widest">Publish</span>
+</button>
+</div>
+<!-- Zoom Control -->
+<div class="absolute bottom-8 right-8 bg-slate-900/90 backdrop-blur-md border border-slate-700 shadow-xl rounded-xl p-1 flex items-center gap-2 z-30">
+<button class="p-2 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg"><span class="material-symbols-outlined">remove</span></button>
+<span class="text-sm font-bold w-12 text-center text-slate-200">100%</span>
+<button class="p-2 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg"><span class="material-symbols-outlined">add</span></button>
+</div>
+</div>
+</body></html>
