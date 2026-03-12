@@ -46,19 +46,19 @@ export async function collectWidgetStrapiProbeSnapshot(): Promise<StudioWidgetSt
   let shells: number | null = null;
 
   try {
-    pages = await fetchEntityTotal("/api/pages?pagination[pageSize]=1");
+    pages = await fetchEntityTotal("/api/studio-pages?pagination[pageSize]=1");
   } catch (error) {
     warnings.push(`pages_probe_failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   try {
-    blocks = await fetchEntityTotal("/api/block-templates?pagination[pageSize]=1");
+    blocks = await fetchEntityTotal("/api/studio-blocks?pagination[pageSize]=1");
   } catch (error) {
     warnings.push(`blocks_probe_failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   try {
-    shells = await fetchEntityTotal("/api/shell-variants?pagination[pageSize]=1");
+    shells = await fetchEntityTotal("/api/studio-shells?pagination[pageSize]=1");
   } catch (error) {
     warnings.push(`shells_probe_failed: ${error instanceof Error ? error.message : String(error)}`);
   }

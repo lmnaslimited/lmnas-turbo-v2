@@ -8,6 +8,8 @@ export type StudioShellStatus = "active" | "inactive";
 
 export type StudioFidelityMode = "allow-below-threshold" | "disallow-below-threshold";
 
+export type StudioEntityLifecycle = "draft" | "published" | "archived";
+
 export type StudioActionType =
   | "link_url"
   | "scroll_to_section"
@@ -118,6 +120,9 @@ export interface StudioBlockTemplate {
   name: string;
   family: string;
   status: "active" | "inactive" | "draft";
+  lifecycle?: StudioEntityLifecycle;
+  scope?: "global" | "page-local";
+  schemaStatus?: "valid" | "invalid" | "warning";
   themeKey: string;
   sourceType: string;
   sourceRef: string;
@@ -126,8 +131,40 @@ export interface StudioBlockTemplate {
   actions: StudioBlockTemplateAction[];
   previewHtml: string;
   inUseCount: number;
+  usageCount?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface StudioPrimaryCta {
+  text: string;
+  url: string;
+}
+
+export interface StudioPageConversionConfig {
+  trackConversions: boolean;
+  strategy: string;
+  valuePoints: number;
+}
+
+export interface StudioCampaignUtmStrategy {
+  source: string;
+  medium: string;
+  campaign: string;
+  content?: string;
+  term?: string;
+}
+
+export interface StudioSeoMetadata {
+  metaTitle: string;
+  metaDescription: string;
+  canonicalUrl?: string;
+}
+
+export interface StudioTaxonomyState {
+  valid: boolean;
+  tags: string[];
+  notes?: string;
 }
 
 export interface StudioPageDocument {
@@ -136,6 +173,9 @@ export interface StudioPageDocument {
   slug: string;
   locale: string;
   activeShellId?: string;
+  shellKey?: string;
+  lifecycle?: StudioEntityLifecycle;
+  status?: "draft" | "published";
   blockOrder: string[];
   fieldValues: Record<string, string>;
   actionOverrides: Record<
@@ -148,6 +188,16 @@ export interface StudioPageDocument {
       target: string;
     }
   >;
+  productMapping: string;
+  industryMapping: string[];
+  primaryCta: StudioPrimaryCta;
+  conversionConfig: StudioPageConversionConfig;
+  campaignUtmStrategy: StudioCampaignUtmStrategy;
+  taxonomyState: StudioTaxonomyState;
+  seoMetadata: StudioSeoMetadata;
+  seoJsonLdValid: boolean;
+  blockSchemaValid: boolean;
+  previewValid: boolean;
   previewHtml: string;
   updatedAt: string;
 }
@@ -165,6 +215,8 @@ export interface StudioWidgetRecord {
   widgetType: StudioWidgetType;
   surface: StudioWidgetSurface;
   status: "active" | "inactive";
+  lifecycle?: StudioEntityLifecycle;
+  readiness?: "ready" | "warning" | "blocked";
   repoPath: string;
   description?: string;
   editableFields: string[];

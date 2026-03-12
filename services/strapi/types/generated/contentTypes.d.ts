@@ -683,6 +683,274 @@ export interface ApiShellVariantShellVariant
   };
 }
 
+export interface ApiStudioBlockStudioBlock extends Struct.CollectionTypeSchema {
+  collectionName: 'studio_blocks';
+  info: {
+    displayName: 'Studio Block';
+    pluralName: 'studio-blocks';
+    singularName: 'studio-block';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    actions: Schema.Attribute.JSON;
+    blockKey: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    confidence: Schema.Attribute.Decimal;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    editableFields: Schema.Attribute.JSON;
+    family: Schema.Attribute.String & Schema.Attribute.Required;
+    industryMapping: Schema.Attribute.JSON;
+    lifecycle: Schema.Attribute.Enumeration<
+      ['draft', 'published', 'archived']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'draft'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::studio-block.studio-block'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    previewHtml: Schema.Attribute.Text;
+    productMapping: Schema.Attribute.String;
+    publishedAt: Schema.Attribute.DateTime;
+    schemaStatus: Schema.Attribute.Enumeration<
+      ['valid', 'invalid', 'warning']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'valid'>;
+    scope: Schema.Attribute.Enumeration<['global', 'page-local']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'global'>;
+    sourceRef: Schema.Attribute.String;
+    sourceType: Schema.Attribute.String;
+    status: Schema.Attribute.Enumeration<['active', 'inactive', 'draft']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'active'>;
+    themeKey: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'default'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    usageCount: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+  };
+}
+
+export interface ApiStudioPageStudioPage extends Struct.CollectionTypeSchema {
+  collectionName: 'studio_pages';
+  info: {
+    displayName: 'Studio Page';
+    pluralName: 'studio-pages';
+    singularName: 'studio-page';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    actionOverrides: Schema.Attribute.JSON;
+    activeShellId: Schema.Attribute.String;
+    blockOrder: Schema.Attribute.JSON;
+    blockSchemaValid: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<true>;
+    campaignUtmStrategy: Schema.Attribute.JSON;
+    conversionConfig: Schema.Attribute.JSON;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    fieldValues: Schema.Attribute.JSON;
+    industryMapping: Schema.Attribute.JSON;
+    lifecycle: Schema.Attribute.Enumeration<
+      ['draft', 'published', 'archived']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'draft'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::studio-page.studio-page'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    pageKey: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    previewHtml: Schema.Attribute.Text;
+    previewValid: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    primaryCta: Schema.Attribute.JSON;
+    productMapping: Schema.Attribute.String;
+    publishedAt: Schema.Attribute.DateTime;
+    seoJsonLdValid: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<false>;
+    seoMetadata: Schema.Attribute.JSON;
+    shellKey: Schema.Attribute.String;
+    slug: Schema.Attribute.String & Schema.Attribute.Required;
+    status: Schema.Attribute.Enumeration<['draft', 'published']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'draft'>;
+    taxonomyState: Schema.Attribute.JSON;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiStudioShellStudioShell extends Struct.CollectionTypeSchema {
+  collectionName: 'studio_shells';
+  info: {
+    displayName: 'Studio Shell';
+    pluralName: 'studio-shells';
+    singularName: 'studio-shell';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    actions: Schema.Attribute.JSON;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    footerBlocks: Schema.Attribute.JSON;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::studio-shell.studio-shell'
+    > &
+      Schema.Attribute.Private;
+    menuItems: Schema.Attribute.JSON;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    navbarBlocks: Schema.Attribute.JSON;
+    previewHtml: Schema.Attribute.Text;
+    publishedAt: Schema.Attribute.DateTime;
+    role: Schema.Attribute.Enumeration<['navbar', 'footer', 'full']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'full'>;
+    shellKey: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    status: Schema.Attribute.Enumeration<['active', 'inactive']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'inactive'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiStudioThemeStudioTheme extends Struct.CollectionTypeSchema {
+  collectionName: 'studio_themes';
+  info: {
+    displayName: 'Studio Theme';
+    pluralName: 'studio-themes';
+    singularName: 'studio-theme';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    darkMode: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::studio-theme.studio-theme'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    sourceRef: Schema.Attribute.String;
+    status: Schema.Attribute.Enumeration<['active', 'inactive', 'draft']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'inactive'>;
+    themeDebt: Schema.Attribute.Text;
+    themeKey: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    tokenCoverage: Schema.Attribute.Decimal;
+    tokens: Schema.Attribute.JSON;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiStudioWidgetStudioWidget
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'studio_widgets';
+  info: {
+    displayName: 'Studio Widget';
+    pluralName: 'studio-widgets';
+    singularName: 'studio-widget';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    defaultExitId: Schema.Attribute.String;
+    description: Schema.Attribute.Text;
+    editableFields: Schema.Attribute.JSON;
+    lifecycle: Schema.Attribute.Enumeration<
+      ['draft', 'published', 'archived']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'draft'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::studio-widget.studio-widget'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    placement: Schema.Attribute.JSON;
+    publishedAt: Schema.Attribute.DateTime;
+    readiness: Schema.Attribute.Enumeration<['ready', 'warning', 'blocked']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'ready'>;
+    repoPath: Schema.Attribute.String & Schema.Attribute.Required;
+    status: Schema.Attribute.Enumeration<['active', 'inactive']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'active'>;
+    surface: Schema.Attribute.Enumeration<
+      ['modal', 'drawer', 'inline', 'popup', 'below_fold']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'inline'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    visualMockHtml: Schema.Attribute.Text;
+    widgetKey: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    widgetType: Schema.Attribute.Enumeration<
+      [
+        'modal',
+        'drawer',
+        'embedded_form',
+        'subscription_popup',
+        'booking_popup',
+        'download_gate',
+        'chat_launcher',
+        'inline_expand_collapse',
+        'below_fold_widget',
+      ]
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'modal'>;
+  };
+}
+
 export interface ApiThemeVariantThemeVariant
   extends Struct.CollectionTypeSchema {
   collectionName: 'theme_variants';
@@ -1240,6 +1508,11 @@ declare module '@strapi/strapi' {
       'api::navigation.navigation': ApiNavigationNavigation;
       'api::page.page': ApiPagePage;
       'api::shell-variant.shell-variant': ApiShellVariantShellVariant;
+      'api::studio-block.studio-block': ApiStudioBlockStudioBlock;
+      'api::studio-page.studio-page': ApiStudioPageStudioPage;
+      'api::studio-shell.studio-shell': ApiStudioShellStudioShell;
+      'api::studio-theme.studio-theme': ApiStudioThemeStudioTheme;
+      'api::studio-widget.studio-widget': ApiStudioWidgetStudioWidget;
       'api::theme-variant.theme-variant': ApiThemeVariantThemeVariant;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;

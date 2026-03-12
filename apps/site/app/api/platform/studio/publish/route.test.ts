@@ -93,4 +93,57 @@ describe("studio publish route", () => {
     expect(payload.data.blocked).toBe(true);
     expect(payload.data.warnings.some((warning) => warning.code === "publish.fidelity_hard_block")).toBe(true);
   });
+
+  it("hard blocks publish when governance readiness is incomplete", async () => {
+    const store = getStudioStore();
+    replaceStore({
+      ...store,
+      pages: store.pages.map((page) => ({
+        ...page,
+        productMapping: "",
+        campaignUtmStrategy: {
+          source: "",
+          medium: "",
+          campaign: ""
+        },
+        taxonomyState: {
+          ...page.taxonomyState,
+          valid: false
+        }
+      }))
+    });
+
+    const response = await POST(
+      buildRequest({
+        mode: "apply",
+        sourceHtml: "<main><h1>Hello</h1></main>"
+      })
+    );
+
+    expect(response.status).toBe(200);
+    const payload = (await response.json()) as {
+      ok: boolean;
+      data: {
+        applied: boolean;
+        blocked: boolean;
+        blockedBy?: {
+          fidelity: boolean;
+          governance: boolean;
+        };
+        governance: {
+          ready: boolean;
+          checks: Array<{ id: string; pass: boolean }>;
+        };
+        warnings: Array<{ code: string }>;
+      };
+    };
+
+    expect(payload.ok).toBe(true);
+    expect(payload.data.applied).toBe(false);
+    expect(payload.data.blocked).toBe(true);
+    expect(payload.data.blockedBy?.governance).toBe(true);
+    expect(payload.data.governance.ready).toBe(false);
+    expect(payload.data.governance.checks.some((entry) => entry.id === "product-mapped" && entry.pass === false)).toBe(true);
+    expect(payload.data.warnings.some((warning) => warning.code === "publish.governance_incomplete")).toBe(true);
+  });
 });

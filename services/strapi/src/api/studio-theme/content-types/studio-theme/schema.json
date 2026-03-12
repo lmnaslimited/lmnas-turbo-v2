@@ -1,0 +1,45 @@
+{
+  "kind": "collectionType",
+  "collectionName": "studio_themes",
+  "info": {
+    "singularName": "studio-theme",
+    "pluralName": "studio-themes",
+    "displayName": "Studio Theme"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "themeKey": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["active", "inactive", "draft"],
+      "required": true,
+      "default": "inactive"
+    },
+    "sourceRef": {
+      "type": "string"
+    },
+    "tokenCoverage": {
+      "type": "decimal"
+    },
+    "themeDebt": {
+      "type": "text"
+    },
+    "darkMode": {
+      "type": "boolean",
+      "default": false
+    },
+    "tokens": {
+      "type": "json"
+    }
+  }
+}

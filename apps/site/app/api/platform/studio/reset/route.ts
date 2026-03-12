@@ -1,3 +1,5 @@
+import { loadProjectEnv } from "../../../../lib/env";
+import { resetCanonicalStudioSchema } from "../_lib/canonical-isolation";
 import { isLegacyWipeEnabled, wipeLegacyStudioEntries } from "../_lib/legacy-cleanup";
 import { resetStore } from "../_lib/store";
 import { isStrapiConfigured } from "../_lib/strapi";
@@ -18,21 +20,34 @@ function summarizeFallbackSnapshot(snapshot: ReturnType<typeof resetStore>): {
   };
 }
 
+function isCanonicalIsolationEnabled(): boolean {
+  loadProjectEnv();
+  return process.env.STUDIO_ENABLE_CANONICAL_ISOLATION !== "0";
+}
+
 export async function POST(): Promise<Response> {
-  if (isStrapiConfigured() && isLegacyWipeEnabled()) {
+  if (isStrapiConfigured() && isCanonicalIsolationEnabled()) {
     try {
-      const cleanup = await wipeLegacyStudioEntries();
+      const canonical = await resetCanonicalStudioSchema();
+      const cleanup = isLegacyWipeEnabled() ? await wipeLegacyStudioEntries() : null;
       return Response.json({
         ok: true,
         data: {
-          legacyBlockTemplatesBefore: cleanup.blockTemplates.before.length,
-          legacyBlockTemplatesAfter: cleanup.blockTemplates.after.length,
-          pagesWithLegacyBlocksBefore: cleanup.pages.before.filter((page) => page.legacyBlockCount > 0).length,
-          pagesWithLegacyBlocksAfter: cleanup.pages.after.filter((page) => page.legacyBlockCount > 0).length,
-          sterile: cleanup.sterile
+          canonicalCollectionsReset: canonical.collections.length,
+          canonicalSterile: canonical.sterile,
+          ...(cleanup
+            ? {
+                legacyBlockTemplatesBefore: cleanup.blockTemplates.before.length,
+                legacyBlockTemplatesAfter: cleanup.blockTemplates.after.length,
+                pagesWithLegacyBlocksBefore: cleanup.pages.before.filter((page) => page.legacyBlockCount > 0).length,
+                pagesWithLegacyBlocksAfter: cleanup.pages.after.filter((page) => page.legacyBlockCount > 0).length,
+                legacySterile: cleanup.sterile
+              }
+            : {})
         },
         source: "strapi",
-        cleanup
+        canonical,
+        ...(cleanup ? { cleanup } : {})
       });
     } catch (error) {
       const snapshot = resetStore();
@@ -40,7 +55,7 @@ export async function POST(): Promise<Response> {
         ok: true,
         data: summarizeFallbackSnapshot(snapshot),
         source: "fallback",
-        warning: "Strapi cleanup failed. Local fallback store was reset instead.",
+        warning: "Strapi canonical isolation failed. Local fallback store was reset instead.",
         developerError: error instanceof Error ? error.message : String(error)
       });
     }

@@ -1,75 +1,79 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
-    { key: "theme", label: "Theme", href: "/platform/onboarding/theme", icon: "palette" },
-    { key: "blocks", label: "Blocks", href: "/platform/onboarding/blocks", icon: "dashboard_customize" },
-    { key: "shells", label: "Shells", href: "/platform/onboarding/shells", icon: "web" },
-    { key: "publish", label: "Publish", href: "/platform/onboarding/publish", icon: "publish" },
-    { key: "pages", label: "Pages", href: "/platform/onboarding/pages", icon: "article" },
-    { key: "widgets", label: "Widgets", href: "/platform/onboarding/widgets", icon: "extension" }
+    { key: "import", label: "Import", href: "/platform/onboarding/import", icon: "download" },
+    { key: "blocks", label: "Blocks", href: "/platform/onboarding/blocks", icon: "view_quilt" },
+    { key: "pages", label: "Pages", href: "/platform/onboarding/pages", icon: "description" },
+    { key: "widgets", label: "Widgets", href: "/platform/onboarding/widgets", icon: "extension" },
+    { key: "theme-shell", label: "Theme & Shell", href: "/platform/onboarding/theme", icon: "palette" },
+    { key: "publish", label: "Publish", href: "/platform/onboarding/publish", icon: "rocket_launch" }
 ] as const;
 
 export function StudioSidebar() {
     const pathname = usePathname();
-    const [collapsed, setCollapsed] = useState(false);
+    const normalizedPath = pathname ?? "";
+    const isThemeShellPath = normalizedPath.startsWith("/platform/onboarding/theme") || normalizedPath.startsWith("/platform/onboarding/shells");
+
+    function isActive(href: string, key: string): boolean {
+      if (key === "theme-shell") {
+        return isThemeShellPath;
+      }
+      if (key === "import") {
+        return normalizedPath.startsWith("/platform/onboarding/import");
+      }
+      return normalizedPath.startsWith(href);
+    }
 
     return (
-        <aside className={`flex flex-col border-r border-white/[0.06] bg-[#0d1321] transition-all duration-300 ${collapsed ? "w-[56px]" : "w-[200px]"}`}>
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/[0.06] px-3 py-3">
-                {!collapsed && (
-                    <span className="text-xs font-bold text-slate-300 tracking-tight">Studio</span>
-                )}
-                <button
-                    type="button"
-                    onClick={() => setCollapsed((prev) => !prev)}
-                    className="flex items-center justify-center w-7 h-7 rounded-lg hover:bg-white/[0.06] text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
-                    title={collapsed ? "Expand" : "Collapse"}
-                >
-                    <span className="material-symbols-outlined text-base">
-                        {collapsed ? "chevron_right" : "chevron_left"}
-                    </span>
-                </button>
+        <aside className="flex w-64 shrink-0 flex-col border-r border-white/[0.08] bg-[#0a1327]">
+            <div className="border-b border-white/[0.08] px-4 py-5">
+                <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500 text-white">
+                        <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
+                    </div>
+                    <div>
+                        <p className="text-base font-bold tracking-tight text-slate-100">LMNAs Studio</p>
+                        <p className="text-[11px] text-slate-500">Premium B2B SaaS</p>
+                    </div>
+                </div>
             </div>
 
-            {/* Navigation */}
-            <nav className="flex flex-col gap-0.5 px-2 py-2 flex-1">
+            <nav className="flex flex-1 flex-col gap-1 px-2 py-4">
                 {NAV_ITEMS.map((item) => {
-                    const isActive = pathname.startsWith(item.href);
+                    const active = isActive(item.href, item.key);
                     return (
                         <Link
                             key={item.key}
                             href={item.href}
-                            className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all relative ${isActive
-                                    ? "bg-blue-500/[0.1] text-blue-400"
-                                    : "text-slate-500 hover:bg-white/[0.04] hover:text-slate-300"
-                                }`}
-                            title={collapsed ? item.label : undefined}
+                            className={`relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                                active ? "bg-blue-500/[0.16] text-blue-300" : "text-slate-400 hover:bg-white/[0.05] hover:text-slate-200"
+                            }`}
                         >
-                            <span className={`material-symbols-outlined text-lg ${isActive ? "text-blue-400" : "text-slate-600"}`}>
+                            <span className={`material-symbols-outlined text-[20px] ${active ? "text-blue-300" : "text-slate-500"}`}>
                                 {item.icon}
                             </span>
-                            {!collapsed && <span>{item.label}</span>}
-                            {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-r-full bg-blue-400" />}
+                            <span>{item.label}</span>
+                            {active ? <span className="absolute left-0 top-1/2 h-5 w-[2px] -translate-y-1/2 rounded-r-full bg-blue-400" /> : null}
                         </Link>
                     );
                 })}
             </nav>
 
-            {/* Footer */}
-            <div className="border-t border-white/[0.06] px-2 py-2">
-                <Link
-                    href="/platform/onboarding"
-                    className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs text-slate-600 hover:text-slate-400 hover:bg-white/[0.04] transition-colors"
-                    title={collapsed ? "Home" : undefined}
-                >
-                    <span className="material-symbols-outlined text-lg">home</span>
-                    {!collapsed && <span>Home</span>}
-                </Link>
+            <div className="border-t border-white/[0.08] px-4 py-4">
+                <div className="flex items-center gap-3 rounded-xl bg-white/[0.03] px-2 py-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-700 text-[11px] font-bold text-slate-200">
+                        AR
+                    </div>
+                    <div className="min-w-0">
+                        <p className="truncate text-xs font-semibold text-slate-200">Alex Rivera</p>
+                        <p className="truncate text-[10px] text-slate-500">Admin</p>
+                    </div>
+                    <span className="material-symbols-outlined ml-auto text-[16px] text-slate-500">settings</span>
+                </div>
             </div>
         </aside>
     );

@@ -12,6 +12,8 @@ type PublishRequestPayload = {
   sourceHtml?: unknown;
   previewSwatchThemeId?: unknown;
   validationToken?: unknown;
+  pageId?: unknown;
+  pageSlug?: unknown;
 };
 
 type PublishWarning = {
@@ -19,6 +21,50 @@ type PublishWarning = {
   message: string;
   severity: "info" | "warning" | "error";
 };
+
+type GovernanceCheck = {
+  id:
+    | "preview-valid"
+    | "block-schema-valid"
+    | "product-mapped"
+    | "industry-mapped"
+    | "primary-cta-set"
+    | "conversion-present"
+    | "campaign-present"
+    | "taxonomy-valid"
+    | "seo-metadata-valid"
+    | "seo-jsonld-valid";
+  label: string;
+  pass: boolean;
+};
+
+type GovernancePage = {
+  id: string;
+  name: string;
+  slug: string;
+  previewValid: boolean;
+  blockSchemaValid: boolean;
+  productMapping: string;
+  industryMapping: string[];
+  primaryCta: { text: string; url: string };
+  conversionConfig: { strategy: string };
+  campaignUtmStrategy: { source: string; medium: string; campaign: string };
+  taxonomyState: { valid: boolean };
+  seoMetadata: { metaTitle: string; metaDescription: string };
+  seoJsonLdValid: boolean;
+};
+
+type GovernanceReport = {
+  ready: boolean;
+  page: { id: string; name: string; slug: string } | null;
+  checks: GovernanceCheck[];
+  source: "strapi" | "fallback";
+};
+
+type ThemeSchemaSource = "canonical" | "legacy";
+
+const CANONICAL_THEME_COLLECTION = "/api/studio-themes";
+const LEGACY_THEME_COLLECTION = "/api/theme-variants";
 
 function toIsoDate(input?: unknown): string {
   if (typeof input !== "string" || input.length < 10) {
@@ -40,6 +86,24 @@ function normalizeTokenCoverage(value: unknown): number {
   return 0;
 }
 
+function asString(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((entry): entry is string => typeof entry === "string");
+}
+
+function asObject(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+  return value as Record<string, unknown>;
+}
+
 function normalizeTheme(value: unknown): StudioTheme {
   const row = (value ?? {}) as Record<string, unknown>;
   const id = typeof row.id === "string" && row.id.length > 0 ? row.id : `theme-${Date.now()}`;
@@ -58,17 +122,83 @@ function normalizeTheme(value: unknown): StudioTheme {
   };
 }
 
-async function listThemesFromStrapi(): Promise<StudioTheme[]> {
+function normalizeGovernancePage(value: unknown): GovernancePage {
+  const row = asObject(value);
+  const idRaw = row.documentId ?? row.id;
+  const id = typeof idRaw === "string" || typeof idRaw === "number" ? String(idRaw) : `page-${Date.now()}`;
+  const primaryCta = asObject(row.primaryCta);
+  const conversionConfig = asObject(row.conversionConfig);
+  const campaignUtmStrategy = asObject(row.campaignUtmStrategy);
+  const taxonomyState = asObject(row.taxonomyState);
+  const seoMetadata = asObject(row.seoMetadata);
+
+  return {
+    id,
+    name: asString(row.name) || asString(row.slug) || "Untitled Page",
+    slug: asString(row.slug) || "untitled-page",
+    previewValid: Boolean(row.previewValid),
+    blockSchemaValid: Boolean(row.blockSchemaValid),
+    productMapping: asString(row.productMapping),
+    industryMapping: asStringArray(row.industryMapping),
+    primaryCta: {
+      text: asString(primaryCta.text),
+      url: asString(primaryCta.url)
+    },
+    conversionConfig: {
+      strategy: asString(conversionConfig.strategy)
+    },
+    campaignUtmStrategy: {
+      source: asString(campaignUtmStrategy.source),
+      medium: asString(campaignUtmStrategy.medium),
+      campaign: asString(campaignUtmStrategy.campaign)
+    },
+    taxonomyState: {
+      valid: Boolean(taxonomyState.valid)
+    },
+    seoMetadata: {
+      metaTitle: asString(seoMetadata.metaTitle),
+      metaDescription: asString(seoMetadata.metaDescription)
+    },
+    seoJsonLdValid: Boolean(row.seoJsonLdValid)
+  };
+}
+
+async function listThemesFromCollection(collectionPath: string): Promise<StudioTheme[]> {
   const response = await requestStrapi<StrapiCollectionResponse>(
-    "/api/theme-variants?pagination[pageSize]=200&sort=updatedAt:desc"
+    `${collectionPath}?pagination[pageSize]=200&sort=updatedAt:desc`
   );
   const rows = Array.isArray(response.data) ? response.data : [];
   return rows.map((row) => normalizeTheme(unwrapStrapiEntity(row)));
 }
 
-async function resolveThemeVariantMutationId(themeKey: string): Promise<string | null> {
+async function listThemesFromStrapi(): Promise<{ themes: StudioTheme[]; schemaSource: ThemeSchemaSource }> {
+  try {
+    const themes = await listThemesFromCollection(CANONICAL_THEME_COLLECTION);
+    return {
+      themes,
+      schemaSource: "canonical"
+    };
+  } catch {
+    const themes = await listThemesFromCollection(LEGACY_THEME_COLLECTION);
+    return {
+      themes,
+      schemaSource: "legacy"
+    };
+  }
+}
+
+async function listGovernancePagesFromStrapi(): Promise<GovernancePage[]> {
+  const response = await requestStrapi<StrapiCollectionResponse>(
+    "/api/studio-pages?pagination[pageSize]=200&sort=updatedAt:desc"
+  );
+  const rows = Array.isArray(response.data) ? response.data : [];
+  return rows.map((row) => normalizeGovernancePage(unwrapStrapiEntity(row)));
+}
+
+async function resolveThemeMutationId(themeKey: string, schemaSource: ThemeSchemaSource): Promise<string | null> {
+  const collectionPath = schemaSource === "canonical" ? CANONICAL_THEME_COLLECTION : LEGACY_THEME_COLLECTION;
   const lookup = await requestStrapi<StrapiCollectionResponse>(
-    `/api/theme-variants?filters[themeKey][$eq]=${encodeURIComponent(themeKey)}&pagination[pageSize]=1`
+    `${collectionPath}?filters[themeKey][$eq]=${encodeURIComponent(themeKey)}&pagination[pageSize]=1`
   );
   const existing = Array.isArray(lookup.data) ? lookup.data[0] : undefined;
   if (!existing) {
@@ -86,7 +216,7 @@ async function resolveThemeVariantMutationId(themeKey: string): Promise<string |
 async function resolveActiveTheme(): Promise<{ theme: StudioTheme | null; source: "strapi" | "fallback" }> {
   if (isStrapiConfigured()) {
     try {
-      const themes = await listThemesFromStrapi();
+      const { themes } = await listThemesFromStrapi();
       const activeTheme = themes.find((theme) => theme.status === "active") ?? themes[0] ?? null;
       if (activeTheme) {
         return {
@@ -102,6 +232,105 @@ async function resolveActiveTheme(): Promise<{ theme: StudioTheme | null; source
   const fallbackThemes = getStudioStore().themes;
   return {
     theme: fallbackThemes.find((theme) => theme.status === "active") ?? fallbackThemes[0] ?? null,
+    source: "fallback"
+  };
+}
+
+function resolveRequestedPage(pages: GovernancePage[], pageId: string | null, pageSlug: string | null): GovernancePage | null {
+  if (pages.length === 0) {
+    return null;
+  }
+  if (pageId) {
+    const byId = pages.find((page) => page.id === pageId);
+    if (byId) {
+      return byId;
+    }
+  }
+  if (pageSlug) {
+    const bySlug = pages.find((page) => page.slug === pageSlug);
+    if (bySlug) {
+      return bySlug;
+    }
+  }
+  return pages[0] ?? null;
+}
+
+function buildGovernanceChecks(page: GovernancePage | null): GovernanceCheck[] {
+  return [
+    { id: "preview-valid", label: "Preview valid", pass: Boolean(page?.previewValid) },
+    { id: "block-schema-valid", label: "Block schema valid", pass: Boolean(page?.blockSchemaValid) },
+    { id: "product-mapped", label: "Product mapped", pass: Boolean(page?.productMapping.trim()) },
+    { id: "industry-mapped", label: "Industry mapped", pass: Boolean(page && page.industryMapping.length > 0) },
+    {
+      id: "primary-cta-set",
+      label: "Primary CTA set",
+      pass: Boolean(page?.primaryCta.text.trim() && page.primaryCta.url.trim())
+    },
+    {
+      id: "conversion-present",
+      label: "Conversion configuration present",
+      pass: Boolean(page?.conversionConfig.strategy.trim())
+    },
+    {
+      id: "campaign-present",
+      label: "Campaign / UTM strategy present",
+      pass: Boolean(
+        page?.campaignUtmStrategy.source.trim() &&
+          page.campaignUtmStrategy.medium.trim() &&
+          page.campaignUtmStrategy.campaign.trim()
+      )
+    },
+    { id: "taxonomy-valid", label: "Taxonomy valid", pass: Boolean(page?.taxonomyState.valid) },
+    {
+      id: "seo-metadata-valid",
+      label: "SEO metadata valid",
+      pass: Boolean(page?.seoMetadata.metaTitle.trim() && page.seoMetadata.metaDescription.trim())
+    },
+    { id: "seo-jsonld-valid", label: "SEO / JSON-LD valid", pass: Boolean(page?.seoJsonLdValid) }
+  ];
+}
+
+async function resolveGovernanceReport(payload: PublishRequestPayload): Promise<GovernanceReport> {
+  const requestedPageId =
+    typeof payload.pageId === "string" && payload.pageId.trim().length > 0 ? payload.pageId.trim() : null;
+  const requestedPageSlug =
+    typeof payload.pageSlug === "string" && payload.pageSlug.trim().length > 0 ? payload.pageSlug.trim() : null;
+
+  if (isStrapiConfigured()) {
+    try {
+      const strapiPages = await listGovernancePagesFromStrapi();
+      const selected = resolveRequestedPage(strapiPages, requestedPageId, requestedPageSlug);
+      const checks = buildGovernanceChecks(selected);
+      return {
+        ready: checks.every((check) => check.pass),
+        page: selected
+          ? {
+              id: selected.id,
+              name: selected.name,
+              slug: selected.slug
+            }
+          : null,
+        checks,
+        source: "strapi"
+      };
+    } catch {
+      // fall through to fallback store
+    }
+  }
+
+  const fallbackPages = getStudioStore().pages.map((page) => normalizeGovernancePage(page));
+  const selected = resolveRequestedPage(fallbackPages, requestedPageId, requestedPageSlug);
+  const checks = buildGovernanceChecks(selected);
+  return {
+    ready: checks.every((check) => check.pass),
+    page: selected
+      ? {
+          id: selected.id,
+          name: selected.name,
+          slug: selected.slug
+        }
+      : null,
+    checks,
     source: "fallback"
   };
 }
@@ -198,13 +427,15 @@ function markFallbackCommitApplied(activeThemeId: string): void {
   });
 }
 
-async function persistPublishToStrapi(activeTheme: StudioTheme): Promise<{ themeId: string }> {
-  const mutationId = await resolveThemeVariantMutationId(activeTheme.themeKey);
+async function persistPublishToStrapi(activeTheme: StudioTheme): Promise<{ themeId: string; schemaSource: ThemeSchemaSource }> {
+  const { schemaSource } = await listThemesFromStrapi();
+  const mutationId = await resolveThemeMutationId(activeTheme.themeKey, schemaSource);
   if (!mutationId) {
-    throw new Error(`Unable to resolve Strapi mutation id for themeKey="${activeTheme.themeKey}".`);
+    throw new Error(`Unable to resolve Strapi mutation id for themeKey="${activeTheme.themeKey}" in ${schemaSource} collection.`);
   }
 
-  await requestStrapi(`/api/theme-variants/${encodeURIComponent(mutationId)}`, {
+  const collectionPath = schemaSource === "canonical" ? CANONICAL_THEME_COLLECTION : LEGACY_THEME_COLLECTION;
+  await requestStrapi(`${collectionPath}/${encodeURIComponent(mutationId)}`, {
     method: "PUT",
     body: {
       themeKey: activeTheme.themeKey,
@@ -218,7 +449,8 @@ async function persistPublishToStrapi(activeTheme: StudioTheme): Promise<{ theme
     }
   });
   return {
-    themeId: mutationId
+    themeId: mutationId,
+    schemaSource
   };
 }
 
@@ -231,6 +463,7 @@ export async function POST(request: Request): Promise<Response> {
       typeof payload.previewSwatchThemeId === "string" && payload.previewSwatchThemeId.trim().length > 0
         ? payload.previewSwatchThemeId.trim()
         : null;
+    const governance = await resolveGovernanceReport(payload);
     const { theme: activeTheme, source } = await resolveActiveTheme();
     if (!activeTheme) {
       return Response.json(
@@ -249,13 +482,31 @@ export async function POST(request: Request): Promise<Response> {
       threshold: settings.fidelity.threshold,
       validationToken: normalizeValidationToken(payload.validationToken)
     });
-    const blocked = mode === "apply" && settings.fidelity.mode === "disallow-below-threshold" && fidelityReport.exceedsThreshold;
+    const fidelityBlocked =
+      mode === "apply" && settings.fidelity.mode === "disallow-below-threshold" && fidelityReport.exceedsThreshold;
+    const governanceBlocked = mode === "apply" && !governance.ready;
+    const blocked = fidelityBlocked || governanceBlocked;
     let applied = mode === "apply" && !blocked;
     const warnings = buildWarnings({
       report: fidelityReport,
       fidelityMode: settings.fidelity.mode,
-      blocked
+      blocked: fidelityBlocked
     });
+
+    if (!governance.page) {
+      warnings.push({
+        code: "publish.governance_no_page",
+        message: "No governed page is available for publish readiness evaluation.",
+        severity: mode === "apply" ? "error" : "warning"
+      });
+    } else if (!governance.ready) {
+      warnings.push({
+        code: "publish.governance_incomplete",
+        message: `Governance readiness failed for "${governance.page.slug}".`,
+        severity: mode === "apply" ? "error" : "warning"
+      });
+    }
+
     const persistence = {
       source,
       mutated: false,
@@ -272,6 +523,11 @@ export async function POST(request: Request): Promise<Response> {
           const persisted = await persistPublishToStrapi(activeTheme);
           persistence.mutated = true;
           persistence.themeId = persisted.themeId;
+          warnings.push({
+            code: "publish.theme_schema_source",
+            message: `Theme mutation persisted through ${persisted.schemaSource} schema collection.`,
+            severity: persisted.schemaSource === "canonical" ? "info" : "warning"
+          });
         } catch (error) {
           warnings.push({
             code: "publish.strapi_persist_failed",
@@ -307,13 +563,22 @@ export async function POST(request: Request): Promise<Response> {
         mode,
         applied,
         blocked,
+        blockedBy: {
+          fidelity: fidelityBlocked,
+          governance: governanceBlocked
+        },
         source,
         fidelityMode: settings.fidelity.mode,
         warnings,
         activeTheme: summarizeTheme(activeTheme),
         ignoredPreviewSwatchThemeId: previewSwatchThemeId,
-        rejectionReason: blocked ? "Fidelity threshold rejection in disallow mode." : null,
+        rejectionReason: fidelityBlocked
+          ? "Fidelity threshold rejection in disallow mode."
+          : governanceBlocked
+            ? "Governance readiness checklist failed."
+            : null,
         fidelity: fidelityReport,
+        governance,
         payload: publishPayload,
         persistence
       }

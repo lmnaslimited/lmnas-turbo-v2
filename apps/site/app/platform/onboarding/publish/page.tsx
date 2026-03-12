@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { StudioActionMenu, StudioDetailContainer, StudioListContainer } from "../_components/workflow";
 import { requestClientJson } from "../_lib/client-request";
 import { readPreviewSwatchThemeId, subscribePreviewSwatchThemeId } from "../_lib/preview-swatch-state";
-import type { StudioFidelitySettings, StudioSettings, StudioTheme } from "../_lib/studio-types";
+import type { StudioFidelitySettings, StudioPageDocument, StudioSettings, StudioTheme } from "../_lib/studio-types";
 import { PublishOverlayWorkflow, type PublishOverlayResult } from "./PublishOverlayWorkflow";
 
 type PublishResponse = {
@@ -41,11 +41,13 @@ type PublishListItem = {
 
 export default function PublishWorkflowPage(): React.ReactElement {
   const [themes, setThemes] = useState<StudioTheme[]>([]);
+  const [pages, setPages] = useState<StudioPageDocument[]>([]);
   const [settings, setSettings] = useState<StudioSettings | null>(null);
   const [sourceHtml, setSourceHtml] = useState(DEFAULT_SOURCE_HTML);
   const [validationTokenInput, setValidationTokenInput] = useState(DEFAULT_VALIDATION_TOKEN);
   const [thresholdDraft, setThresholdDraft] = useState("0.25");
   const [previewSwatchThemeId, setPreviewSwatchThemeId] = useState<string | null>(null);
+  const [governancePageId, setGovernancePageId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -83,6 +85,17 @@ export default function PublishWorkflowPage(): React.ReactElement {
             }
           )
         ]);
+        const pagesPayload = await requestClientJson<{ ok: boolean; data?: StudioPageDocument[]; error?: string }>(
+          "/api/platform/studio/pages",
+          {
+            method: "GET",
+            headers: { "content-type": "application/json" }
+          },
+          {
+            timeoutMessage: "Loading pages timed out. Please retry.",
+            fallbackErrorMessage: "Unable to load pages."
+          }
+        );
 
         if (!mounted) {
           return;
@@ -94,8 +107,15 @@ export default function PublishWorkflowPage(): React.ReactElement {
         if (!settingsPayload.ok || !settingsPayload.data) {
           throw new Error(settingsPayload.error ?? "Unable to load studio settings.");
         }
+        if (!pagesPayload.ok || !Array.isArray(pagesPayload.data)) {
+          throw new Error(pagesPayload.error ?? "Unable to load pages.");
+        }
+
+        const loadedPages = pagesPayload.data;
 
         setThemes(themesPayload.data);
+        setPages(loadedPages);
+        setGovernancePageId((current) => current ?? loadedPages[0]?.id ?? null);
         setSettings(settingsPayload.data);
         setThresholdDraft(String(settingsPayload.data.fidelity.threshold));
       } catch (loadError) {
@@ -132,6 +152,51 @@ export default function PublishWorkflowPage(): React.ReactElement {
     () => themes.find((theme) => theme.id === previewSwatchThemeId) ?? null,
     [themes, previewSwatchThemeId]
   );
+  const governancePage = useMemo(
+    () => pages.find((page) => page.id === governancePageId) ?? pages[0] ?? null,
+    [pages, governancePageId]
+  );
+
+  const readinessChecklist = useMemo(
+    () => [
+      { id: "preview-valid", label: "Preview valid", pass: Boolean(governancePage?.previewValid) },
+      { id: "block-schema-valid", label: "Block schema valid", pass: Boolean(governancePage?.blockSchemaValid) },
+      { id: "product-mapped", label: "Product mapped", pass: Boolean(governancePage?.productMapping?.trim()) },
+      { id: "industry-mapped", label: "Industry mapped", pass: Boolean(governancePage?.industryMapping.length) },
+      {
+        id: "primary-cta-set",
+        label: "Primary CTA set",
+        pass: Boolean(governancePage?.primaryCta.text.trim() && governancePage?.primaryCta.url.trim())
+      },
+      {
+        id: "conversion-present",
+        label: "Conversion configuration present",
+        pass: Boolean(governancePage?.conversionConfig.strategy.trim())
+      },
+      {
+        id: "campaign-present",
+        label: "Campaign / UTM strategy present",
+        pass: Boolean(
+          governancePage?.campaignUtmStrategy.source.trim() &&
+            governancePage?.campaignUtmStrategy.medium.trim() &&
+            governancePage?.campaignUtmStrategy.campaign.trim()
+        )
+      },
+      { id: "taxonomy-valid", label: "Taxonomy valid", pass: Boolean(governancePage?.taxonomyState.valid) },
+      {
+        id: "seo-metadata-valid",
+        label: "SEO metadata valid",
+        pass: Boolean(governancePage?.seoMetadata.metaTitle.trim() && governancePage?.seoMetadata.metaDescription.trim())
+      },
+      { id: "seo-jsonld-valid", label: "SEO / JSON-LD valid", pass: Boolean(governancePage?.seoJsonLdValid) }
+    ],
+    [governancePage]
+  );
+  const readinessPassedCount = useMemo(
+    () => readinessChecklist.filter((item) => item.pass).length,
+    [readinessChecklist]
+  );
+  const readyToPublish = readinessChecklist.length > 0 && readinessChecklist.every((item) => item.pass);
 
   const listItems = useMemo<PublishListItem[]>(
     () => [
@@ -152,9 +217,15 @@ export default function PublishWorkflowPage(): React.ReactElement {
         title: "Preview Swatch Signal",
         subtitle: selectedSwatchTheme ? `${selectedSwatchTheme.name}` : "No swatch currently previewed",
         meta: selectedSwatchTheme ? "DOM-only preview state" : "Active theme only"
+      },
+      {
+        id: "governance-page",
+        title: "Governance Page",
+        subtitle: governancePage ? `${governancePage.name}` : "No page selected",
+        meta: governancePage ? `${governancePage.locale}/${governancePage.slug}` : "n/a"
       }
     ],
-    [activeTheme, selectedSwatchTheme, settings]
+    [activeTheme, governancePage, selectedSwatchTheme, settings]
   );
 
   async function updateFidelitySettings(next: StudioFidelitySettings): Promise<void> {
@@ -209,6 +280,8 @@ export default function PublishWorkflowPage(): React.ReactElement {
             mode: "apply",
             sourceHtml,
             previewSwatchThemeId,
+            pageId: governancePage?.id ?? undefined,
+            pageSlug: governancePage?.slug ?? undefined,
             validationToken: parsedValidationToken
           })
         },
@@ -262,9 +335,9 @@ export default function PublishWorkflowPage(): React.ReactElement {
   return (
     <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-5">
       <header>
-        <h1 className="text-xl font-bold text-slate-100">Publish Workflow</h1>
+        <h1 className="text-xl font-bold text-slate-100">Publish Center</h1>
         <p className="mt-1 text-xs text-slate-500">
-          Final review always serializes the backend active theme and never commits preview-only swatch state.
+          Review governance readiness and fidelity before final publish commit.
         </p>
       </header>
 
@@ -299,21 +372,94 @@ export default function PublishWorkflowPage(): React.ReactElement {
           >
             {settings ? (
               <div className="space-y-4">
-                <div data-testid="publish-active-theme" className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-3">
-                  <p className="text-xs text-slate-400">
-                    Active Theme: <strong>{activeTheme?.name ?? "None"}</strong> ({activeTheme?.themeKey ?? "n/a"})
+                <div
+                  data-testid="publish-active-theme"
+                  className={`rounded-lg border p-3 ${
+                    readyToPublish ? "border-blue-500/30 bg-blue-500/[0.08]" : "border-amber-500/30 bg-amber-500/[0.08]"
+                  }`}
+                >
+                  <p className={`text-sm font-semibold ${readyToPublish ? "text-blue-200" : "text-amber-200"}`}>
+                    {readyToPublish ? "Ready to Publish" : "Governance Incomplete"}
+                  </p>
+                  <p className="mt-1 text-[11px] text-slate-300">
+                    {readinessPassedCount}/{readinessChecklist.length} checks passed for{" "}
+                    <strong>{governancePage?.name ?? "selected page"}</strong>.
                   </p>
                   <p className="mt-1 text-[11px] text-slate-500">
-                    Dark mode: <strong>{activeTheme?.darkMode ? "enabled" : "disabled"}</strong>
+                    Active Theme: <strong>{activeTheme?.name ?? "None"}</strong> ({activeTheme?.themeKey ?? "n/a"}) •{" "}
+                    {activeTheme?.darkMode ? "dark mode" : "light mode"}
                   </p>
                   <p data-testid="publish-ignored-swatch" className="mt-1 text-[11px] text-amber-300">
-                    DOM Preview Swatch: <strong>{selectedSwatchTheme?.name ?? "none"}</strong>. Publish payload strips this state.
+                    Preview swatch remains UI-only: <strong>{selectedSwatchTheme?.name ?? "none"}</strong>.
                   </p>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="rounded-lg border border-white/[0.08] bg-white/[0.015] p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Live Production</p>
+                    <div className="mt-2 h-24 rounded border border-white/[0.06] bg-[#020617] p-3">
+                      <div className="h-5 w-1/2 rounded bg-white/[0.07]" />
+                      <div className="mt-2 h-3 w-3/4 rounded bg-white/[0.05]" />
+                      <div className="mt-2 grid grid-cols-3 gap-2">
+                        <div className="h-8 rounded bg-white/[0.04]" />
+                        <div className="h-8 rounded bg-white/[0.04]" />
+                        <div className="h-8 rounded bg-white/[0.04]" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-blue-500/40 bg-blue-500/[0.05] p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-blue-300">Draft Staging</p>
+                    <div className="mt-2 h-24 rounded border border-blue-500/25 bg-[#071128] p-3">
+                      <div className="h-5 w-1/2 rounded bg-blue-500/30" />
+                      <div className="mt-2 h-3 w-3/4 rounded bg-blue-500/20" />
+                      <div className="mt-2 grid grid-cols-3 gap-2">
+                        <div className="h-8 rounded bg-blue-500/15" />
+                        <div className="h-8 rounded bg-blue-500/15" />
+                        <div className="h-8 rounded bg-emerald-500/15" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-3">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-semibold text-slate-300">Validation Checklist</p>
+                      <p className="text-[11px] text-slate-500">Preview valid, schema valid, mapping valid, SEO valid.</p>
+                    </div>
+                    <span className={`text-[11px] font-semibold ${readyToPublish ? "text-emerald-300" : "text-amber-300"}`}>
+                      {readyToPublish ? "SYSTEM CLEAR" : "NEEDS ATTENTION"}
+                    </span>
+                  </div>
+                  <label className="mb-3 flex flex-col gap-1 text-[11px] text-slate-400">
+                    Governance Page
+                    <select
+                      value={governancePage?.id ?? ""}
+                      onChange={(event) => setGovernancePageId(event.target.value || null)}
+                      className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-2 py-1.5 text-xs text-slate-100"
+                    >
+                      {pages.map((page) => (
+                        <option key={page.id} value={page.id}>
+                          {page.name} ({page.locale}/{page.slug})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="grid gap-2 md:grid-cols-2">
+                    {readinessChecklist.map((item) => (
+                      <div key={item.id} className="flex items-center gap-2 rounded border border-white/[0.08] bg-white/[0.015] px-2 py-1.5">
+                        <span className={`material-symbols-outlined text-[16px] ${item.pass ? "text-emerald-400" : "text-rose-400"}`}>
+                          {item.pass ? "check_circle" : "cancel"}
+                        </span>
+                        <span className="text-[11px] text-slate-300">{item.label}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-3">
                   <p className="text-xs font-semibold text-slate-300">Fidelity Threshold Mode</p>
-                  <div className="mt-2 flex gap-2">
+                  <div className="mt-2 flex flex-wrap gap-2">
                     <button
                       data-testid="publish-mode-allow"
                       type="button"
@@ -351,7 +497,6 @@ export default function PublishWorkflowPage(): React.ReactElement {
                       disallow-below-threshold
                     </button>
                   </div>
-
                   <label className="mt-3 flex flex-col gap-1 text-[11px] text-slate-400">
                     Threshold (0.00 - 1.00)
                     <input
@@ -363,25 +508,30 @@ export default function PublishWorkflowPage(): React.ReactElement {
                   </label>
                 </div>
 
-                <label className="flex flex-col gap-1 text-[11px] text-slate-400">
-                  Source HTML
-                  <textarea
-                    data-testid="publish-source-html"
-                    className="min-h-[150px] rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 font-mono text-xs text-slate-100"
-                    value={sourceHtml}
-                    onChange={(event) => setSourceHtml(event.target.value)}
-                  />
-                </label>
+                <details className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-3">
+                  <summary className="cursor-pointer text-xs font-semibold text-slate-300">Advanced Fidelity Inputs</summary>
+                  <div className="mt-3 grid gap-3">
+                    <label className="flex flex-col gap-1 text-[11px] text-slate-400">
+                      Source HTML
+                      <textarea
+                        data-testid="publish-source-html"
+                        className="min-h-[140px] rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 font-mono text-xs text-slate-100"
+                        value={sourceHtml}
+                        onChange={(event) => setSourceHtml(event.target.value)}
+                      />
+                    </label>
 
-                <label className="flex flex-col gap-1 text-[11px] text-slate-400">
-                  Figma Validation Token (JSON)
-                  <textarea
-                    data-testid="publish-validation-token"
-                    className="min-h-[110px] rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 font-mono text-xs text-slate-100"
-                    value={validationTokenInput}
-                    onChange={(event) => setValidationTokenInput(event.target.value)}
-                  />
-                </label>
+                    <label className="flex flex-col gap-1 text-[11px] text-slate-400">
+                      Figma Validation Token (JSON)
+                      <textarea
+                        data-testid="publish-validation-token"
+                        className="min-h-[100px] rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 font-mono text-xs text-slate-100"
+                        value={validationTokenInput}
+                        onChange={(event) => setValidationTokenInput(event.target.value)}
+                      />
+                    </label>
+                  </div>
+                </details>
               </div>
             ) : null}
           </StudioDetailContainer>

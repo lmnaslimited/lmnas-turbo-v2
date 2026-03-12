@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import type { StudioTheme, StudioThemeToken } from "../_lib/studio-types";
+import Link from "next/link";
+import type { StudioShell, StudioTheme, StudioThemeToken } from "../_lib/studio-types";
 import { requestClientJson } from "../_lib/client-request";
 import { setPreviewSwatchThemeId } from "../_lib/preview-swatch-state";
 import { StudioActionMenu, StudioDetailContainer, StudioListContainer } from "../_components/workflow";
@@ -155,6 +156,7 @@ function resolveSourcePlaceholder(sourceType: StudioThemeSourceType): string {
 
 export default function ThemeWorkflowPage(): React.ReactElement {
   const [themes, setThemes] = useState<StudioTheme[]>([]);
+  const [shells, setShells] = useState<StudioShell[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mode, setMode] = useState<ThemeWorkflowMode>("browse");
   const [sourceType, setSourceType] = useState<StudioThemeSourceType>("html_upload");
@@ -198,6 +200,28 @@ export default function ThemeWorkflowPage(): React.ReactElement {
       setError(loadError instanceof Error ? loadError.message : String(loadError));
     } finally {
       setIsLoadingThemes(false);
+    }
+  }
+
+  async function loadShells(): Promise<void> {
+    try {
+      const payload = await requestClientJson<{ ok: boolean; data?: StudioShell[]; error?: string }>(
+        "/api/platform/studio/shells",
+        {
+          method: "GET",
+          headers: { "content-type": "application/json" }
+        },
+        {
+          timeoutMessage: "Loading shell presets timed out. Please retry.",
+          fallbackErrorMessage: "Unable to load shell presets."
+        }
+      );
+      if (!payload.ok || !Array.isArray(payload.data)) {
+        throw new Error(payload.error ?? "Unable to load shell presets.");
+      }
+      setShells(payload.data);
+    } catch {
+      setShells([]);
     }
   }
 
@@ -247,6 +271,7 @@ export default function ThemeWorkflowPage(): React.ReactElement {
 
   useEffect(() => {
     void loadThemes();
+    void loadShells();
   }, []);
 
   useEffect(() => {
@@ -255,6 +280,7 @@ export default function ThemeWorkflowPage(): React.ReactElement {
 
   const selectedTheme = themes.find((theme) => theme.id === selectedId) ?? null;
   const activeTheme = themes.find((theme) => theme.status === "active") ?? null;
+  const activeShell = shells.find((shell) => shell.status === "active") ?? null;
   const swatchTheme = themes.find((theme) => theme.id === swatchThemeId) ?? null;
 
   const previewTheme = useMemo(() => {
@@ -435,9 +461,9 @@ export default function ThemeWorkflowPage(): React.ReactElement {
     <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-5" style={previewStyle}>
       <header className="flex items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-100">Theme Workflow</h1>
+          <h1 className="text-xl font-bold text-slate-100">Theme &amp; Shell Studio</h1>
           <p className="mt-1 text-xs text-slate-500">
-            Bounded theme intake, sample review, duplicate-safe persistence, and preview-only swatches.
+            Govern Theme Presets, Shell Presets, and token mappings used by the Studio import and page composition flow.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -739,6 +765,33 @@ export default function ThemeWorkflowPage(): React.ReactElement {
                     <p className="mt-1 text-xs text-slate-500">
                       Current Visual Preview: <strong>{previewTheme?.name ?? "None"}</strong>
                     </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Active Shell Preset: <strong>{activeShell?.name ?? "None"}</strong>
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-white/[0.08] bg-white/[0.015] p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-xs font-semibold text-slate-300">Shell Presets</p>
+                      <Link href="/platform/onboarding/shells" className="text-[11px] font-semibold text-blue-300 hover:text-blue-200">
+                        Open Shell Workflow
+                      </Link>
+                    </div>
+                    <div className="space-y-2">
+                      {shells.map((shell) => (
+                        <div key={shell.id} className="flex items-center justify-between rounded-lg border border-white/[0.08] bg-white/[0.02] px-2 py-1.5">
+                          <p className="text-xs text-slate-200">{shell.name}</p>
+                          <span
+                            className={`rounded px-1.5 py-0.5 text-[10px] ${
+                              shell.status === "active" ? "bg-emerald-500/20 text-emerald-200" : "bg-white/[0.06] text-slate-400"
+                            }`}
+                          >
+                            {shell.status}
+                          </span>
+                        </div>
+                      ))}
+                      {shells.length === 0 ? <p className="text-xs text-slate-500">No shell presets loaded.</p> : null}
+                    </div>
                   </div>
 
                   <div
@@ -765,16 +818,54 @@ export default function ThemeWorkflowPage(): React.ReactElement {
                     </button>
                   </div>
 
-                  <div className="grid gap-2 md:grid-cols-3">
+                  <div className="space-y-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Color Tokens</p>
+                    <div className="grid gap-2 md:grid-cols-3">
+                      {selectedTheme.tokens
+                        .filter((token) => token.category === "color")
+                        .map((token) => (
+                          <div key={token.key} className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-2">
+                            <p className="text-[10px] text-slate-500">{token.label}</p>
+                            <div className="mt-1 h-7 rounded border border-white/[0.08]" style={{ background: token.value }} />
+                            <p className="mt-1 text-[10px] text-slate-400">{token.value}</p>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Typography Tokens</p>
+                    <div className="grid gap-2 md:grid-cols-2">
+                      {selectedTheme.tokens
+                        .filter((token) => token.category === "typography")
+                        .map((token) => (
+                          <div key={token.key} className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-2">
+                            <p className="text-[10px] text-slate-500">{token.label}</p>
+                            <p className="mt-1 text-xs text-slate-200">{token.value}</p>
+                            <p className="mt-1 text-[10px] text-slate-500">{token.cssVariable}</p>
+                          </div>
+                        ))}
+                      {selectedTheme.tokens.filter((token) => token.category === "typography").length === 0 ? (
+                        <p className="text-xs text-slate-500">No typography tokens detected.</p>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Shape Tokens</p>
                     {selectedTheme.tokens
-                      .filter((token) => token.category === "color")
+                      .filter((token) => token.category === "radius" || token.category === "shadow" || token.category === "spacing")
                       .map((token) => (
                         <div key={token.key} className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-2">
-                          <p className="text-[10px] text-slate-500">{token.label}</p>
-                          <div className="mt-1 h-7 rounded border border-white/[0.08]" style={{ background: token.value }} />
-                          <p className="mt-1 text-[10px] text-slate-400">{token.value}</p>
+                          <p className="text-[10px] text-slate-500">
+                            {token.label} <span className="text-slate-600">({token.category})</span>
+                          </p>
+                          <p className="mt-1 text-xs text-slate-200">{token.value}</p>
                         </div>
                       ))}
+                    {selectedTheme.tokens.filter(
+                      (token) => token.category === "radius" || token.category === "shadow" || token.category === "spacing"
+                    ).length === 0 ? <p className="text-xs text-slate-500">No shape tokens detected.</p> : null}
                   </div>
                 </div>
               ) : null}

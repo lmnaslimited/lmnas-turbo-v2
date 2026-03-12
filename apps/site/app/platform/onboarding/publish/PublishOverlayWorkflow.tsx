@@ -12,6 +12,10 @@ export type PublishOverlayResult = {
   mode: "dry-run" | "apply";
   applied: boolean;
   blocked: boolean;
+  blockedBy?: {
+    fidelity: boolean;
+    governance: boolean;
+  };
   source: "fallback" | "strapi";
   fidelityMode: StudioFidelitySettings["mode"];
   warnings: PublishOverlayWarning[];
@@ -31,6 +35,20 @@ export type PublishOverlayResult = {
     typographyMismatchRatio: number;
     highestMismatchRatio: number;
     exceedsThreshold: boolean;
+  };
+  governance?: {
+    ready: boolean;
+    page: {
+      id: string;
+      name: string;
+      slug: string;
+    } | null;
+    source: "fallback" | "strapi";
+    checks: Array<{
+      id: string;
+      label: string;
+      pass: boolean;
+    }>;
   };
   payload: Record<string, unknown>;
   persistence?: {
@@ -76,6 +94,12 @@ export function PublishOverlayWorkflow(props: PublishOverlayWorkflowProps): Reac
         title: "Publish Result",
         subtitle: publishResult ? (publishResult.applied ? "APPLIED" : "NOT APPLIED") : "not executed",
         meta: publishResult ? `highest mismatch ${publishResult.fidelity.highestMismatchRatio.toFixed(3)}` : "n/a"
+      },
+      {
+        id: "overlay-governance",
+        title: "Governance Readiness",
+        subtitle: publishResult ? (publishResult.governance?.ready ? "READY" : "INCOMPLETE") : "pending",
+        meta: publishResult?.governance?.page ? publishResult.governance.page.slug : "no page selected"
       }
     ],
     [publishResult]
@@ -127,6 +151,12 @@ export function PublishOverlayWorkflow(props: PublishOverlayWorkflowProps): Reac
                       <p className="mt-1 text-xs text-red-200">
                         {publishResult.rejectionReason ?? "Fidelity threshold rejection."}
                       </p>
+                      {publishResult.blockedBy ? (
+                        <p className="mt-1 text-[11px] text-red-300">
+                          blocked by: {publishResult.blockedBy.fidelity ? "fidelity " : ""}
+                          {publishResult.blockedBy.governance ? "governance" : ""}
+                        </p>
+                      ) : null}
                     </div>
                   ) : null}
 
@@ -151,7 +181,31 @@ export function PublishOverlayWorkflow(props: PublishOverlayWorkflowProps): Reac
                       Fidelity mode: {publishResult.fidelityMode} • Highest mismatch:{" "}
                       {publishResult.fidelity.highestMismatchRatio.toFixed(3)}
                     </p>
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      Governance: {publishResult.governance?.ready ? "ready" : "incomplete"} • Page:{" "}
+                      {publishResult.governance?.page?.slug ?? "n/a"}
+                    </p>
                   </div>
+
+                  {publishResult.governance ? (
+                    <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-3">
+                      <p className="text-xs font-semibold text-slate-300">Governance Checklist</p>
+                      <div className="mt-2 grid gap-1.5 md:grid-cols-2">
+                        {publishResult.governance.checks.map((check) => (
+                          <div key={check.id} className="flex items-center gap-2 text-[11px] text-slate-300">
+                            <span
+                              className={`material-symbols-outlined text-[15px] ${
+                                check.pass ? "text-emerald-400" : "text-rose-400"
+                              }`}
+                            >
+                              {check.pass ? "check_circle" : "cancel"}
+                            </span>
+                            <span>{check.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
 
                   <pre
                     data-testid="publish-payload-json"

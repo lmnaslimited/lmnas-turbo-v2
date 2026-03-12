@@ -13,34 +13,34 @@ type GuidedStep = {
 
 const GUIDED_STEPS: GuidedStep[] = [
   {
+    id: "import",
+    label: "1. Import Source",
+    href: "/platform/onboarding/import",
+    hint: "Bring in source markup and establish governed extraction context."
+  },
+  {
     id: "blocks",
-    label: "1. Import & Blocks",
+    label: "2. Govern Blocks",
     href: "/platform/onboarding/blocks",
-    hint: "Bring in source content and refine reusable sections."
+    hint: "Review detected sections and persist governed reusable blocks."
   },
   {
     id: "pages",
-    label: "2. Compose Pages",
+    label: "3. Compose Pages",
     href: "/platform/onboarding/pages",
     hint: "Assemble page structure from approved blocks."
   },
   {
     id: "widgets",
-    label: "3. Bind Widgets",
+    label: "4. Bind Widgets",
     href: "/platform/onboarding/widgets",
     hint: "Attach interactive behavior through repo-first widget mappings."
   },
   {
-    id: "shells",
-    label: "4. Apply Shell",
-    href: "/platform/onboarding/shells",
-    hint: "Select the global shell for navigation and footer framing."
-  },
-  {
     id: "theme",
-    label: "5. Apply Theme",
+    label: "5. Theme & Shell",
     href: "/platform/onboarding/theme",
-    hint: "Review active styling and preview temporary swatches."
+    hint: "Set theme presets, shell presets, and token mappings."
   },
   {
     id: "publish",
@@ -51,6 +51,9 @@ const GUIDED_STEPS: GuidedStep[] = [
 ];
 
 function resolveCurrentStep(pathname: string): number {
+  if (pathname.startsWith("/platform/onboarding/shells")) {
+    return GUIDED_STEPS.findIndex((step) => step.id === "theme");
+  }
   return GUIDED_STEPS.findIndex((step) => pathname.startsWith(step.href));
 }
 

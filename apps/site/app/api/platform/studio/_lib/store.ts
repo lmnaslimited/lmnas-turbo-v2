@@ -129,6 +129,9 @@ function createSeedStore(): StudioStore {
         name: "Hero Section",
         family: "hero",
         status: "active",
+        lifecycle: "published",
+        scope: "global",
+        schemaStatus: "valid",
         themeKey: "default",
         sourceType: "seed",
         sourceRef: "seed",
@@ -141,6 +144,7 @@ function createSeedStore(): StudioStore {
         previewHtml:
           "<section style=\"padding:56px 32px;background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);color:#f8fafc;font-family:system-ui\"><h1 style=\"font-size:32px;font-weight:800;letter-spacing:-0.8px;margin:0\">Build faster with LMNAs</h1><p style=\"color:#94a3b8;margin-top:10px;font-size:14px;max-width:480px;line-height:1.5\">Launch governed pages in minutes. Ship beautiful landing pages backed by a real CMS.</p><div style=\"margin-top:20px;display:flex;gap:10px\"><button style=\"background:#3b82f6;border:none;color:white;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600\">Get Started</button><button style=\"background:transparent;border:1px solid #334155;color:#94a3b8;padding:10px 20px;border-radius:8px;font-size:13px\">Learn More</button></div></section>",
         inUseCount: 1,
+        usageCount: 1,
         createdAt: "2026-03-08",
         updatedAt: now
       },
@@ -150,6 +154,9 @@ function createSeedStore(): StudioStore {
         name: "CTA Banner",
         family: "cta_banner",
         status: "active",
+        lifecycle: "published",
+        scope: "global",
+        schemaStatus: "valid",
         themeKey: "default",
         sourceType: "seed",
         sourceRef: "seed",
@@ -159,11 +166,55 @@ function createSeedStore(): StudioStore {
         previewHtml:
           "<section style=\"padding:40px 32px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;text-align:center;font-family:system-ui\"><h2 style=\"font-size:24px;font-weight:700;margin:0\">Ready to transform your web presence?</h2><p style=\"margin-top:8px;font-size:14px;opacity:0.85\">Start your free trial today.</p><button style=\"margin-top:16px;background:#fff;color:#1d4ed8;border:none;padding:10px 24px;border-radius:8px;font-weight:600;font-size:13px\">Book Appointment</button></section>",
         inUseCount: 0,
+        usageCount: 0,
         createdAt: "2026-03-08",
         updatedAt: now
       }
     ],
-    pages: [],
+    pages: [
+      {
+        id: "page-home",
+        name: "Home",
+        slug: "home",
+        locale: "en",
+        activeShellId: "shell-main",
+        shellKey: "shell-main",
+        lifecycle: "draft",
+        status: "draft",
+        blockOrder: ["blk-hero-1", "blk-cta-1"],
+        fieldValues: {},
+        actionOverrides: {},
+        productMapping: "LENS-CPQ",
+        industryMapping: ["fintech", "saas"],
+        primaryCta: {
+          text: "Get Started",
+          url: "/signup"
+        },
+        conversionConfig: {
+          trackConversions: true,
+          strategy: "Track Conversions",
+          valuePoints: 50
+        },
+        campaignUtmStrategy: {
+          source: "website",
+          medium: "studio",
+          campaign: "home-launch"
+        },
+        taxonomyState: {
+          valid: true,
+          tags: ["home", "growth"]
+        },
+        seoMetadata: {
+          metaTitle: "Home | LMNAs Studio",
+          metaDescription: "Scale your business faster than ever."
+        },
+        seoJsonLdValid: true,
+        blockSchemaValid: true,
+        previewValid: true,
+        previewHtml: "",
+        updatedAt: now
+      }
+    ],
     widgets: [
       {
         id: "widget-calendar-booking",
@@ -172,6 +223,8 @@ function createSeedStore(): StudioStore {
         widgetType: "booking_popup",
         surface: "modal",
         status: "active",
+        lifecycle: "published",
+        readiness: "ready",
         repoPath: "/components/widgets/calendar-widget.ts",
         description: "Repo-first booking widget mapping.",
         editableFields: ["title", "ctaText"],

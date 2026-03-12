@@ -6,6 +6,11 @@ type StrapiCollectionResponse = {
   data?: Array<Record<string, unknown>>;
 };
 
+type StrapiSchemaSource = "canonical" | "legacy";
+
+const CANONICAL_SHELL_COLLECTION = "/api/studio-shells";
+const LEGACY_SHELL_COLLECTION = "/api/shell-variants";
+
 function mapMenuItemsToStrapi(items: StudioMenuItem[]): Array<Record<string, unknown>> {
   return items.map((item) => ({
     label: item.label,
@@ -21,7 +26,43 @@ function mapMenuItemsToStrapi(items: StudioMenuItem[]): Array<Record<string, unk
   }));
 }
 
-function mapMenuItemsFromStrapi(items: unknown): StudioMenuItem[] {
+function mapMenuItemsFromCanonical(items: unknown): StudioMenuItem[] {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  return items
+    .map((item, index) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) {
+        return null;
+      }
+      const row = item as Record<string, unknown>;
+      const childrenRaw = Array.isArray(row.children) ? row.children : Array.isArray(row.submenuItems) ? row.submenuItems : [];
+      const children = childrenRaw
+        .map((child, childIndex) => {
+          if (!child || typeof child !== "object" || Array.isArray(child)) {
+            return null;
+          }
+          const childRow = child as Record<string, unknown>;
+          return {
+            id: `${String(row.label ?? `item-${index + 1}`)}-child-${childIndex + 1}`,
+            label: typeof childRow.label === "string" ? childRow.label : `Child ${childIndex + 1}`,
+            href: typeof childRow.href === "string" ? childRow.href : "#"
+          };
+        })
+        .filter((entry): entry is StudioMenuItem => entry !== null);
+
+      return {
+        id: String(row.id ?? row.label ?? `item-${index + 1}`),
+        label: typeof row.label === "string" ? row.label : `Item ${index + 1}`,
+        href: typeof row.href === "string" ? row.href : "#",
+        ...(children.length > 0 ? { children } : {})
+      };
+    })
+    .filter((entry): entry is StudioMenuItem => entry !== null);
+}
+
+function mapMenuItemsFromLegacy(items: unknown): StudioMenuItem[] {
   if (!Array.isArray(items)) {
     return [];
   }
@@ -92,7 +133,27 @@ function normalizeBlockArray(value: unknown): string[] {
   return value.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0);
 }
 
-function mapShellFromStrapi(value: unknown): StudioShell {
+function mapShellFromCanonical(value: unknown): StudioShell {
+  const row = (value ?? {}) as Record<string, unknown>;
+  const rawId = row.documentId ?? row.id;
+  const resolvedId = typeof rawId === "string" || typeof rawId === "number" ? String(rawId) : `shell-${Date.now()}`;
+
+  return {
+    id: resolvedId,
+    key: typeof row.shellKey === "string" ? row.shellKey : "shell",
+    name: typeof row.name === "string" ? row.name : "Shell",
+    role: row.role === "navbar" || row.role === "footer" ? row.role : "full",
+    status: row.status === "active" ? "active" : "inactive",
+    updatedAt: typeof row.updatedAt === "string" ? row.updatedAt.slice(0, 10) : new Date().toISOString().slice(0, 10),
+    menuItems: mapMenuItemsFromCanonical(row.menuItems),
+    actions: mapShellActions(row.actions),
+    navbarBlocks: normalizeBlockArray(row.navbarBlocks),
+    footerBlocks: normalizeBlockArray(row.footerBlocks),
+    previewHtml: typeof row.previewHtml === "string" && row.previewHtml.length > 0 ? row.previewHtml : "<div>No preview</div>"
+  };
+}
+
+function mapShellFromLegacy(value: unknown): StudioShell {
   const row = (value ?? {}) as Record<string, unknown>;
   const shell = row.shell && typeof row.shell === "object" && !Array.isArray(row.shell) ? (row.shell as Record<string, unknown>) : {};
   const navbarVariant =
@@ -103,7 +164,6 @@ function mapShellFromStrapi(value: unknown): StudioShell {
     navbarVariant.menu && typeof navbarVariant.menu === "object" && !Array.isArray(navbarVariant.menu)
       ? (navbarVariant.menu as Record<string, unknown>)
       : {};
-  const menuItems = mapMenuItemsFromStrapi(menu.items);
 
   const rawId = row.documentId ?? row.id;
   const resolvedId = typeof rawId === "string" || typeof rawId === "number" ? String(rawId) : `shell-${Date.now()}`;
@@ -115,7 +175,7 @@ function mapShellFromStrapi(value: unknown): StudioShell {
     role: row.role === "navbar" || row.role === "footer" ? row.role : "full",
     status: row.status === "active" ? "active" : "inactive",
     updatedAt: typeof row.updatedAt === "string" ? row.updatedAt.slice(0, 10) : new Date().toISOString().slice(0, 10),
-    menuItems,
+    menuItems: mapMenuItemsFromLegacy(menu.items),
     actions: mapShellActions(row.actions),
     navbarBlocks: normalizeBlockArray(row.navbarBlocks ?? shell.navbarBlocks),
     footerBlocks: normalizeBlockArray(row.footerBlocks ?? shell.footerBlocks),
@@ -123,23 +183,80 @@ function mapShellFromStrapi(value: unknown): StudioShell {
   };
 }
 
-async function listShellsFromStrapi(): Promise<StudioShell[]> {
-  const response = await requestStrapi<StrapiCollectionResponse>("/api/shell-variants?pagination[pageSize]=200&populate=*");
+async function listShellsFromCollection(
+  collectionPath: string,
+  mapper: (value: unknown) => StudioShell
+): Promise<StudioShell[]> {
+  const response = await requestStrapi<StrapiCollectionResponse>(`${collectionPath}?pagination[pageSize]=200&populate=*`);
   const rows = Array.isArray(response.data) ? response.data : [];
-  return rows.map((row) => mapShellFromStrapi(unwrapStrapiEntity(row)));
+  return rows.map((row) => mapper(unwrapStrapiEntity(row)));
 }
 
-async function upsertShellInStrapi(shell: StudioShell): Promise<void> {
+async function listShellsFromStrapi(): Promise<{ shells: StudioShell[]; schemaSource: StrapiSchemaSource }> {
+  try {
+    const shells = await listShellsFromCollection(CANONICAL_SHELL_COLLECTION, mapShellFromCanonical);
+    return {
+      shells,
+      schemaSource: "canonical"
+    };
+  } catch {
+    const shells = await listShellsFromCollection(LEGACY_SHELL_COLLECTION, mapShellFromLegacy);
+    return {
+      shells,
+      schemaSource: "legacy"
+    };
+  }
+}
+
+function resolveEntityMutationId(value: Record<string, unknown>): string | null {
+  if (typeof value.documentId === "string" && value.documentId.length > 0) {
+    return value.documentId;
+  }
+  if (typeof value.id === "string" || typeof value.id === "number") {
+    return String(value.id);
+  }
+  return null;
+}
+
+async function upsertShellInCanonicalStrapi(shell: StudioShell): Promise<void> {
   const lookup = await requestStrapi<StrapiCollectionResponse>(
-    `/api/shell-variants?filters[variantKey][$eq]=${encodeURIComponent(shell.key)}&pagination[pageSize]=1`
+    `${CANONICAL_SHELL_COLLECTION}?filters[shellKey][$eq]=${encodeURIComponent(shell.key)}&pagination[pageSize]=1`
   );
   const existing = Array.isArray(lookup.data) ? lookup.data[0] : undefined;
-  const existingId =
-    existing && typeof existing.documentId === "string"
-      ? existing.documentId
-      : existing && (typeof existing.id === "number" || typeof existing.id === "string")
-        ? String(existing.id)
-        : undefined;
+  const existingId = existing ? resolveEntityMutationId(existing) : null;
+
+  const payload = {
+    shellKey: shell.key,
+    name: shell.name,
+    role: shell.role,
+    status: shell.status,
+    menuItems: shell.menuItems,
+    actions: shell.actions,
+    navbarBlocks: shell.navbarBlocks,
+    footerBlocks: shell.footerBlocks,
+    previewHtml: shell.previewHtml
+  };
+
+  if (existingId !== null) {
+    await requestStrapi(`${CANONICAL_SHELL_COLLECTION}/${encodeURIComponent(existingId)}`, {
+      method: "PUT",
+      body: payload
+    });
+    return;
+  }
+
+  await requestStrapi(CANONICAL_SHELL_COLLECTION, {
+    method: "POST",
+    body: payload
+  });
+}
+
+async function upsertShellInLegacyStrapi(shell: StudioShell): Promise<void> {
+  const lookup = await requestStrapi<StrapiCollectionResponse>(
+    `${LEGACY_SHELL_COLLECTION}?filters[variantKey][$eq]=${encodeURIComponent(shell.key)}&pagination[pageSize]=1`
+  );
+  const existing = Array.isArray(lookup.data) ? lookup.data[0] : undefined;
+  const existingId = existing ? resolveEntityMutationId(existing) : null;
 
   const payload = {
     variantKey: shell.key,
@@ -180,15 +297,15 @@ async function upsertShellInStrapi(shell: StudioShell): Promise<void> {
     }
   };
 
-  if (existingId !== undefined) {
-    await requestStrapi(`/api/shell-variants/${encodeURIComponent(existingId)}`, {
+  if (existingId !== null) {
+    await requestStrapi(`${LEGACY_SHELL_COLLECTION}/${encodeURIComponent(existingId)}`, {
       method: "PUT",
       body: payload
     });
     return;
   }
 
-  await requestStrapi("/api/shell-variants", {
+  await requestStrapi(LEGACY_SHELL_COLLECTION, {
     method: "POST",
     body: payload
   });
@@ -248,12 +365,13 @@ function normalizeShell(value: unknown): StudioShell {
 export async function GET(): Promise<Response> {
   if (isStrapiConfigured()) {
     try {
-      const shells = await listShellsFromStrapi();
+      const { shells, schemaSource } = await listShellsFromStrapi();
       if (shells.length > 0) {
         return Response.json({
           ok: true,
           data: shells,
-          source: "strapi"
+          source: "strapi",
+          schemaSource
         });
       }
     } catch {
@@ -264,7 +382,8 @@ export async function GET(): Promise<Response> {
   return Response.json({
     ok: true,
     data: getStudioStore().shells,
-    source: "fallback"
+    source: "fallback",
+    schemaSource: "fallback"
   });
 }
 
@@ -275,20 +394,34 @@ export async function POST(request: Request): Promise<Response> {
 
     if (isStrapiConfigured()) {
       try {
-        await upsertShellInStrapi(shell);
-        const shells = await listShellsFromStrapi();
+        await upsertShellInCanonicalStrapi(shell);
+        const shells = await listShellsFromCollection(CANONICAL_SHELL_COLLECTION, mapShellFromCanonical);
         return Response.json({
           ok: true,
           data: shells,
-          source: "strapi"
+          source: "strapi",
+          schemaSource: "canonical"
         });
       } catch {
-        const fallbackShells = upsertShellInFallback(shell);
-        return Response.json({
-          ok: true,
-          data: fallbackShells,
-          source: "fallback"
-        });
+        try {
+          await upsertShellInLegacyStrapi(shell);
+          const shells = await listShellsFromCollection(LEGACY_SHELL_COLLECTION, mapShellFromLegacy);
+          return Response.json({
+            ok: true,
+            data: shells,
+            source: "strapi",
+            schemaSource: "legacy",
+            warning: "Shell persisted via legacy collection fallback. Run schema migration to canonical studio-shells."
+          });
+        } catch {
+          const fallbackShells = upsertShellInFallback(shell);
+          return Response.json({
+            ok: true,
+            data: fallbackShells,
+            source: "fallback",
+            schemaSource: "fallback"
+          });
+        }
       }
     }
 
@@ -296,7 +429,8 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({
       ok: true,
       data: fallbackShells,
-      source: "fallback"
+      source: "fallback",
+      schemaSource: "fallback"
     });
   } catch (error) {
     if (error instanceof StudioApiError) {

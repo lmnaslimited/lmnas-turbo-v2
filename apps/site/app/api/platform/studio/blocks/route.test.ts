@@ -38,9 +38,38 @@ describe("studio blocks route delete guard", () => {
           name: "Page One",
           slug: "page-one",
           locale: "en",
+          lifecycle: "draft",
+          status: "draft",
           blockOrder: ["blk-hero-1"],
           fieldValues: {},
           actionOverrides: {},
+          productMapping: "LENS-CPQ",
+          industryMapping: ["saas"],
+          primaryCta: {
+            text: "Get Started",
+            url: "/signup"
+          },
+          conversionConfig: {
+            trackConversions: true,
+            strategy: "Track Conversions",
+            valuePoints: 50
+          },
+          campaignUtmStrategy: {
+            source: "website",
+            medium: "studio",
+            campaign: "test"
+          },
+          taxonomyState: {
+            valid: true,
+            tags: ["home"]
+          },
+          seoMetadata: {
+            metaTitle: "Page One",
+            metaDescription: "Test page"
+          },
+          seoJsonLdValid: true,
+          blockSchemaValid: true,
+          previewValid: true,
           previewHtml: "<main>page</main>",
           updatedAt: "2026-03-10"
         }

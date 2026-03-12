@@ -14,6 +14,9 @@ type StrapiCollectionResponse = {
   data?: Array<Record<string, unknown>>;
 };
 
+const CANONICAL_BLOCK_COLLECTION = "/api/studio-blocks";
+const LEGACY_BLOCK_COLLECTION = "/api/block-templates";
+
 function extractActionTarget(action: Record<string, unknown>): string {
   const targets = [action.targetUrl, action.targetSectionId, action.widgetId, action.exitId];
   for (const target of targets) {
@@ -39,6 +42,76 @@ function normalizeTemplateKey(value: string | undefined, fallback: string): stri
   return fallback;
 }
 
+function resolveEntityMutationId(value: Record<string, unknown>): string | null {
+  if (typeof value.documentId === "string" && value.documentId.length > 0) {
+    return value.documentId;
+  }
+  if (typeof value.id === "string" || typeof value.id === "number") {
+    return String(value.id);
+  }
+  return null;
+}
+
+async function upsertBlockInCollection(
+  collectionPath: string,
+  keyField: "blockKey" | "templateKey",
+  template: {
+    key: string;
+    name: string;
+    family: string;
+    status: "active" | "inactive" | "draft";
+    themeKey: string;
+    sourceType: string;
+    sourceRef: string;
+    confidence: number;
+    editableFields: string[];
+    actions: Array<{ id: string; label: string; type: StudioActionType; target: string }>;
+    previewHtml: string;
+    inUseCount: number;
+  }
+): Promise<void> {
+  const lookup = await requestStrapi<StrapiCollectionResponse>(
+    `${collectionPath}?filters[${encodeURIComponent(keyField)}][$eq]=${encodeURIComponent(template.key)}&pagination[pageSize]=1`
+  );
+  const existing = Array.isArray(lookup.data) ? lookup.data[0] : undefined;
+  const existingId = existing ? resolveEntityMutationId(existing) : null;
+  const usageCount = template.inUseCount;
+  const payload: Record<string, unknown> = {
+    blockKey: template.key,
+    templateKey: template.key,
+    name: template.name,
+    family: template.family,
+    status: template.status,
+    lifecycle: "draft",
+    scope: "global",
+    schemaStatus: "valid",
+    themeKey: template.themeKey,
+    sourceType: template.sourceType,
+    sourceRef: template.sourceRef,
+    confidence: template.confidence,
+    editableFields: template.editableFields,
+    actions: template.actions,
+    previewHtml: template.previewHtml,
+    usageCount
+  };
+  if (collectionPath === LEGACY_BLOCK_COLLECTION) {
+    payload.inUseCount = usageCount;
+  }
+
+  if (existingId !== null) {
+    await requestStrapi(`${collectionPath}/${encodeURIComponent(existingId)}`, {
+      method: "PUT",
+      body: payload
+    });
+    return;
+  }
+
+  await requestStrapi(collectionPath, {
+    method: "POST",
+    body: payload
+  });
+}
+
 async function upsertBlockTemplateInStrapi(template: {
   key: string;
   name: string;
@@ -53,43 +126,11 @@ async function upsertBlockTemplateInStrapi(template: {
   previewHtml: string;
   inUseCount: number;
 }): Promise<void> {
-  const lookup = await requestStrapi<StrapiCollectionResponse>(
-    `/api/block-templates?filters[templateKey][$eq]=${encodeURIComponent(template.key)}&pagination[pageSize]=1`
-  );
-  const existing = Array.isArray(lookup.data) ? lookup.data[0] : undefined;
-  const existingId =
-    existing && typeof existing.documentId === "string"
-      ? existing.documentId
-      : existing && (typeof existing.id === "number" || typeof existing.id === "string")
-        ? String(existing.id)
-        : undefined;
-  const payload = {
-    templateKey: template.key,
-    name: template.name,
-    family: template.family,
-    status: template.status,
-    themeKey: template.themeKey,
-    sourceType: template.sourceType,
-    sourceRef: template.sourceRef,
-    confidence: template.confidence,
-    editableFields: template.editableFields,
-    actions: template.actions,
-    previewHtml: template.previewHtml,
-    inUseCount: template.inUseCount
-  };
-
-  if (existingId !== undefined) {
-    await requestStrapi(`/api/block-templates/${encodeURIComponent(existingId)}`, {
-      method: "PUT",
-      body: payload
-    });
-    return;
+  try {
+    await upsertBlockInCollection(CANONICAL_BLOCK_COLLECTION, "blockKey", template);
+  } catch {
+    await upsertBlockInCollection(LEGACY_BLOCK_COLLECTION, "templateKey", template);
   }
-
-  await requestStrapi("/api/block-templates", {
-    method: "POST",
-    body: payload
-  });
 }
 
 function upsertBlockTemplateInFallback(template: {
@@ -115,6 +156,9 @@ function upsertBlockTemplateInFallback(template: {
     name: template.name,
     family: template.family,
     status: "active" as const,
+    lifecycle: "draft" as const,
+    scope: "global" as const,
+    schemaStatus: "valid" as const,
     themeKey: template.themeKey,
     sourceType: template.sourceType,
     sourceRef: template.sourceRef,
@@ -123,6 +167,7 @@ function upsertBlockTemplateInFallback(template: {
     actions: template.actions,
     previewHtml: template.previewHtml,
     inUseCount: index >= 0 ? blocks[index].inUseCount : 0,
+    usageCount: index >= 0 ? (blocks[index].usageCount ?? blocks[index].inUseCount) : 0,
     createdAt: index >= 0 ? blocks[index].createdAt : now,
     updatedAt: now
   };

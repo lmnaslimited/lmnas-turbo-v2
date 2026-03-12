@@ -6,6 +6,21 @@ type StrapiCollectionResponse = {
   data?: Array<Record<string, unknown>>;
 };
 
+type StrapiSchemaSource = "canonical" | "legacy";
+
+const CANONICAL_SHELL_COLLECTION = "/api/studio-shells";
+const LEGACY_SHELL_COLLECTION = "/api/shell-variants";
+
+function resolveEntityMutationId(value: Record<string, unknown>): string | null {
+  if (typeof value.documentId === "string" && value.documentId.length > 0) {
+    return value.documentId;
+  }
+  if (typeof value.id === "string" || typeof value.id === "number") {
+    return String(value.id);
+  }
+  return null;
+}
+
 function mapMenuItemsFromStrapi(items: unknown): StudioShell["menuItems"] {
   if (!Array.isArray(items)) {
     return [];
@@ -76,7 +91,26 @@ function normalizeBlockArray(value: unknown): string[] {
   return value.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0);
 }
 
-function normalizeShell(value: unknown): StudioShell {
+function normalizeShellFromCanonical(value: unknown): StudioShell {
+  const row = (value ?? {}) as Record<string, unknown>;
+  const rawId = row.documentId ?? row.id;
+  const resolvedId = typeof rawId === "string" || typeof rawId === "number" ? String(rawId) : `shell-${Date.now()}`;
+  return {
+    id: resolvedId,
+    key: typeof row.shellKey === "string" ? row.shellKey : "shell",
+    name: typeof row.name === "string" ? row.name : "Shell",
+    role: row.role === "navbar" || row.role === "footer" ? row.role : "full",
+    status: row.status === "active" ? "active" : "inactive",
+    updatedAt: typeof row.updatedAt === "string" ? row.updatedAt.slice(0, 10) : new Date().toISOString().slice(0, 10),
+    menuItems: mapMenuItemsFromStrapi(row.menuItems),
+    actions: mapShellActions(row.actions),
+    navbarBlocks: normalizeBlockArray(row.navbarBlocks),
+    footerBlocks: normalizeBlockArray(row.footerBlocks),
+    previewHtml: typeof row.previewHtml === "string" ? row.previewHtml : "<div>No preview</div>"
+  };
+}
+
+function normalizeShellFromLegacy(value: unknown): StudioShell {
   const row = (value ?? {}) as Record<string, unknown>;
   const rawId = row.documentId ?? row.id;
   const shell =
@@ -105,43 +139,61 @@ function normalizeShell(value: unknown): StudioShell {
   };
 }
 
-async function activateInStrapi(shellId: string, shellKey?: string): Promise<StudioShell[]> {
-  const all = await requestStrapi<StrapiCollectionResponse>("/api/shell-variants?pagination[pageSize]=200&populate=*");
+async function listShellsFromCollection(
+  collectionPath: string,
+  mapper: (value: unknown) => StudioShell
+): Promise<Array<{ raw: Record<string, unknown>; normalized: StudioShell }>> {
+  const all = await requestStrapi<StrapiCollectionResponse>(`${collectionPath}?pagination[pageSize]=200&populate=*`);
   const rows = Array.isArray(all.data) ? all.data : [];
-  const selected = rows.find((row) => {
-    const current = unwrapStrapiEntity(row) as Record<string, unknown>;
-    if (String(current.id) === shellId) {
-      return true;
-    }
-    return typeof shellKey === "string" && shellKey.length > 0 && current.variantKey === shellKey;
-  });
-  const selectedRole = selected ? (unwrapStrapiEntity(selected) as Record<string, unknown>).role : undefined;
+  return rows.map((row) => ({ raw: row, normalized: mapper(unwrapStrapiEntity(row)) }));
+}
 
-  for (const row of rows) {
-    const normalized = unwrapStrapiEntity(row);
-    const strapiId =
-      typeof row.documentId === "string"
-        ? row.documentId
-        : typeof row.id === "number" || typeof row.id === "string"
-          ? String(row.id)
-          : undefined;
-    if (strapiId === undefined) {
+async function activateInCollection(
+  collectionPath: string,
+  shellId: string,
+  shellKey: string | undefined,
+  mapper: (value: unknown) => StudioShell
+): Promise<StudioShell[]> {
+  const rows = await listShellsFromCollection(collectionPath, mapper);
+  const selected = rows.find(({ normalized }) => normalized.id === shellId || (shellKey && normalized.key === shellKey));
+  const selectedRole = selected?.normalized.role;
+
+  for (const { raw, normalized } of rows) {
+    const mutationId = resolveEntityMutationId(raw);
+    if (!mutationId) {
       continue;
     }
 
-    const sameRole = normalized.role === selectedRole || (selectedRole === undefined && true);
-    const shouldActivate =
-      normalized.id === shellId ||
-      (typeof shellKey === "string" && shellKey.length > 0 && normalized.variantKey === shellKey);
+    const sameRole = selectedRole === undefined ? true : normalized.role === selectedRole;
+    const shouldActivate = normalized.id === shellId || (shellKey && normalized.key === shellKey);
     const status = shouldActivate ? "active" : sameRole ? "inactive" : normalized.status;
-    await requestStrapi(`/api/shell-variants/${encodeURIComponent(strapiId)}`, {
+    await requestStrapi(`${collectionPath}/${encodeURIComponent(mutationId)}`, {
       method: "PUT",
       body: { status }
     });
   }
 
-  const refreshed = await requestStrapi<StrapiCollectionResponse>("/api/shell-variants?pagination[pageSize]=200&populate=*");
-  return (Array.isArray(refreshed.data) ? refreshed.data : []).map((row) => normalizeShell(unwrapStrapiEntity(row)));
+  const refreshed = await listShellsFromCollection(collectionPath, mapper);
+  return refreshed.map((row) => row.normalized);
+}
+
+async function activateInStrapi(
+  shellId: string,
+  shellKey: string | undefined
+): Promise<{ shells: StudioShell[]; schemaSource: StrapiSchemaSource }> {
+  try {
+    const shells = await activateInCollection(CANONICAL_SHELL_COLLECTION, shellId, shellKey, normalizeShellFromCanonical);
+    return {
+      shells,
+      schemaSource: "canonical"
+    };
+  } catch {
+    const shells = await activateInCollection(LEGACY_SHELL_COLLECTION, shellId, shellKey, normalizeShellFromLegacy);
+    return {
+      shells,
+      schemaSource: "legacy"
+    };
+  }
 }
 
 function activateInFallback(shellId: string): StudioShell[] {
@@ -178,18 +230,20 @@ export async function POST(request: Request): Promise<Response> {
 
     if (isStrapiConfigured()) {
       try {
-        const shells = await activateInStrapi(shellId, shellKey);
+        const { shells, schemaSource } = await activateInStrapi(shellId, shellKey);
         return Response.json({
           ok: true,
           data: shells,
-          source: "strapi"
+          source: "strapi",
+          schemaSource
         });
       } catch {
         const fallback = activateInFallback(shellId);
         return Response.json({
           ok: true,
           data: fallback,
-          source: "fallback"
+          source: "fallback",
+          schemaSource: "fallback"
         });
       }
     }
@@ -198,7 +252,8 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({
       ok: true,
       data: fallback,
-      source: "fallback"
+      source: "fallback",
+      schemaSource: "fallback"
     });
   } catch (error) {
     if (error instanceof StudioApiError) {

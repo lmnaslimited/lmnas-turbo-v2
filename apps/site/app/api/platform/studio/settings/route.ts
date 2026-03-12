@@ -14,6 +14,7 @@ type StrapiCollectionResponse = {
 };
 
 const SETTINGS_MARKER_PREFIX = "[studio:fidelity-settings]";
+const CANONICAL_THEME_COLLECTION = "/api/studio-themes";
 
 function normalizeMode(value: unknown, fallback: StudioFidelityMode): StudioFidelityMode {
   return value === "disallow-below-threshold" || value === "allow-below-threshold" ? value : fallback;
@@ -81,15 +82,15 @@ function normalizeTheme(value: unknown): StudioTheme {
 
 async function listThemesFromStrapi(): Promise<StudioTheme[]> {
   const response = await requestStrapi<StrapiCollectionResponse>(
-    "/api/theme-variants?pagination[pageSize]=200&sort=updatedAt:desc"
+    `${CANONICAL_THEME_COLLECTION}?pagination[pageSize]=200&sort=updatedAt:desc`
   );
   const rows = Array.isArray(response.data) ? response.data : [];
   return rows.map((row) => normalizeTheme(unwrapStrapiEntity(row)));
 }
 
-async function resolveThemeVariantMutationId(themeKey: string): Promise<string | null> {
+async function resolveThemeMutationId(themeKey: string): Promise<string | null> {
   const lookup = await requestStrapi<StrapiCollectionResponse>(
-    `/api/theme-variants?filters[themeKey][$eq]=${encodeURIComponent(themeKey)}&pagination[pageSize]=1`
+    `${CANONICAL_THEME_COLLECTION}?filters[themeKey][$eq]=${encodeURIComponent(themeKey)}&pagination[pageSize]=1`
   );
   const existing = Array.isArray(lookup.data) ? lookup.data[0] : undefined;
   if (!existing) {
@@ -171,12 +172,12 @@ async function persistSettingsToStrapi(settings: StudioSettings): Promise<{
     throw new Error("No active theme available in Strapi for settings persistence.");
   }
 
-  const mutationId = await resolveThemeVariantMutationId(activeTheme.themeKey);
+  const mutationId = await resolveThemeMutationId(activeTheme.themeKey);
   if (!mutationId) {
-    throw new Error(`Unable to resolve Strapi mutation id for themeKey="${activeTheme.themeKey}".`);
+    throw new Error(`Unable to resolve canonical studio-theme mutation id for themeKey="${activeTheme.themeKey}".`);
   }
 
-  await requestStrapi(`/api/theme-variants/${encodeURIComponent(mutationId)}`, {
+  await requestStrapi(`${CANONICAL_THEME_COLLECTION}/${encodeURIComponent(mutationId)}`, {
     method: "PUT",
     body: {
       themeKey: activeTheme.themeKey,

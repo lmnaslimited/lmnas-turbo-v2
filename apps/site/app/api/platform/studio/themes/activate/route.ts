@@ -7,11 +7,27 @@ type StrapiCollectionResponse = {
   data?: Array<Record<string, unknown>>;
 };
 
+type StrapiSchemaSource = "canonical" | "legacy";
+
+const CANONICAL_THEME_COLLECTION = "/api/studio-themes";
+const LEGACY_THEME_COLLECTION = "/api/theme-variants";
+
+function resolveEntityMutationId(value: Record<string, unknown>): string | null {
+  if (typeof value.documentId === "string" && value.documentId.length > 0) {
+    return value.documentId;
+  }
+  if (typeof value.id === "string" || typeof value.id === "number") {
+    return String(value.id);
+  }
+  return null;
+}
+
 function normalizeTheme(value: unknown): StudioTheme {
   const row = (value ?? {}) as Record<string, unknown>;
+  const idCandidate = row.documentId ?? row.id;
   const statusCandidate = row.status;
   return {
-    id: typeof row.id === "string" ? row.id : `theme-${Date.now()}`,
+    id: typeof idCandidate === "string" || typeof idCandidate === "number" ? String(idCandidate) : `theme-${Date.now()}`,
     themeKey: typeof row.themeKey === "string" ? row.themeKey : "default",
     name: typeof row.name === "string" ? row.name : "Theme",
     status: isStudioThemeStatus(statusCandidate) ? statusCandidate : "inactive",
@@ -25,31 +41,36 @@ function normalizeTheme(value: unknown): StudioTheme {
   };
 }
 
-async function activateThemeInStrapi(themeId: string, themeKey?: string): Promise<StudioTheme[]> {
-  const all = await requestStrapi<StrapiCollectionResponse>("/api/theme-variants?pagination[pageSize]=200");
-  const rows = Array.isArray(all.data) ? all.data : [];
+async function listThemesFromCollection(collectionPath: string): Promise<Array<Record<string, unknown>>> {
+  const all = await requestStrapi<StrapiCollectionResponse>(`${collectionPath}?pagination[pageSize]=200`);
+  return Array.isArray(all.data) ? all.data : [];
+}
+
+async function activateThemeInCollection(
+  collectionPath: string,
+  themeId: string,
+  themeKey?: string
+): Promise<StudioTheme[]> {
+  const rows = await listThemesFromCollection(collectionPath);
   const selected = rows.find((row) => {
     const current = unwrapStrapiEntity(row);
-    if (current.id === themeId) {
+    if (String(current.id) === themeId || String(current.documentId ?? "") === themeId) {
       return true;
     }
     return themeKey !== undefined && current.themeKey === themeKey;
   });
+
   const selectedId = selected ? String((unwrapStrapiEntity(selected) as Record<string, unknown>).id) : themeId;
 
   for (const row of rows) {
     const current = unwrapStrapiEntity(row);
-    const strapiId =
-      typeof row.documentId === "string"
-        ? row.documentId
-        : typeof row.id === "number" || typeof row.id === "string"
-          ? String(row.id)
-          : undefined;
-    if (strapiId === undefined) {
+    const mutationId = resolveEntityMutationId(row);
+    if (mutationId === null) {
       continue;
     }
-    const nextStatus = current.id === selectedId ? "active" : current.status === "draft" ? "draft" : "inactive";
-    await requestStrapi(`/api/theme-variants/${encodeURIComponent(strapiId)}`, {
+
+    const nextStatus = String(current.id) === selectedId ? "active" : current.status === "draft" ? "draft" : "inactive";
+    await requestStrapi(`${collectionPath}/${encodeURIComponent(mutationId)}`, {
       method: "PUT",
       body: {
         ...(current as Record<string, unknown>),
@@ -58,8 +79,27 @@ async function activateThemeInStrapi(themeId: string, themeKey?: string): Promis
     });
   }
 
-  const refreshed = await requestStrapi<StrapiCollectionResponse>("/api/theme-variants?pagination[pageSize]=200");
-  return (Array.isArray(refreshed.data) ? refreshed.data : []).map((row) => normalizeTheme(unwrapStrapiEntity(row)));
+  const refreshed = await listThemesFromCollection(collectionPath);
+  return refreshed.map((row) => normalizeTheme(unwrapStrapiEntity(row)));
+}
+
+async function activateThemeInStrapi(
+  themeId: string,
+  themeKey?: string
+): Promise<{ themes: StudioTheme[]; schemaSource: StrapiSchemaSource }> {
+  try {
+    const themes = await activateThemeInCollection(CANONICAL_THEME_COLLECTION, themeId, themeKey);
+    return {
+      themes,
+      schemaSource: "canonical"
+    };
+  } catch {
+    const themes = await activateThemeInCollection(LEGACY_THEME_COLLECTION, themeId, themeKey);
+    return {
+      themes,
+      schemaSource: "legacy"
+    };
+  }
 }
 
 function activateThemeInFallback(themeId: string, themeKey?: string): StudioTheme[] {
@@ -98,18 +138,20 @@ export async function POST(request: Request): Promise<Response> {
 
     if (isStrapiConfigured()) {
       try {
-        const themes = await activateThemeInStrapi(themeId, themeKey);
+        const { themes, schemaSource } = await activateThemeInStrapi(themeId, themeKey);
         return Response.json({
           ok: true,
           data: themes,
-          source: "strapi"
+          source: "strapi",
+          schemaSource
         });
       } catch {
         const fallback = activateThemeInFallback(themeId, themeKey);
         return Response.json({
           ok: true,
           data: fallback,
-          source: "fallback"
+          source: "fallback",
+          schemaSource: "fallback"
         });
       }
     }
@@ -118,7 +160,8 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({
       ok: true,
       data: fallback,
-      source: "fallback"
+      source: "fallback",
+      schemaSource: "fallback"
     });
   } catch (error) {
     if (error instanceof StudioApiError) {

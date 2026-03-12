@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useRef, useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import {
     buildDetectionThumbnailDocument
 } from "@lmnas/integrations/onboarding/preview-renderer";
@@ -89,6 +90,8 @@ interface ActionTargetOverride {
 /* ─── Component ─── */
 
 export default function BlockImportPage() {
+    const pathname = usePathname();
+    const importRouteActive = pathname?.startsWith("/platform/onboarding/import") ?? false;
     const projectStyles = useProjectStyles();
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const [step, setStep] = useState(0);
@@ -127,7 +130,7 @@ export default function BlockImportPage() {
     const [libraryRecentOnly, setLibraryRecentOnly] = useState(false);
     const [libraryInUseOnly, setLibraryInUseOnly] = useState(false);
     const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
-    const [viewMode, setViewMode] = useState<"browse" | "import">("browse");
+    const [viewMode, setViewMode] = useState<"browse" | "import">(importRouteActive ? "import" : "browse");
     const [selectedBrowseFamily, setSelectedBrowseFamily] = useState<string | null>(null);
     const [selectedBrowseBlockId, setSelectedBrowseBlockId] = useState<string | null>(null);
     const [libraryPages, setLibraryPages] = useState<StudioPageDocument[]>([]);
@@ -199,6 +202,14 @@ export default function BlockImportPage() {
         });
         void loadPageLibrary();
     }, []);
+
+    useEffect(() => {
+        if (importRouteActive) {
+            setViewMode("import");
+        } else if (pathname?.startsWith("/platform/onboarding/blocks")) {
+            setViewMode("browse");
+        }
+    }, [importRouteActive, pathname]);
 
     useEffect(() => {
         const timeout = setTimeout(() => {
@@ -534,8 +545,8 @@ export default function BlockImportPage() {
                         onSelectItem={(block) => setSelectedBrowseBlockId(block.id)}
                         getItemTestId={(block) => `blocks-browse-item-${block.id}`}
                         getItemTitle={(block) => block.name}
-                        getItemSubtitle={(block) => `${block.status} • ${block.key}`}
-                        getItemMeta={(block) => `${block.actions.length} actions • in use ${block.inUseCount}`}
+                        getItemSubtitle={(block) => `${block.status} • ${block.lifecycle ?? "draft"} • ${block.scope ?? "global"}`}
+                        getItemMeta={(block) => `schema ${block.schemaStatus ?? "valid"} • usage ${block.usageCount ?? block.inUseCount}`}
                         emptyTitle="No blocks in this group"
                         emptyDescription="Select a different family or import new blocks."
                     />
@@ -563,18 +574,22 @@ export default function BlockImportPage() {
                                         title={`${selectedBrowseBlock.id} browse preview`}
                                     />
 
-                                    <div className="grid grid-cols-3 gap-2">
+                                    <div className="grid grid-cols-4 gap-2">
                                         <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-2 text-center">
                                             <p className="text-sm font-semibold text-slate-100">{selectedBrowseBlock.family}</p>
                                             <p className="text-[10px] text-slate-500">Family</p>
                                         </div>
                                         <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-2 text-center">
-                                            <p className="text-sm font-semibold text-slate-100">{selectedBrowseBlock.actions.length}</p>
-                                            <p className="text-[10px] text-slate-500">Actions</p>
+                                            <p className="text-sm font-semibold text-slate-100">{selectedBrowseBlock.scope ?? "global"}</p>
+                                            <p className="text-[10px] text-slate-500">Scope</p>
                                         </div>
                                         <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-2 text-center">
-                                            <p className="text-sm font-semibold text-slate-100">{selectedBrowseWhereUsed.length}</p>
-                                            <p className="text-[10px] text-slate-500">Where Used</p>
+                                            <p className="text-sm font-semibold text-slate-100">{selectedBrowseBlock.schemaStatus ?? "valid"}</p>
+                                            <p className="text-[10px] text-slate-500">Schema</p>
+                                        </div>
+                                        <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-2 text-center">
+                                            <p className="text-sm font-semibold text-slate-100">{selectedBrowseBlock.usageCount ?? selectedBrowseWhereUsed.length}</p>
+                                            <p className="text-[10px] text-slate-500">Usage</p>
                                         </div>
                                     </div>
 
@@ -1061,7 +1076,8 @@ export default function BlockImportPage() {
                                     <p className="text-xs font-semibold text-slate-300 truncate">{block.name}</p>
                                     <p className="text-[10px] text-slate-500">{block.family}</p>
                                     <p className="text-[10px] text-slate-600">
-                                        {block.status} · {block.themeKey} · in use {block.inUseCount}
+                                        {block.status} · {block.lifecycle ?? "draft"} · {block.scope ?? "global"} · schema {block.schemaStatus ?? "valid"} ·
+                                        usage {block.usageCount ?? block.inUseCount}
                                     </p>
                                 </button>
                             ))}

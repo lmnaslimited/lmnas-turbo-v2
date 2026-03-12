@@ -13,11 +13,26 @@ type ThemePostPayload = {
   sourceType?: unknown;
 };
 
+type StrapiSchemaSource = "canonical" | "legacy";
+
+const CANONICAL_THEME_COLLECTION = "/api/studio-themes";
+const LEGACY_THEME_COLLECTION = "/api/theme-variants";
+
 function toIsoDate(input?: unknown): string {
   if (typeof input !== "string" || input.length < 10) {
     return new Date().toISOString().slice(0, 10);
   }
   return input.slice(0, 10);
+}
+
+function resolveEntityMutationId(value: Record<string, unknown>): string | null {
+  if (typeof value.documentId === "string" && value.documentId.length > 0) {
+    return value.documentId;
+  }
+  if (typeof value.id === "string" || typeof value.id === "number") {
+    return String(value.id);
+  }
+  return null;
 }
 
 function normalizeTokens(value: unknown): StudioThemeToken[] {
@@ -53,7 +68,9 @@ function normalizeTokens(value: unknown): StudioThemeToken[] {
 
 function normalizeTheme(value: unknown): StudioTheme {
   const row = (value ?? {}) as Record<string, unknown>;
-  const id = typeof row.id === "string" && row.id.length > 0 ? row.id : `theme-${Date.now()}`;
+  const idCandidate = row.documentId ?? row.id;
+  const id =
+    typeof idCandidate === "string" || typeof idCandidate === "number" ? String(idCandidate) : `theme-${Date.now()}`;
   const themeKeyCandidate = row.themeKey;
   const themeKey =
     typeof themeKeyCandidate === "string" && themeKeyCandidate.trim().length > 0 ? themeKeyCandidate.trim() : id;
@@ -73,25 +90,34 @@ function normalizeTheme(value: unknown): StudioTheme {
   };
 }
 
-async function listThemesFromStrapi(): Promise<StudioTheme[]> {
-  const response = await requestStrapi<StrapiCollectionResponse>(
-    "/api/theme-variants?pagination[pageSize]=100&sort=updatedAt:desc"
-  );
+async function listThemesFromCollection(collectionPath: string): Promise<StudioTheme[]> {
+  const response = await requestStrapi<StrapiCollectionResponse>(`${collectionPath}?pagination[pageSize]=100&sort=updatedAt:desc`);
   const rows = Array.isArray(response.data) ? response.data : [];
   return rows.map((row) => normalizeTheme(unwrapStrapiEntity(row)));
 }
 
-async function upsertThemeInStrapi(theme: StudioTheme): Promise<void> {
+async function listThemesFromStrapi(): Promise<{ themes: StudioTheme[]; schemaSource: StrapiSchemaSource }> {
+  try {
+    const canonicalThemes = await listThemesFromCollection(CANONICAL_THEME_COLLECTION);
+    return {
+      themes: canonicalThemes,
+      schemaSource: "canonical"
+    };
+  } catch {
+    const legacyThemes = await listThemesFromCollection(LEGACY_THEME_COLLECTION);
+    return {
+      themes: legacyThemes,
+      schemaSource: "legacy"
+    };
+  }
+}
+
+async function upsertThemeInCollection(collectionPath: string, keyField: string, theme: StudioTheme): Promise<void> {
   const lookup = await requestStrapi<StrapiCollectionResponse>(
-    `/api/theme-variants?filters[themeKey][$eq]=${encodeURIComponent(theme.themeKey)}&pagination[pageSize]=1`
+    `${collectionPath}?filters[${encodeURIComponent(keyField)}][$eq]=${encodeURIComponent(theme.themeKey)}&pagination[pageSize]=1`
   );
   const existing = Array.isArray(lookup.data) ? lookup.data[0] : undefined;
-  const existingId =
-    existing && typeof existing.documentId === "string"
-      ? existing.documentId
-      : existing && (typeof existing.id === "number" || typeof existing.id === "string")
-        ? String(existing.id)
-        : undefined;
+  const existingId = existing ? resolveEntityMutationId(existing) : null;
 
   const payload = {
     themeKey: theme.themeKey,
@@ -104,15 +130,15 @@ async function upsertThemeInStrapi(theme: StudioTheme): Promise<void> {
     tokens: theme.tokens
   };
 
-  if (existingId !== undefined) {
-    await requestStrapi(`/api/theme-variants/${encodeURIComponent(existingId)}`, {
+  if (existingId !== null) {
+    await requestStrapi(`${collectionPath}/${encodeURIComponent(existingId)}`, {
       method: "PUT",
       body: payload
     });
     return;
   }
 
-  await requestStrapi("/api/theme-variants", {
+  await requestStrapi(collectionPath, {
     method: "POST",
     body: payload
   });
@@ -161,12 +187,13 @@ function findDuplicateTheme(themes: StudioTheme[], theme: StudioTheme): StudioTh
 export async function GET(): Promise<Response> {
   if (isStrapiConfigured()) {
     try {
-      const themes = await listThemesFromStrapi();
-      if (themes.length > 0 && themes.some((theme) => theme.status === "active")) {
+      const { themes, schemaSource } = await listThemesFromStrapi();
+      if (themes.length > 0) {
         return Response.json({
           ok: true,
           data: themes,
-          source: "strapi"
+          source: "strapi",
+          schemaSource
         });
       }
     } catch {
@@ -177,7 +204,8 @@ export async function GET(): Promise<Response> {
   return Response.json({
     ok: true,
     data: getStudioStore().themes,
-    source: "fallback"
+    source: "fallback",
+    schemaSource: "fallback"
   });
 }
 
@@ -200,7 +228,7 @@ export async function POST(request: Request): Promise<Response> {
 
     if (isStrapiConfigured()) {
       try {
-        const existingThemes = await listThemesFromStrapi();
+        const { themes: existingThemes } = await listThemesFromStrapi();
         if (mode === "create") {
           const duplicateTheme = findDuplicateTheme(existingThemes, theme);
           if (duplicateTheme) {
@@ -216,35 +244,49 @@ export async function POST(request: Request): Promise<Response> {
           }
         }
 
-        await upsertThemeInStrapi(theme);
-        const themes = await listThemesFromStrapi();
+        await upsertThemeInCollection(CANONICAL_THEME_COLLECTION, "themeKey", theme);
+        const themes = await listThemesFromCollection(CANONICAL_THEME_COLLECTION);
         return Response.json({
           ok: true,
           data: themes,
-          source: "strapi"
+          source: "strapi",
+          schemaSource: "canonical"
         });
       } catch {
-        if (mode === "create") {
-          const duplicateTheme = findDuplicateTheme(getStudioStore().themes, theme);
-          if (duplicateTheme) {
-            return Response.json(
-              {
-                ok: false,
-                error: `A theme with key "${duplicateTheme.themeKey}" already exists.`,
-                code: "theme.duplicate",
-                duplicateThemeId: duplicateTheme.id
-              },
-              { status: 409 }
-            );
+        try {
+          await upsertThemeInCollection(LEGACY_THEME_COLLECTION, "themeKey", theme);
+          const themes = await listThemesFromCollection(LEGACY_THEME_COLLECTION);
+          return Response.json({
+            ok: true,
+            data: themes,
+            source: "strapi",
+            schemaSource: "legacy",
+            warning: "Theme persisted via legacy collection fallback. Run schema migration to canonical studio-themes."
+          });
+        } catch {
+          if (mode === "create") {
+            const duplicateTheme = findDuplicateTheme(getStudioStore().themes, theme);
+            if (duplicateTheme) {
+              return Response.json(
+                {
+                  ok: false,
+                  error: `A theme with key "${duplicateTheme.themeKey}" already exists.`,
+                  code: "theme.duplicate",
+                  duplicateThemeId: duplicateTheme.id
+                },
+                { status: 409 }
+              );
+            }
           }
-        }
 
-        const fallbackThemes = upsertThemeInFallback(theme);
-        return Response.json({
-          ok: true,
-          data: fallbackThemes,
-          source: "fallback"
-        });
+          const fallbackThemes = upsertThemeInFallback(theme);
+          return Response.json({
+            ok: true,
+            data: fallbackThemes,
+            source: "fallback",
+            schemaSource: "fallback"
+          });
+        }
       }
     }
 
@@ -267,7 +309,8 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({
       ok: true,
       data: themes,
-      source: "fallback"
+      source: "fallback",
+      schemaSource: "fallback"
     });
   } catch (error) {
     if (error instanceof StudioApiError) {

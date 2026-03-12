@@ -34,6 +34,8 @@ function buildDraftWidget(seed: number, catalog: RepoWidgetCatalogItem[]): Studi
     widgetType: fallbackCatalog.widgetType,
     surface: fallbackCatalog.surface,
     status: "active",
+    lifecycle: "draft",
+    readiness: "ready",
     repoPath: fallbackCatalog.repoPath,
     description: "Repo-first widget mapping draft.",
     editableFields: [],
@@ -344,8 +346,10 @@ export default function WidgetWorkflowPage(): React.ReactElement {
           }}
           getItemTestId={(widget) => `widgets-card-${widget.id}`}
           getItemTitle={(widget) => widget.name}
-          getItemSubtitle={(widget) => `${widget.widgetType} • ${widget.status}`}
-          getItemMeta={(widget) => `${widget.placement.mode}${widget.placement.pageId ? ` • page ${widget.placement.pageId}` : ""}`}
+          getItemSubtitle={(widget) => `${widget.widgetType} • ${widget.status} • ${widget.lifecycle ?? "draft"}`}
+          getItemMeta={(widget) =>
+            `${widget.placement.mode}${widget.placement.pageId ? ` • page ${widget.placement.pageId}` : ""} • readiness ${widget.readiness ?? "ready"}`
+          }
           emptyTitle="No widgets mapped"
           emptyDescription="Create a draft and map it to an approved repo path."
         />
@@ -436,6 +440,22 @@ export default function WidgetWorkflowPage(): React.ReactElement {
                       <option value="inactive">inactive</option>
                     </select>
                   </label>
+
+                  <label className="flex flex-col gap-1 text-xs text-slate-400">
+                    <span className="text-[11px] text-slate-500">Lifecycle</span>
+                    <select
+                      value={selectedWidget.lifecycle ?? "draft"}
+                      onChange={(event) => {
+                        const lifecycle = event.target.value === "published" || event.target.value === "archived" ? event.target.value : "draft";
+                        patchSelectedWidget((widget) => ({ ...widget, lifecycle }));
+                      }}
+                      className="rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-xs text-slate-200"
+                    >
+                      <option value="draft">draft</option>
+                      <option value="published">published</option>
+                      <option value="archived">archived</option>
+                    </select>
+                  </label>
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-2">
@@ -489,6 +509,22 @@ export default function WidgetWorkflowPage(): React.ReactElement {
                           {entry.label}
                         </option>
                       ))}
+                    </select>
+                  </label>
+
+                  <label className="flex flex-col gap-1 text-xs text-slate-400">
+                    <span className="text-[11px] text-slate-500">Readiness</span>
+                    <select
+                      value={selectedWidget.readiness ?? "ready"}
+                      onChange={(event) => {
+                        const readiness = event.target.value === "warning" || event.target.value === "blocked" ? event.target.value : "ready";
+                        patchSelectedWidget((widget) => ({ ...widget, readiness }));
+                      }}
+                      className="rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-xs text-slate-200"
+                    >
+                      <option value="ready">ready</option>
+                      <option value="warning">warning</option>
+                      <option value="blocked">blocked</option>
                     </select>
                   </label>
                 </div>

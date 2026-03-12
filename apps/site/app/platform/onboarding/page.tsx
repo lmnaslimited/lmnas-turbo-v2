@@ -3,8 +3,15 @@ import Link from "next/link";
 
 const WORKFLOWS = [
   {
-    title: "Theme",
-    description: "Manage project themes. Derive, inspect, and freeze the active design system.",
+    title: "Import",
+    description: "Import a Stitch/Figma/HTML source and stage governed reusable block candidates.",
+    href: "/platform/onboarding/import",
+    icon: "download",
+    iconColor: "text-sky-400"
+  },
+  {
+    title: "Theme & Shell",
+    description: "Manage theme presets, shell presets, and token-first visual governance.",
     href: "/platform/onboarding/theme",
     icon: "palette",
     iconColor: "text-blue-400"
@@ -51,10 +58,10 @@ export default function OnboardingDashboard() {
     <div className="max-w-[900px] mx-auto flex flex-col gap-8 pt-4">
       <section>
         <h1 className="text-xl font-bold text-slate-100 tracking-tight">
-          Visual Onboarding Studio
+          Theme &amp; Shell Studio
         </h1>
         <p className="text-xs text-slate-500 mt-1">
-          Choose a workflow to get started.
+          Follow the governed pipeline: import, govern reusable assets, compose, validate, and publish.
         </p>
       </section>
 

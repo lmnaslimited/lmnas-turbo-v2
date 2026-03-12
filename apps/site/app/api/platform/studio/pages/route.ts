@@ -7,7 +7,7 @@ import type { StudioActionType, StudioBlockTemplate, StudioPageDocument } from "
 import { isStudioActionType } from "../../../../platform/onboarding/_lib/studio-types";
 import { loadProjectEnv } from "../../../../lib/env";
 import { getStudioStore, replaceStore } from "../_lib/store";
-import { isStrapiConfigured, requestStrapi } from "../_lib/strapi";
+import { isStrapiConfigured, requestStrapi, unwrapStrapiEntity } from "../_lib/strapi";
 
 type PageSaveRequest = {
   page?: Partial<StudioPageDocument>;
@@ -55,12 +55,24 @@ type ImportNormalization = {
 function normalizePage(input: Partial<StudioPageDocument>): StudioPageDocument {
   const slug = typeof input.slug === "string" && input.slug.trim().length > 0 ? input.slug.trim() : "new-page";
   const locale = typeof input.locale === "string" && input.locale.trim().length > 0 ? input.locale.trim() : "en";
+  const industryMapping = Array.isArray(input.industryMapping)
+    ? input.industryMapping.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    : [];
+  const productMapping = typeof input.productMapping === "string" && input.productMapping.trim().length > 0 ? input.productMapping.trim() : "";
+  const primaryCtaText =
+    typeof input.primaryCta?.text === "string" && input.primaryCta.text.trim().length > 0 ? input.primaryCta.text.trim() : "";
+  const primaryCtaUrl =
+    typeof input.primaryCta?.url === "string" && input.primaryCta.url.trim().length > 0 ? input.primaryCta.url.trim() : "";
+
   return {
     id: typeof input.id === "string" && input.id.length > 0 ? input.id : `page-${Date.now()}`,
     name: typeof input.name === "string" && input.name.length > 0 ? input.name : slug,
     slug,
     locale,
+    lifecycle: input.lifecycle ?? "draft",
+    status: input.status ?? "draft",
     activeShellId: typeof input.activeShellId === "string" ? input.activeShellId : undefined,
+    shellKey: typeof input.shellKey === "string" ? input.shellKey : undefined,
     blockOrder: Array.isArray(input.blockOrder) ? input.blockOrder.filter((value): value is string => typeof value === "string") : [],
     fieldValues:
       input.fieldValues && typeof input.fieldValues === "object" && !Array.isArray(input.fieldValues)
@@ -70,6 +82,41 @@ function normalizePage(input: Partial<StudioPageDocument>): StudioPageDocument {
       input.actionOverrides && typeof input.actionOverrides === "object" && !Array.isArray(input.actionOverrides)
         ? (input.actionOverrides as StudioPageDocument["actionOverrides"])
         : {},
+    productMapping,
+    industryMapping,
+    primaryCta: {
+      text: primaryCtaText,
+      url: primaryCtaUrl
+    },
+    conversionConfig: {
+      trackConversions: Boolean(input.conversionConfig?.trackConversions),
+      strategy: typeof input.conversionConfig?.strategy === "string" ? input.conversionConfig.strategy : "",
+      valuePoints: Number.isFinite(input.conversionConfig?.valuePoints)
+        ? Number(input.conversionConfig?.valuePoints)
+        : 0
+    },
+    campaignUtmStrategy: {
+      source: typeof input.campaignUtmStrategy?.source === "string" ? input.campaignUtmStrategy.source : "",
+      medium: typeof input.campaignUtmStrategy?.medium === "string" ? input.campaignUtmStrategy.medium : "",
+      campaign: typeof input.campaignUtmStrategy?.campaign === "string" ? input.campaignUtmStrategy.campaign : "",
+      ...(typeof input.campaignUtmStrategy?.content === "string" ? { content: input.campaignUtmStrategy.content } : {}),
+      ...(typeof input.campaignUtmStrategy?.term === "string" ? { term: input.campaignUtmStrategy.term } : {})
+    },
+    taxonomyState: {
+      valid: Boolean(input.taxonomyState?.valid),
+      tags: Array.isArray(input.taxonomyState?.tags)
+        ? input.taxonomyState.tags.filter((value): value is string => typeof value === "string")
+        : [],
+      ...(typeof input.taxonomyState?.notes === "string" ? { notes: input.taxonomyState.notes } : {})
+    },
+    seoMetadata: {
+      metaTitle: typeof input.seoMetadata?.metaTitle === "string" ? input.seoMetadata.metaTitle : "",
+      metaDescription: typeof input.seoMetadata?.metaDescription === "string" ? input.seoMetadata.metaDescription : "",
+      ...(typeof input.seoMetadata?.canonicalUrl === "string" ? { canonicalUrl: input.seoMetadata.canonicalUrl } : {})
+    },
+    seoJsonLdValid: Boolean(input.seoJsonLdValid),
+    blockSchemaValid: Boolean(input.blockSchemaValid),
+    previewValid: Boolean(input.previewValid),
     previewHtml: typeof input.previewHtml === "string" ? input.previewHtml : "",
     updatedAt: new Date().toISOString().slice(0, 10)
   };
@@ -95,6 +142,174 @@ function savePageInFallback(page: StudioPageDocument): StudioPageDocument[] {
   });
 
   return pages;
+}
+
+function coerceString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function mapBlocksToOrder(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    const normalized = value
+      .map((entry) => {
+        if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+          return null;
+        }
+        const row = entry as Record<string, unknown>;
+        if (typeof row.blockKey === "string" && row.blockKey.trim().length > 0) {
+          return row.blockKey;
+        }
+        if (typeof row.id === "string" && row.id.trim().length > 0) {
+          return row.id;
+        }
+        if (typeof row.id === "number") {
+          return String(row.id);
+        }
+        if (typeof row.__component === "string" && row.__component.length > 0) {
+          return row.__component;
+        }
+        return null;
+      })
+      .filter((entry): entry is string => entry !== null);
+
+    if (normalized.length > 0) {
+      return normalized;
+    }
+  }
+  return [];
+}
+
+function mapStrapiPageToStudio(value: unknown): StudioPageDocument {
+  const row = (value ?? {}) as Record<string, unknown>;
+  const idCandidate = row.documentId ?? row.id;
+  return normalizePage({
+    id: typeof idCandidate === "string" || typeof idCandidate === "number" ? String(idCandidate) : undefined,
+    name: coerceString(row.name, coerceString(row.slug, "Untitled Page")),
+    slug: coerceString(row.slug, "new-page"),
+    locale: coerceString(row.locale, "en"),
+    activeShellId: typeof row.activeShellId === "string" ? row.activeShellId : undefined,
+    shellKey: typeof row.shellKey === "string" ? row.shellKey : undefined,
+    lifecycle:
+      row.lifecycle === "published" || row.lifecycle === "archived" ? row.lifecycle : row.lifecycle === "draft" ? "draft" : "draft",
+    status: row.status === "published" ? "published" : "draft",
+    blockOrder: Array.isArray(row.blockOrder) ? (row.blockOrder as string[]) : mapBlocksToOrder(row.blocks),
+    fieldValues:
+      row.fieldValues && typeof row.fieldValues === "object" && !Array.isArray(row.fieldValues)
+        ? (row.fieldValues as Record<string, string>)
+        : {},
+    actionOverrides:
+      row.actionOverrides && typeof row.actionOverrides === "object" && !Array.isArray(row.actionOverrides)
+        ? (row.actionOverrides as StudioPageDocument["actionOverrides"])
+        : {},
+    productMapping: coerceString(row.productMapping),
+    industryMapping: Array.isArray(row.industryMapping)
+      ? row.industryMapping.filter((entry): entry is string => typeof entry === "string")
+      : [],
+    primaryCta:
+      row.primaryCta && typeof row.primaryCta === "object" && !Array.isArray(row.primaryCta)
+        ? (row.primaryCta as StudioPageDocument["primaryCta"])
+        : { text: "", url: "" },
+    conversionConfig:
+      row.conversionConfig && typeof row.conversionConfig === "object" && !Array.isArray(row.conversionConfig)
+        ? (row.conversionConfig as StudioPageDocument["conversionConfig"])
+        : {
+            trackConversions: false,
+            strategy: "",
+            valuePoints: 0
+          },
+    campaignUtmStrategy:
+      row.campaignUtmStrategy && typeof row.campaignUtmStrategy === "object" && !Array.isArray(row.campaignUtmStrategy)
+        ? (row.campaignUtmStrategy as StudioPageDocument["campaignUtmStrategy"])
+        : {
+            source: "",
+            medium: "",
+            campaign: ""
+          },
+    taxonomyState:
+      row.taxonomyState && typeof row.taxonomyState === "object" && !Array.isArray(row.taxonomyState)
+        ? (row.taxonomyState as StudioPageDocument["taxonomyState"])
+        : {
+            valid: false,
+            tags: []
+          },
+    seoMetadata:
+      row.seoMetadata && typeof row.seoMetadata === "object" && !Array.isArray(row.seoMetadata)
+        ? (row.seoMetadata as StudioPageDocument["seoMetadata"])
+        : {
+            metaTitle: "",
+            metaDescription: ""
+          },
+    seoJsonLdValid: Boolean(row.seoJsonLdValid),
+    blockSchemaValid: Boolean(row.blockSchemaValid),
+    previewValid: Boolean(row.previewValid),
+    previewHtml: coerceString(row.previewHtml),
+    updatedAt: coerceString(row.updatedAt, new Date().toISOString())
+  });
+}
+
+async function listPagesFromStrapi(): Promise<StudioPageDocument[]> {
+  const response = await requestStrapi<StrapiCollectionResponse>(
+    "/api/studio-pages?pagination[pageSize]=200&sort=updatedAt:desc"
+  );
+  const rows = Array.isArray(response.data) ? response.data : [];
+  return rows.map((row) => mapStrapiPageToStudio(unwrapStrapiEntity(row)));
+}
+
+async function upsertStudioPageInStrapi(page: StudioPageDocument): Promise<boolean> {
+  try {
+    const lookup = await requestStrapi<StrapiCollectionResponse>(
+      `/api/studio-pages?filters[slug][$eq]=${encodeURIComponent(page.slug)}&filters[locale][$eq]=${encodeURIComponent(
+        page.locale
+      )}&pagination[pageSize]=1`
+    );
+    const existing = Array.isArray(lookup.data) ? lookup.data[0] : undefined;
+    const existingId =
+      existing && typeof existing.documentId === "string"
+        ? existing.documentId
+        : existing && (typeof existing.id === "number" || typeof existing.id === "string")
+          ? String(existing.id)
+          : undefined;
+
+    const payload = {
+      pageKey: page.id,
+      name: page.name,
+      slug: page.slug,
+      locale: page.locale,
+      status: page.status ?? "draft",
+      lifecycle: page.lifecycle ?? "draft",
+      activeShellId: page.activeShellId,
+      shellKey: page.shellKey ?? page.activeShellId ?? "",
+      blockOrder: page.blockOrder,
+      fieldValues: page.fieldValues,
+      actionOverrides: page.actionOverrides,
+      productMapping: page.productMapping,
+      industryMapping: page.industryMapping,
+      primaryCta: page.primaryCta,
+      conversionConfig: page.conversionConfig,
+      campaignUtmStrategy: page.campaignUtmStrategy,
+      taxonomyState: page.taxonomyState,
+      seoMetadata: page.seoMetadata,
+      seoJsonLdValid: page.seoJsonLdValid,
+      blockSchemaValid: page.blockSchemaValid,
+      previewValid: page.previewValid,
+      previewHtml: page.previewHtml
+    };
+
+    if (existingId) {
+      await requestStrapi(`/api/studio-pages/${encodeURIComponent(existingId)}`, {
+        method: "PUT",
+        body: payload
+      });
+    } else {
+      await requestStrapi("/api/studio-pages", {
+        method: "POST",
+        body: payload
+      });
+    }
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function resolveContentImporterModulePath(): string {
@@ -175,22 +390,15 @@ function normalizeActionType(value: unknown): StudioActionType {
 }
 
 async function upsertBlockTemplateInStrapi(template: BlockTemplateUpsert): Promise<void> {
-  const lookup = await requestStrapi<StrapiCollectionResponse>(
-    `/api/block-templates?filters[templateKey][$eq]=${encodeURIComponent(template.key)}&pagination[pageSize]=1`
-  );
-  const existing = Array.isArray(lookup.data) ? lookup.data[0] : undefined;
-  const existingId =
-    existing && typeof existing.documentId === "string"
-      ? existing.documentId
-      : existing && (typeof existing.id === "number" || typeof existing.id === "string")
-        ? String(existing.id)
-        : undefined;
-
   const payload = {
+    blockKey: template.key,
     templateKey: template.key,
     name: template.name,
     family: template.family,
     status: template.status,
+    lifecycle: "draft",
+    scope: "global",
+    schemaStatus: "valid",
     themeKey: template.themeKey,
     sourceType: template.sourceType,
     sourceRef: template.sourceRef,
@@ -198,21 +406,59 @@ async function upsertBlockTemplateInStrapi(template: BlockTemplateUpsert): Promi
     editableFields: template.editableFields,
     actions: template.actions,
     previewHtml: template.previewHtml,
+    usageCount: template.inUseCount,
     inUseCount: template.inUseCount
   };
 
-  if (existingId !== undefined) {
-    await requestStrapi(`/api/block-templates/${encodeURIComponent(existingId)}`, {
-      method: "PUT",
+  try {
+    const canonicalLookup = await requestStrapi<StrapiCollectionResponse>(
+      `/api/studio-blocks?filters[blockKey][$eq]=${encodeURIComponent(template.key)}&pagination[pageSize]=1`
+    );
+    const canonicalExisting = Array.isArray(canonicalLookup.data) ? canonicalLookup.data[0] : undefined;
+    const canonicalId =
+      canonicalExisting && typeof canonicalExisting.documentId === "string"
+        ? canonicalExisting.documentId
+        : canonicalExisting && (typeof canonicalExisting.id === "number" || typeof canonicalExisting.id === "string")
+          ? String(canonicalExisting.id)
+          : undefined;
+
+    if (canonicalId !== undefined) {
+      await requestStrapi(`/api/studio-blocks/${encodeURIComponent(canonicalId)}`, {
+        method: "PUT",
+        body: payload
+      });
+      return;
+    }
+
+    await requestStrapi("/api/studio-blocks", {
+      method: "POST",
       body: payload
     });
-    return;
-  }
+  } catch {
+    const legacyLookup = await requestStrapi<StrapiCollectionResponse>(
+      `/api/block-templates?filters[templateKey][$eq]=${encodeURIComponent(template.key)}&pagination[pageSize]=1`
+    );
+    const legacyExisting = Array.isArray(legacyLookup.data) ? legacyLookup.data[0] : undefined;
+    const legacyId =
+      legacyExisting && typeof legacyExisting.documentId === "string"
+        ? legacyExisting.documentId
+        : legacyExisting && (typeof legacyExisting.id === "number" || typeof legacyExisting.id === "string")
+          ? String(legacyExisting.id)
+          : undefined;
 
-  await requestStrapi("/api/block-templates", {
-    method: "POST",
-    body: payload
-  });
+    if (legacyId !== undefined) {
+      await requestStrapi(`/api/block-templates/${encodeURIComponent(legacyId)}`, {
+        method: "PUT",
+        body: payload
+      });
+      return;
+    }
+
+    await requestStrapi("/api/block-templates", {
+      method: "POST",
+      body: payload
+    });
+  }
 }
 
 function upsertBlockTemplateInFallback(template: BlockTemplateUpsert): void {
@@ -227,6 +473,9 @@ function upsertBlockTemplateInFallback(template: BlockTemplateUpsert): void {
     name: template.name,
     family: template.family,
     status: template.status,
+    lifecycle: "draft",
+    scope: "global",
+    schemaStatus: "valid",
     themeKey: template.themeKey,
     sourceType: template.sourceType,
     sourceRef: template.sourceRef,
@@ -235,6 +484,7 @@ function upsertBlockTemplateInFallback(template: BlockTemplateUpsert): void {
     actions: template.actions,
     previewHtml: template.previewHtml,
     inUseCount: index >= 0 ? blocks[index].inUseCount : template.inUseCount,
+    usageCount: index >= 0 ? (blocks[index].usageCount ?? blocks[index].inUseCount) : template.inUseCount,
     createdAt: index >= 0 ? blocks[index].createdAt : now,
     updatedAt: now
   };
@@ -354,7 +604,7 @@ function normalizeImportPayload(payload: PageSaveRequest): ImportNormalization {
 
 async function readStrapiPageCount(): Promise<number | null> {
   try {
-    const response = await requestStrapi<StrapiCollectionResponse>("/api/pages?pagination[pageSize]=1");
+    const response = await requestStrapi<StrapiCollectionResponse>("/api/studio-pages?pagination[pageSize]=1");
     const total = response.meta?.pagination?.total;
     if (typeof total === "number" && Number.isFinite(total)) {
       return total;
@@ -415,20 +665,33 @@ async function importBlocksOnly(payload: PageSaveRequest): Promise<{
 export async function GET(request: Request): Promise<Response> {
   const requestUrl = new URL(request.url);
   const slug = requestUrl.searchParams.get("slug");
-  const pages = getStudioStore().pages;
+  let pages = getStudioStore().pages;
+  let source: "strapi" | "fallback" = "fallback";
+  if (isStrapiConfigured()) {
+    try {
+      const fromStrapi = await listPagesFromStrapi();
+      if (fromStrapi.length > 0) {
+        pages = fromStrapi;
+        source = "strapi";
+      }
+    } catch {
+      // fall back to in-memory store
+    }
+  }
+
   if (slug) {
     const page = pages.find((entry) => entry.slug === slug);
     return Response.json({
       ok: true,
       data: page ?? null,
-      source: "fallback"
+      source
     });
   }
 
   return Response.json({
     ok: true,
     data: pages,
-    source: "fallback"
+    source
   });
 }
 
@@ -465,6 +728,16 @@ export async function POST(request: Request): Promise<Response> {
 
     const page = normalizePage(payload.page ?? {});
     savePageInFallback(page);
+    const previewRoute = page.slug === "home" ? `/${page.locale}` : `/${page.locale}/${page.slug}`;
+    const warnings: string[] = [];
+    let studioPersistedInStrapi = false;
+
+    if (isStrapiConfigured()) {
+      studioPersistedInStrapi = await upsertStudioPageInStrapi(page);
+      if (!studioPersistedInStrapi) {
+        warnings.push("Studio page state could not be written to canonical Strapi studio-pages.");
+      }
+    }
 
     if (payload.mode !== "apply") {
       return Response.json({
@@ -472,10 +745,10 @@ export async function POST(request: Request): Promise<Response> {
         data: {
           page,
           applied: false,
-          warnings: [],
-          previewRoute: page.slug === "home" ? `/${page.locale}` : `/${page.locale}/${page.slug}`
+          warnings,
+          previewRoute
         },
-        source: "fallback"
+        source: studioPersistedInStrapi ? "strapi" : "fallback"
       });
     }
 
@@ -485,8 +758,8 @@ export async function POST(request: Request): Promise<Response> {
         data: {
           page,
           applied: false,
-          warnings: ["Strapi is not configured. Page was saved in local fallback store only."],
-          previewRoute: page.slug === "home" ? `/${page.locale}` : `/${page.locale}/${page.slug}`
+          warnings: [...warnings, "Strapi is not configured. Page was saved in local fallback store only."],
+          previewRoute
         },
         source: "fallback"
       });
@@ -498,10 +771,10 @@ export async function POST(request: Request): Promise<Response> {
       data: {
         page,
         applied: applied.applied,
-        warnings: applied.warnings,
-        previewRoute: page.slug === "home" ? `/${page.locale}` : `/${page.locale}/${page.slug}`
+        warnings: [...warnings, ...applied.warnings],
+        previewRoute
       },
-      source: applied.applied ? "strapi" : "fallback"
+      source: studioPersistedInStrapi || applied.applied ? "strapi" : "fallback"
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

@@ -65,6 +65,10 @@ async function hasStrapiEntityReference(paths: string[]): Promise<boolean> {
 async function hasStrapiPageReference(reference: string): Promise<boolean> {
   const encoded = encodeURIComponent(reference);
   return hasStrapiEntityReference([
+    `/api/studio-pages?filters[documentId][$eq]=${encoded}&pagination[pageSize]=1`,
+    `/api/studio-pages?filters[id][$eq]=${encoded}&pagination[pageSize]=1`,
+    `/api/studio-pages?filters[slug][$eq]=${encoded}&pagination[pageSize]=1`,
+    `/api/studio-pages/${encoded}`,
     `/api/pages?filters[documentId][$eq]=${encoded}&pagination[pageSize]=1`,
     `/api/pages?filters[id][$eq]=${encoded}&pagination[pageSize]=1`,
     `/api/pages?filters[slug][$eq]=${encoded}&pagination[pageSize]=1`,
@@ -75,6 +79,10 @@ async function hasStrapiPageReference(reference: string): Promise<boolean> {
 async function hasStrapiBlockReference(reference: string): Promise<boolean> {
   const encoded = encodeURIComponent(reference);
   return hasStrapiEntityReference([
+    `/api/studio-blocks?filters[documentId][$eq]=${encoded}&pagination[pageSize]=1`,
+    `/api/studio-blocks?filters[id][$eq]=${encoded}&pagination[pageSize]=1`,
+    `/api/studio-blocks?filters[blockKey][$eq]=${encoded}&pagination[pageSize]=1`,
+    `/api/studio-blocks/${encoded}`,
     `/api/block-templates?filters[documentId][$eq]=${encoded}&pagination[pageSize]=1`,
     `/api/block-templates?filters[id][$eq]=${encoded}&pagination[pageSize]=1`,
     `/api/block-templates?filters[templateKey][$eq]=${encoded}&pagination[pageSize]=1`,
