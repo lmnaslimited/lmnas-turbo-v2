@@ -1,0 +1,33 @@
+{
+  "collectionName": "components_shell_shell_variants",
+  "info": {
+    "displayName": "shell-variant"
+  },
+  "options": {},
+  "attributes": {
+    "variantKey": {
+      "type": "string",
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "navbarVariant": {
+      "type": "component",
+      "repeatable": false,
+      "component": "shell.navbar-variant",
+      "required": false
+    },
+    "footerVariant": {
+      "type": "component",
+      "repeatable": false,
+      "component": "shell.footer-variant",
+      "required": false
+    },
+    "description": {
+      "type": "text",
+      "required": false
+    }
+  }
+}

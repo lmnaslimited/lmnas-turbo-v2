@@ -1,0 +1,30 @@
+{
+  "strapiPageCountBefore": 3,
+  "strapiPageCountAfter": 3,
+  "importResponse": {
+    "ok": true,
+    "data": {
+      "mode": "import-blocks",
+      "importedBlocks": [
+        {
+          "key": "page-import-1773215324344-01",
+          "name": "Imported Block 1",
+          "family": "hero",
+          "sourceRef": "docs/testing-artifacts/code.html"
+        },
+        {
+          "key": "page-import-1773215324344-02",
+          "name": "Imported Block 2",
+          "family": "rich_text_section",
+          "sourceRef": "docs/testing-artifacts/code.html"
+        }
+      ],
+      "blockCount": 2,
+      "pageCountBefore": 3,
+      "pageCountAfter": 3,
+      "routeSlugEntitiesCreated": 0,
+      "warnings": []
+    },
+    "source": "strapi"
+  }
+}

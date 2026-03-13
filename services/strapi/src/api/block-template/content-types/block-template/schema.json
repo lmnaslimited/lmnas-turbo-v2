@@ -1,0 +1,67 @@
+{
+  "kind": "collectionType",
+  "collectionName": "block_templates",
+  "info": {
+    "singularName": "block-template",
+    "pluralName": "block-templates",
+    "displayName": "Block Template"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "templateKey": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "family": {
+      "type": "string",
+      "required": true
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["active", "inactive", "draft"],
+      "required": true,
+      "default": "active"
+    },
+    "themeKey": {
+      "type": "string",
+      "required": true,
+      "default": "default"
+    },
+    "sourceType": {
+      "type": "string",
+      "required": false
+    },
+    "sourceRef": {
+      "type": "string",
+      "required": false
+    },
+    "confidence": {
+      "type": "decimal",
+      "required": false
+    },
+    "editableFields": {
+      "type": "json",
+      "required": false
+    },
+    "actions": {
+      "type": "json",
+      "required": false
+    },
+    "previewHtml": {
+      "type": "text",
+      "required": false
+    },
+    "inUseCount": {
+      "type": "integer",
+      "required": false,
+      "default": 0
+    }
+  }
+}

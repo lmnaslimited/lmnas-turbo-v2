@@ -2,11 +2,16 @@ import React from "react";
 import type { HeroBlock } from "./schema";
 
 export function HeroBlockComponent({ block }: { block: HeroBlock }) {
+  const ctaLabel = block.primaryCta.label;
+  const ctaHref = block.primaryCta.href;
+
   return (
-    <section style={{ padding: 20, border: "1px solid #ddd", borderRadius: 8, marginBottom: 12 }}>
+    <section className="lmnas-hero-block">
       <h2>{block.heading}</h2>
       <p>{block.subheading}</p>
-      <a href={block.ctaHref}>{block.ctaLabel}</a>
+      <a href={ctaHref} data-exit-id={block.primaryCta.exitId}>
+        {ctaLabel}
+      </a>
     </section>
   );
 }

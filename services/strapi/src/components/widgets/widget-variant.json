@@ -1,0 +1,31 @@
+{
+  "collectionName": "components_widgets_widget_variants",
+  "info": {
+    "displayName": "widget-variant"
+  },
+  "options": {},
+  "attributes": {
+    "variantId": {
+      "type": "string",
+      "required": true
+    },
+    "widgetId": {
+      "type": "string",
+      "required": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "surface": {
+      "type": "enumeration",
+      "enum": ["modal", "drawer", "inline", "popup", "below_fold"],
+      "required": true,
+      "default": "inline"
+    },
+    "config": {
+      "type": "json",
+      "required": false
+    }
+  }
+}

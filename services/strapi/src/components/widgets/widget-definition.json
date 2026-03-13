@@ -1,0 +1,51 @@
+{
+  "collectionName": "components_widgets_widget_definitions",
+  "info": {
+    "displayName": "widget-definition"
+  },
+  "options": {},
+  "attributes": {
+    "widgetId": {
+      "type": "string",
+      "required": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "widgetType": {
+      "type": "enumeration",
+      "enum": [
+        "modal",
+        "drawer",
+        "embedded_form",
+        "subscription_popup",
+        "booking_popup",
+        "download_gate",
+        "chat_launcher",
+        "inline_expand_collapse",
+        "below_fold_widget"
+      ],
+      "required": true,
+      "default": "modal"
+    },
+    "state": {
+      "type": "enumeration",
+      "enum": ["active", "inactive"],
+      "required": true,
+      "default": "active"
+    },
+    "description": {
+      "type": "text",
+      "required": false
+    },
+    "editableFields": {
+      "type": "json",
+      "required": false
+    },
+    "defaultExitId": {
+      "type": "string",
+      "required": false
+    }
+  }
+}

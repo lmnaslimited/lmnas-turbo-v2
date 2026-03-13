@@ -1,0 +1,14 @@
+Command:
+pnpm exec playwright test -c playwright.config.ts apps/site/e2e/studio-workflows.spec.ts --reporter=list
+
+Run timestamp (local): 2026-03-10
+
+Running 5 tests using 1 worker
+
+✓ apps/site/e2e/studio-workflows.spec.ts:29:7 › visual onboarding studio workflows › theme workflow loads, browses, and activates persisted theme
+✓ apps/site/e2e/studio-workflows.spec.ts:46:7 › visual onboarding studio workflows › block import analyze resolves, supports map-to-existing, and publishes
+✓ apps/site/e2e/studio-workflows.spec.ts:74:7 › visual onboarding studio workflows › analyze timeout path surfaces operator error and recovers button state
+✓ apps/site/e2e/studio-workflows.spec.ts:94:7 › visual onboarding studio workflows › shell workflow browses, edits, and activates shell
+✓ apps/site/e2e/studio-workflows.spec.ts:123:7 › visual onboarding studio workflows › page workflow assembles, edits, overrides action, and saves
+
+5 passed (38.9s)

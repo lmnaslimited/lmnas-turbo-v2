@@ -1,0 +1,73 @@
+{
+  "collectionName": "components_exits_exit_definitions",
+  "info": {
+    "displayName": "exit-definition"
+  },
+  "options": {},
+  "attributes": {
+    "exitId": {
+      "type": "string",
+      "required": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "state": {
+      "type": "enumeration",
+      "enum": ["active", "inactive"],
+      "required": true,
+      "default": "active"
+    },
+    "eventName": {
+      "type": "string",
+      "required": true
+    },
+    "payloadSchema": {
+      "type": "component",
+      "repeatable": false,
+      "component": "exits.exit-payload-schema",
+      "required": false
+    },
+    "frontendAdapterType": {
+      "type": "enumeration",
+      "enum": ["redirect", "modal", "form", "chat_drawer", "none"],
+      "required": true,
+      "default": "redirect"
+    },
+    "backendAdapterType": {
+      "type": "enumeration",
+      "enum": ["n8n_webhook", "api", "none"],
+      "required": true,
+      "default": "none"
+    },
+    "workflowTarget": {
+      "type": "component",
+      "repeatable": false,
+      "component": "exits.exit-execution-target",
+      "required": false
+    },
+    "fallbackBehavior": {
+      "type": "string",
+      "required": false
+    },
+    "successBehavior": {
+      "type": "string",
+      "required": false
+    },
+    "failureBehavior": {
+      "type": "string",
+      "required": false
+    },
+    "analyticsMapping": {
+      "type": "json",
+      "required": false
+    },
+    "policy": {
+      "type": "component",
+      "repeatable": false,
+      "component": "exits.exit-policy",
+      "required": false
+    }
+  }
+}

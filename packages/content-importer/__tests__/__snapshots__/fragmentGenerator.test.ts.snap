@@ -1,0 +1,18 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`fragment generator > generates fragments for dynamic zone union 1`] = `
+"fragment ImporterPageBlocks on PageBlocksDynamicZone {
+  __typename
+  ... on ComponentBlocksHero {
+    id
+    heading
+    ctaLabel
+  }
+  ... on ComponentBlocksFaq {
+    id
+    title
+    items
+  }
+}
+"
+`;

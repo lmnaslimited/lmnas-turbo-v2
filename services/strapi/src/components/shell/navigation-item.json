@@ -1,0 +1,35 @@
+{
+  "collectionName": "components_shell_navigation_items",
+  "info": {
+    "displayName": "navigation-item"
+  },
+  "options": {},
+  "attributes": {
+    "label": {
+      "type": "string",
+      "required": true
+    },
+    "href": {
+      "type": "string",
+      "required": false
+    },
+    "destinationType": {
+      "type": "enumeration",
+      "enum": ["internal", "external", "asset", "exit"],
+      "required": true,
+      "default": "internal"
+    },
+    "destinationValue": {
+      "type": "string",
+      "required": true
+    },
+    "exitId": {
+      "type": "string",
+      "required": false
+    },
+    "submenuItems": {
+      "type": "json",
+      "required": false
+    }
+  }
+}

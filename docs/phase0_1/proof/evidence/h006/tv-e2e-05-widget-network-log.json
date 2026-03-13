@@ -1,0 +1,290 @@
+{
+  "saveWidgetResponse": {
+    "ok": true,
+    "data": [
+      {
+        "id": "widget-1773221637672-2",
+        "key": "widget-1773221637672-2",
+        "name": "TV-E2E-05 Calendar Widget",
+        "widgetType": "booking_popup",
+        "surface": "modal",
+        "status": "active",
+        "repoPath": "/components/widgets/calendar-widget.ts",
+        "description": "Repo-first widget mapping draft.",
+        "editableFields": [],
+        "placement": {
+          "mode": "embed",
+          "pageId": "page-1773221636075",
+          "blockId": "24"
+        },
+        "updatedAt": "2026-03-11"
+      },
+      {
+        "id": "widget-calendar-booking",
+        "key": "widget-calendar-booking",
+        "name": "Calendar Booking Widget",
+        "widgetType": "booking_popup",
+        "surface": "modal",
+        "status": "active",
+        "repoPath": "/components/widgets/calendar-widget.ts",
+        "description": "Repo-first booking widget mapping.",
+        "editableFields": [
+          "title",
+          "ctaText"
+        ],
+        "visualMockHtml": "<div style=\"padding:14px;border:1px dashed #334155;border-radius:8px;font-family:system-ui\"><strong>Calendar Widget</strong><p style=\"margin-top:6px;color:#64748b;font-size:12px\">Visual mock only. Runtime executes from repo path.</p></div>",
+        "placement": {
+          "mode": "reference"
+        },
+        "updatedAt": "2026-03-11"
+      }
+    ],
+    "source": "fallback",
+    "persistence": {
+      "entity": "studio.widgets",
+      "widgetId": "widget-1773221637672-2"
+    },
+    "strapiAudit": {
+      "before": {
+        "pages": 3,
+        "blocks": 8,
+        "shells": 27,
+        "source": "strapi",
+        "warnings": []
+      },
+      "after": {
+        "pages": 3,
+        "blocks": 8,
+        "shells": 27,
+        "source": "strapi",
+        "warnings": []
+      },
+      "unchangedCoreEntities": true
+    }
+  },
+  "executeWidgetResponse": {
+    "ok": true,
+    "data": {
+      "event": "manual-run",
+      "widget": {
+        "id": "widget-1773221637672-2",
+        "name": "TV-E2E-05 Calendar Widget",
+        "repoPath": "/components/widgets/calendar-widget.ts",
+        "placement": {
+          "mode": "embed",
+          "pageId": "page-1773221636075",
+          "blockId": "24"
+        }
+      },
+      "adapter": {
+        "repoPath": "/components/widgets/calendar-widget.ts",
+        "widgetType": "booking_popup",
+        "surface": "modal"
+      },
+      "result": {
+        "status": "ok",
+        "event": "calendar_slot_reserved",
+        "slot": "2026-03-20T10:30",
+        "trace": {
+          "widgetId": "widget-1773221637672-2",
+          "pageId": "page-1773221636075",
+          "blockId": "24"
+        }
+      }
+    },
+    "source": "fallback",
+    "strapiAudit": {
+      "before": {
+        "pages": 3,
+        "blocks": 8,
+        "shells": 27,
+        "source": "strapi",
+        "warnings": []
+      },
+      "after": {
+        "pages": 3,
+        "blocks": 8,
+        "shells": 27,
+        "source": "strapi",
+        "warnings": []
+      },
+      "unchangedCoreEntities": true
+    }
+  },
+  "pages": {
+    "seeded": [
+      {
+        "id": "page-1773221636075",
+        "name": "TV-E2E-05 Primary Page",
+        "slug": "tv-e2e-05-primary",
+        "locale": "en",
+        "blockOrder": [
+          "blk-hero-1",
+          "blk-cta-1"
+        ],
+        "fieldValues": {},
+        "actionOverrides": {},
+        "previewHtml": "<main><section><h1>TV-E2E-05 Primary Page</h1></section></main>",
+        "updatedAt": "2026-03-11"
+      },
+      {
+        "id": "page-1773221636084",
+        "name": "TV-E2E-05 Secondary Page",
+        "slug": "tv-e2e-05-secondary",
+        "locale": "en",
+        "blockOrder": [
+          "blk-hero-1",
+          "blk-cta-1"
+        ],
+        "fieldValues": {},
+        "actionOverrides": {},
+        "previewHtml": "<main><section><h1>TV-E2E-05 Secondary Page</h1></section></main>",
+        "updatedAt": "2026-03-11"
+      }
+    ],
+    "listing": {
+      "ok": true,
+      "data": [
+        {
+          "id": "page-1773221636084",
+          "name": "TV-E2E-05 Secondary Page",
+          "slug": "tv-e2e-05-secondary",
+          "locale": "en",
+          "blockOrder": [
+            "blk-hero-1",
+            "blk-cta-1"
+          ],
+          "fieldValues": {},
+          "actionOverrides": {},
+          "previewHtml": "<main><section><h1>TV-E2E-05 Secondary Page</h1></section></main>",
+          "updatedAt": "2026-03-11"
+        },
+        {
+          "id": "page-1773221636075",
+          "name": "TV-E2E-05 Primary Page",
+          "slug": "tv-e2e-05-primary",
+          "locale": "en",
+          "blockOrder": [
+            "blk-hero-1",
+            "blk-cta-1"
+          ],
+          "fieldValues": {},
+          "actionOverrides": {},
+          "previewHtml": "<main><section><h1>TV-E2E-05 Primary Page</h1></section></main>",
+          "updatedAt": "2026-03-11"
+        }
+      ],
+      "source": "fallback"
+    }
+  },
+  "strapiBefore": {
+    "pages": {
+      "total": 3,
+      "ids": [
+        "gynyp2d7pqcs7njojs1q5a2v",
+        "vla553v5q4tulwwqk3k4aszc",
+        "vs5f6ada055f7bvy295zmz3o"
+      ]
+    },
+    "blocks": {
+      "total": 8,
+      "ids": [
+        "b3y7qx5bn2zdnq7aa3gpkomq",
+        "cgcncokm9zuugdtx5pqyc13j",
+        "eq5i8s07vu2u3ycplyflfzke",
+        "flyjqfbb2ey3owh6ujjsa46q",
+        "iuwmuy14xqihl82fwk2cp5xc",
+        "lv0sq4pyyuurto6nmc6yl1xc",
+        "myrvq7q4ed6ye6lmcu46xrzo",
+        "nep6lpct4yg1mir4j15ik3hj"
+      ]
+    },
+    "shells": {
+      "total": 27,
+      "ids": [
+        "a0h2dc7v3om8et2u9nq37we7",
+        "a4ocpxm3s4qgf2zk42bbjijd",
+        "bn1x8kkuecds9oh4cz6azh1s",
+        "d1ne9f06rxe390o3h4sri98w",
+        "drhutbak7bwtq9rhku2hy14o",
+        "hrbd1zw68lyi99ns2o52eg6c",
+        "ij4zsxbre7jv3v06lulvvowu",
+        "iy0olu9gsi8aeup1vguojp7c",
+        "jdkgxvy97scr29did5um61ma",
+        "jyb7jskgszgjcps0y1c1mikx",
+        "k2bp4og7980z4ac38isq5quq",
+        "k5tg148073zh834uh2m9wedu",
+        "k7rvblrqcyhiwrgpfwqwba2b",
+        "mxbok4iuecg6bz21sjqttr5e",
+        "n4oqh0ap8yms8iyq3uyx8l59",
+        "nqph206ecjcxfp8uizh8m5re",
+        "pn3n9v8x0k2qobvbp4xa0tpd",
+        "rz3xlzc8dqa4sc9i8nw1cyql",
+        "tz427q3z77cvz2zncmznplu6",
+        "ub1b5uqv8n0lksvlfv5d6yv7",
+        "vhos6kqjysk07vl1jgota9kb",
+        "viswom4ckuh35huvtgreanj6",
+        "w7lh95cvbez3u6pahpn8j2m2",
+        "wpb4byte44h7ywupphjpkbue",
+        "yg2634zxoqcqdm1k6b7v3yv1",
+        "z3y7qkipayzpsfckbodo0txj",
+        "ze7lz622jotg33mdqaxqil7p"
+      ]
+    }
+  },
+  "strapiAfter": {
+    "pages": {
+      "total": 3,
+      "ids": [
+        "gynyp2d7pqcs7njojs1q5a2v",
+        "vla553v5q4tulwwqk3k4aszc",
+        "vs5f6ada055f7bvy295zmz3o"
+      ]
+    },
+    "blocks": {
+      "total": 8,
+      "ids": [
+        "b3y7qx5bn2zdnq7aa3gpkomq",
+        "cgcncokm9zuugdtx5pqyc13j",
+        "eq5i8s07vu2u3ycplyflfzke",
+        "flyjqfbb2ey3owh6ujjsa46q",
+        "iuwmuy14xqihl82fwk2cp5xc",
+        "lv0sq4pyyuurto6nmc6yl1xc",
+        "myrvq7q4ed6ye6lmcu46xrzo",
+        "nep6lpct4yg1mir4j15ik3hj"
+      ]
+    },
+    "shells": {
+      "total": 27,
+      "ids": [
+        "a0h2dc7v3om8et2u9nq37we7",
+        "a4ocpxm3s4qgf2zk42bbjijd",
+        "bn1x8kkuecds9oh4cz6azh1s",
+        "d1ne9f06rxe390o3h4sri98w",
+        "drhutbak7bwtq9rhku2hy14o",
+        "hrbd1zw68lyi99ns2o52eg6c",
+        "ij4zsxbre7jv3v06lulvvowu",
+        "iy0olu9gsi8aeup1vguojp7c",
+        "jdkgxvy97scr29did5um61ma",
+        "jyb7jskgszgjcps0y1c1mikx",
+        "k2bp4og7980z4ac38isq5quq",
+        "k5tg148073zh834uh2m9wedu",
+        "k7rvblrqcyhiwrgpfwqwba2b",
+        "mxbok4iuecg6bz21sjqttr5e",
+        "n4oqh0ap8yms8iyq3uyx8l59",
+        "nqph206ecjcxfp8uizh8m5re",
+        "pn3n9v8x0k2qobvbp4xa0tpd",
+        "rz3xlzc8dqa4sc9i8nw1cyql",
+        "tz427q3z77cvz2zncmznplu6",
+        "ub1b5uqv8n0lksvlfv5d6yv7",
+        "vhos6kqjysk07vl1jgota9kb",
+        "viswom4ckuh35huvtgreanj6",
+        "w7lh95cvbez3u6pahpn8j2m2",
+        "wpb4byte44h7ywupphjpkbue",
+        "yg2634zxoqcqdm1k6b7v3yv1",
+        "z3y7qkipayzpsfckbodo0txj",
+        "ze7lz622jotg33mdqaxqil7p"
+      ]
+    }
+  }
+}

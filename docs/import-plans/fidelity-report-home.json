@@ -1,0 +1,26 @@
+{
+  "forced": true,
+  "generatedAt": "2026-03-02T15:39:56.205Z",
+  "runs": [
+    {
+      "metric": {
+        "diffRatio": 0.382164,
+        "durationMs": 8400,
+        "withinThreshold": false
+      },
+      "screenshotPath": "/Users/arunkumar.ganesan/lmnas-turbo-v2/docs/import-plans/fidelity-default.png",
+      "themeKey": "default"
+    }
+  ],
+  "schemaVersion": "import-fidelity.v1",
+  "status": "forced",
+  "summary": {
+    "averageDiffRatio": 0.382164,
+    "failedThemes": [
+      "default"
+    ],
+    "maxDiffRatio": 0.382164,
+    "themeCount": 1
+  },
+  "threshold": 0.005
+}

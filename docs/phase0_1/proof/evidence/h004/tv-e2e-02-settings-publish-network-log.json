@@ -1,0 +1,101 @@
+{
+  "settings": {
+    "status": 200,
+    "payload": {
+      "ok": true,
+      "data": {
+        "fidelity": {
+          "mode": "allow-below-threshold",
+          "threshold": 0.27
+        }
+      },
+      "source": "strapi",
+      "persistence": {
+        "themeId": "ooo64phlz9wdqqtbu0lv3asw",
+        "marker": "[studio:fidelity-settings]"
+      }
+    }
+  },
+  "publish": {
+    "status": 200,
+    "payload": {
+      "ok": true,
+      "data": {
+        "mode": "apply",
+        "applied": true,
+        "blocked": false,
+        "source": "strapi",
+        "fidelityMode": "allow-below-threshold",
+        "warnings": [
+          {
+            "code": "publish.fidelity_dark_mode_mismatch",
+            "message": "Dark-mode mismatch 0.500 exceeds threshold 0.270.",
+            "severity": "warning"
+          },
+          {
+            "code": "publish.fidelity_typography_mismatch",
+            "message": "Typography mismatch 0.500 exceeds threshold 0.270.",
+            "severity": "warning"
+          }
+        ],
+        "activeTheme": {
+          "id": "theme-1773204951199",
+          "themeKey": "h004-live-active",
+          "name": "H004 Live Active",
+          "darkMode": true,
+          "status": "active"
+        },
+        "ignoredPreviewSwatchThemeId": "theme-preview-nonpersisting",
+        "rejectionReason": null,
+        "fidelity": {
+          "threshold": 0.27,
+          "hasDarkMediaQuery": false,
+          "darkModeMismatchRatio": 0.5,
+          "typographyMismatchRatio": 0.5,
+          "highestMismatchRatio": 0.5,
+          "exceedsThreshold": true,
+          "sourceFonts": [
+            "manrope",
+            "sans-serif"
+          ],
+          "themeTypographyFonts": [
+            "manrope",
+            "sans-serif"
+          ],
+          "figmaTypographyFonts": [
+            "manrope",
+            "inter"
+          ]
+        },
+        "payload": {
+          "generatedAt": "2026-03-11T04:55:51.235Z",
+          "mode": "apply",
+          "activeTheme": {
+            "id": "theme-1773204951199",
+            "themeKey": "h004-live-active",
+            "name": "H004 Live Active",
+            "darkMode": true,
+            "status": "active"
+          },
+          "sourceHtml": "<style>body{font-family:Manrope,sans-serif;}</style><main>H004 live publish</main>",
+          "fidelity": {
+            "mode": "allow-below-threshold",
+            "threshold": 0.27,
+            "report": {
+              "hasDarkMediaQuery": false,
+              "darkModeMismatchRatio": 0.5,
+              "typographyMismatchRatio": 0.5,
+              "highestMismatchRatio": 0.5,
+              "exceedsThreshold": true
+            }
+          }
+        },
+        "persistence": {
+          "source": "strapi",
+          "mutated": true,
+          "themeId": "ooo64phlz9wdqqtbu0lv3asw"
+        }
+      }
+    }
+  }
+}

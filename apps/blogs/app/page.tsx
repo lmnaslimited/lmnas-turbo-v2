@@ -1,3 +1,21 @@
-export default function BlogsPage() {
-  return <main>LMNAs Blogs placeholder.</main>;
+import React from "react";
+import { track } from "@lmnas/analytics";
+import { getBlogPosts } from "@lmnas/integrations";
+
+export default async function BlogsPage() {
+  const posts = await getBlogPosts();
+  track("blog_list_view", { app: "blogs", count: posts.length });
+
+  return (
+    <main>
+      <h1 style={{ marginTop: 0 }}>LMNAs Blogs</h1>
+      <ul>
+        {posts.map((post) => (
+          <li key={post.slug}>
+            <a href={`/${post.slug}`}>{post.title}</a>
+          </li>
+        ))}
+      </ul>
+    </main>
+  );
 }

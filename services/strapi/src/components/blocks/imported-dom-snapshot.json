@@ -1,0 +1,21 @@
+{
+  "collectionName": "components_blocks_imported_dom_snapshots",
+  "info": {
+    "displayName": "imported-dom-snapshot"
+  },
+  "options": {},
+  "attributes": {
+    "domJson": {
+      "type": "json",
+      "required": true
+    },
+    "classMap": {
+      "type": "json",
+      "required": true
+    },
+    "stylesheetRef": {
+      "type": "string",
+      "required": true
+    }
+  }
+}

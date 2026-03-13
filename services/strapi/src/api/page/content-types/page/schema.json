@@ -16,15 +16,66 @@
       "required": true,
       "unique": true
     },
+    "pageType": {
+      "type": "enumeration",
+      "enum": ["home", "product", "solution", "industry", "simple"],
+      "required": true
+    },
+    "layoutKey": {
+      "type": "enumeration",
+      "enum": ["homeLayout", "productLayout", "solutionLayout", "industryLayout", "simpleLayout"],
+      "required": true
+    },
+    "conversionConfig": {
+      "type": "component",
+      "repeatable": false,
+      "component": "shared.conversion-config",
+      "required": true
+    },
+    "shellAssignment": {
+      "type": "component",
+      "repeatable": false,
+      "component": "shell.shell-assignment",
+      "required": false
+    },
+    "actionBindings": {
+      "type": "component",
+      "repeatable": true,
+      "component": "actions.action-binding",
+      "required": false
+    },
+    "exitBindings": {
+      "type": "component",
+      "repeatable": true,
+      "component": "exits.exit-binding",
+      "required": false
+    },
+    "widgetDefinitions": {
+      "type": "component",
+      "repeatable": true,
+      "component": "widgets.widget-definition",
+      "required": false
+    },
+    "widgetVariants": {
+      "type": "component",
+      "repeatable": true,
+      "component": "widgets.widget-variant",
+      "required": false
+    },
+    "themeScope": {
+      "type": "string",
+      "required": false
+    },
     "blocks": {
       "type": "dynamiczone",
-      "components": ["blocks.hero", "blocks.faq"],
+      "components": ["blocks.hero", "blocks.faq", "blocks.imported-dom-snapshot"],
       "required": true
     },
     "seo": {
       "type": "component",
       "repeatable": false,
-      "component": "shared.seo"
+      "component": "shared.seo",
+      "required": true
     }
   }
 }

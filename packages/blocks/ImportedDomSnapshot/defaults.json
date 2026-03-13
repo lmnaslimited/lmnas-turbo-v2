@@ -1,0 +1,43 @@
+{
+  "domJson": {
+    "kind": "root",
+    "children": [
+      {
+        "kind": "element",
+        "tag": "div",
+        "attributes": {
+          "id": "imported-root"
+        },
+        "children": [
+          {
+            "kind": "element",
+            "tag": "h2",
+            "attributes": {},
+            "children": [
+              {
+                "kind": "text",
+                "text": "Imported Snapshot"
+              }
+            ]
+          },
+          {
+            "kind": "element",
+            "tag": "p",
+            "attributes": {},
+            "children": [
+              {
+                "kind": "text",
+                "text": "Rendered from sanitized domJson."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "classMap": {
+    "0": "imported-section",
+    "0.0": "imported-title"
+  },
+  "stylesheetRef": "/generated/imported/001A.css"
+}

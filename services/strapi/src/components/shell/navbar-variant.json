@@ -1,0 +1,40 @@
+{
+  "collectionName": "components_shell_navbar_variants",
+  "info": {
+    "displayName": "navbar-variant"
+  },
+  "options": {},
+  "attributes": {
+    "variantKey": {
+      "type": "string",
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "menu": {
+      "type": "component",
+      "repeatable": false,
+      "component": "shell.navigation-menu",
+      "required": false
+    },
+    "sticky": {
+      "type": "boolean",
+      "default": false
+    },
+    "mobileBehavior": {
+      "type": "enumeration",
+      "enum": ["drawer", "overlay", "inline"],
+      "default": "drawer"
+    },
+    "ctaSlotLabel": {
+      "type": "string",
+      "required": false
+    },
+    "announcementBarText": {
+      "type": "string",
+      "required": false
+    }
+  }
+}

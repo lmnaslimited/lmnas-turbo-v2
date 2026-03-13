@@ -1,0 +1,12 @@
+[2026-03-11 04:53:39.892] [32mhttp[39m: PUT /api/theme-variants/ooo64phlz9wdqqtbu0lv3asw (96 ms) 200
+[2026-03-11 04:55:50.395] [32mhttp[39m: GET /api/theme-variants?pagination[pageSize]=100&sort=updatedAt:desc (78 ms) 200
+[2026-03-11 04:55:50.421] [32mhttp[39m: GET /api/theme-variants?filters[themeKey][$eq]=h004-live-active&pagination[pageSize]=1 (15 ms) 200
+[2026-03-11 04:55:50.592] [32mhttp[39m: PUT /api/theme-variants/ooo64phlz9wdqqtbu0lv3asw (167 ms) 200
+[2026-03-11 04:55:50.636] [32mhttp[39m: GET /api/theme-variants?pagination[pageSize]=100&sort=updatedAt:desc (39 ms) 200
+[2026-03-11 04:55:50.952] [32mhttp[39m: GET /api/theme-variants?pagination[pageSize]=200&sort=updatedAt:desc (37 ms) 200
+[2026-03-11 04:55:50.966] [32mhttp[39m: GET /api/theme-variants?filters[themeKey][$eq]=h004-live-active&pagination[pageSize]=1 (10 ms) 200
+[2026-03-11 04:55:50.999] [32mhttp[39m: PUT /api/theme-variants/ooo64phlz9wdqqtbu0lv3asw (29 ms) 200
+[2026-03-11 04:55:51.195] [32mhttp[39m: GET /api/theme-variants?pagination[pageSize]=200&sort=updatedAt:desc (26 ms) 200
+[2026-03-11 04:55:51.210] [32mhttp[39m: GET /api/theme-variants?filters[themeKey][$eq]=h004-live-active&pagination[pageSize]=1 (10 ms) 200
+[2026-03-11 04:55:51.232] [32mhttp[39m: PUT /api/theme-variants/ooo64phlz9wdqqtbu0lv3asw (18 ms) 200
+[2026-03-11 04:55:51.261] [32mhttp[39m: GET /api/theme-variants?pagination[pageSize]=100&sort=updatedAt:desc (12 ms) 200

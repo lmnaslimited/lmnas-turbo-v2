@@ -1,0 +1,19 @@
+{
+  "collectionName": "components_shell_footer_columns",
+  "info": {
+    "displayName": "footer-column"
+  },
+  "options": {},
+  "attributes": {
+    "heading": {
+      "type": "string",
+      "required": true
+    },
+    "links": {
+      "type": "component",
+      "repeatable": true,
+      "component": "shell.navigation-item",
+      "required": false
+    }
+  }
+}

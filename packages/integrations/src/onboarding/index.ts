@@ -1,0 +1,36 @@
+export { ingestSource } from "./source-ingestion";
+export type { IngestedSource } from "./source-ingestion";
+
+export { detectShellCandidates } from "./shell-detector";
+export { detectBlockProposals } from "./block-detector";
+export { detectWidgetProposals } from "./widget-detector";
+export { detectActionProposals } from "./action-detector";
+export { detectEditableFields } from "./field-detector";
+export { detectExitProposals } from "./exit-detector";
+
+export { mapShellCandidatesToSchema } from "./shell-schema-mapper";
+export type { ShellSchemaMapResult } from "./shell-schema-mapper";
+export { mapBlocksToSchema } from "./block-schema-mapper";
+export { mapWidgetsToSchema } from "./widget-schema-mapper";
+export { mapActionsToSchema } from "./action-schema-mapper";
+
+export { ExitContractRegistry, createExitContractsFromProposals } from "./exit-contract-registry";
+export { buildStrapiSyncPayload, publishStrapiSyncPayload } from "./strapi-sync";
+
+export { assemblePage } from "./page-assembler";
+export { renderAssemblyPreviewModel } from "./renderer";
+export type { AssemblyPreviewModel } from "./renderer";
+export {
+  buildStyledSourcePreview,
+  buildDetectionThumbnailDocument,
+  buildFinalAssemblyPreviewDocument
+} from "./preview-renderer";
+export type { StyledSourcePreview } from "./preview-renderer";
+
+export { analyzeTheme } from "./theme-engine";
+export { buildFidelityWarnings } from "./fidelity-reporter";
+
+export { ExitAdapterRuntime } from "./exit-adapter-runtime";
+export type { ExitAdapterResult, ExitExecutionContext } from "./exit-adapter-runtime";
+
+export { analyzeOnboardingSource, publishOnboardingDraft } from "./onboarding-ui";

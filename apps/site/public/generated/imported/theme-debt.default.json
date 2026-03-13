@@ -1,0 +1,13 @@
+{
+  "generatedAt": "2026-03-11T07:48:45.079Z",
+  "hardFailures": [],
+  "nearestMatches": [],
+  "schemaVersion": "theme-debt.v1",
+  "summary": {
+    "hardFailureCount": 0,
+    "softMatchCount": 0,
+    "unknownCount": 0
+  },
+  "themeKey": "default",
+  "unknownTokens": []
+}

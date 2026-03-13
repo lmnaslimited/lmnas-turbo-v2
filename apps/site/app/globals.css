@@ -1,0 +1,172 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap");
+@import "tailwindcss";
+
+/* Ensure dark mode is triggered by a .dark class rather than OS preference */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-display: "Manrope", "Segoe UI", sans-serif;
+
+  --color-lmnas-bg: #0b1120;
+  --color-lmnas-bg-elevated: #111827;
+  --color-lmnas-panel: #151f32;
+  --color-lmnas-panel-hover: #1a2744;
+  --color-lmnas-border: #1e2d4a;
+  --color-lmnas-border-subtle: #172038;
+  --color-lmnas-text: #f1f5f9;
+  --color-lmnas-text-secondary: #94a3b8;
+  --color-lmnas-muted: #64748b;
+  --color-lmnas-accent: #3b82f6;
+  --color-lmnas-accent-bright: #60a5fa;
+  --color-lmnas-accent-soft: rgba(59, 130, 246, 0.12);
+  --color-lmnas-accent-glow: rgba(59, 130, 246, 0.25);
+  --color-lmnas-success: #22c55e;
+  --color-lmnas-success-soft: rgba(34, 197, 94, 0.12);
+  --color-lmnas-warning: #f59e0b;
+  --color-lmnas-warning-soft: rgba(245, 158, 11, 0.12);
+  --color-lmnas-danger: #ef4444;
+  --color-lmnas-danger-soft: rgba(239, 68, 68, 0.12);
+  --color-lmnas-purple: #a78bfa;
+  --color-lmnas-purple-soft: rgba(167, 139, 250, 0.12);
+  --color-lmnas-emerald: #34d399;
+  --color-lmnas-emerald-soft: rgba(52, 211, 153, 0.12);
+  --color-lmnas-amber: #fbbf24;
+  --color-lmnas-amber-soft: rgba(251, 191, 36, 0.12);
+
+  --color-lmnas-shell-bg: rgba(59, 130, 246, 0.08);
+  --color-lmnas-block-bg: rgba(167, 139, 250, 0.08);
+  --color-lmnas-widget-bg: rgba(52, 211, 153, 0.08);
+  --color-lmnas-action-bg: rgba(251, 191, 36, 0.08);
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--font-display);
+    background: var(--color-lmnas-bg);
+    color: var(--color-lmnas-text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  a {
+    color: var(--color-lmnas-accent-bright);
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+}
+
+/* Legacy lmnas-* classes used by the page renderer (non-onboarding) */
+@layer components {
+  .lmnas-app-root {
+    min-height: 100vh;
+  }
+
+  .lmnas-shell-frame {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .lmnas-shell-header,
+  .lmnas-shell-footer,
+  .lmnas-shell-utility,
+  .lmnas-shell-content {
+    background: var(--color-lmnas-panel);
+    border: 1px solid var(--color-lmnas-border);
+    border-radius: 14px;
+    padding: 16px;
+  }
+
+  .lmnas-shell-nav-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .lmnas-shell-nav-depth-1,
+  .lmnas-shell-nav-depth-2 {
+    margin-top: 10px;
+    margin-left: 10px;
+    border-left: 2px solid var(--color-lmnas-border);
+    padding-left: 12px;
+  }
+
+  .lmnas-shell-nav-item {
+    color: var(--color-lmnas-text);
+  }
+
+  .lmnas-shell-placeholder {
+    color: var(--color-lmnas-muted);
+    font-size: 14px;
+  }
+
+  .lmnas-page-main {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .lmnas-page-headline {
+    margin: 0;
+    font-size: 28px;
+  }
+
+  .lmnas-page-subline {
+    margin: 0;
+    color: var(--color-lmnas-muted);
+  }
+
+  .lmnas-hero-block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border: 1px solid var(--color-lmnas-border);
+    border-radius: 10px;
+    padding: 16px;
+    background: linear-gradient(145deg, var(--color-lmnas-panel) 0%, var(--color-lmnas-bg-elevated) 100%);
+  }
+
+  .lmnas-invalid-block {
+    margin-bottom: 12px;
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  .lmnas-invalid-block-preview {
+    border: 1px solid var(--color-lmnas-danger);
+    background: var(--color-lmnas-danger-soft);
+  }
+
+  .lmnas-invalid-block-production {
+    border: 1px dashed var(--color-lmnas-muted);
+    background: var(--color-lmnas-panel);
+  }
+
+  .lmnas-block-fallback-frame {
+    display: block;
+    border: 1px solid var(--color-lmnas-border);
+    border-radius: 12px;
+    background: linear-gradient(145deg, var(--color-lmnas-panel) 0%, var(--color-lmnas-bg-elevated) 100%);
+    color: var(--color-lmnas-text);
+    padding: 14px;
+    font-family: var(--font-display);
+  }
+
+  .lmnas-block-fallback-frame :where(section, article, div, h1, h2, h3, h4, p, ul, ol, li, a, button) {
+    max-width: 100%;
+  }
+}

@@ -1,0 +1,247 @@
+{
+  "rejection": {
+    "status": 400,
+    "payload": {
+      "ok": false,
+      "code": "widgets.raw_script_forbidden",
+      "error": "Raw executable script uploads are forbidden. Widgets must map to approved repo paths."
+    }
+  },
+  "repoPathSave": {
+    "status": 200,
+    "payload": {
+      "ok": true,
+      "data": [
+        {
+          "id": "widget-1773221639621-2",
+          "key": "widget-1773221639621-2",
+          "name": "TV-MTR-10 Widget",
+          "widgetType": "download_gate",
+          "surface": "inline",
+          "status": "active",
+          "repoPath": "/components/widgets/report-download-widget.ts",
+          "description": "Repo-first widget mapping draft.",
+          "editableFields": [],
+          "placement": {
+            "mode": "reference",
+            "pageId": "page-1773221638910"
+          },
+          "updatedAt": "2026-03-11"
+        },
+        {
+          "id": "widget-calendar-booking",
+          "key": "widget-calendar-booking",
+          "name": "Calendar Booking Widget",
+          "widgetType": "booking_popup",
+          "surface": "modal",
+          "status": "active",
+          "repoPath": "/components/widgets/calendar-widget.ts",
+          "description": "Repo-first booking widget mapping.",
+          "editableFields": [
+            "title",
+            "ctaText"
+          ],
+          "visualMockHtml": "<div style=\"padding:14px;border:1px dashed #334155;border-radius:8px;font-family:system-ui\"><strong>Calendar Widget</strong><p style=\"margin-top:6px;color:#64748b;font-size:12px\">Visual mock only. Runtime executes from repo path.</p></div>",
+          "placement": {
+            "mode": "reference"
+          },
+          "updatedAt": "2026-03-11"
+        }
+      ],
+      "source": "fallback",
+      "persistence": {
+        "entity": "studio.widgets",
+        "widgetId": "widget-1773221639621-2"
+      },
+      "strapiAudit": {
+        "before": {
+          "pages": 3,
+          "blocks": 8,
+          "shells": 27,
+          "source": "strapi",
+          "warnings": []
+        },
+        "after": {
+          "pages": 3,
+          "blocks": 8,
+          "shells": 27,
+          "source": "strapi",
+          "warnings": []
+        },
+        "unchangedCoreEntities": true
+      }
+    }
+  },
+  "execute": {
+    "status": 200,
+    "payload": {
+      "ok": true,
+      "data": {
+        "event": "manual-run",
+        "widget": {
+          "id": "widget-1773221639621-2",
+          "name": "TV-MTR-10 Widget",
+          "repoPath": "/components/widgets/report-download-widget.ts",
+          "placement": {
+            "mode": "reference",
+            "pageId": "page-1773221638910"
+          }
+        },
+        "adapter": {
+          "repoPath": "/components/widgets/report-download-widget.ts",
+          "widgetType": "download_gate",
+          "surface": "inline"
+        },
+        "result": {
+          "status": "ok",
+          "event": "report_download_requested",
+          "assetId": "tv-mtr-10-report",
+          "trace": {
+            "widgetId": "widget-1773221639621-2",
+            "pageId": "page-1773221638910"
+          }
+        }
+      },
+      "source": "fallback",
+      "strapiAudit": {
+        "before": {
+          "pages": 3,
+          "blocks": 8,
+          "shells": 27,
+          "source": "strapi",
+          "warnings": []
+        },
+        "after": {
+          "pages": 3,
+          "blocks": 8,
+          "shells": 27,
+          "source": "strapi",
+          "warnings": []
+        },
+        "unchangedCoreEntities": true
+      }
+    }
+  },
+  "widgetEntityDiff": {
+    "beforeIds": [
+      "widget-calendar-booking"
+    ],
+    "afterIds": [
+      "widget-1773221639621-2",
+      "widget-calendar-booking"
+    ],
+    "changedWidgets": [
+      "widget-1773221639621-2"
+    ]
+  },
+  "strapiBefore": {
+    "pages": {
+      "total": 3,
+      "ids": [
+        "gynyp2d7pqcs7njojs1q5a2v",
+        "vla553v5q4tulwwqk3k4aszc",
+        "vs5f6ada055f7bvy295zmz3o"
+      ]
+    },
+    "blocks": {
+      "total": 8,
+      "ids": [
+        "b3y7qx5bn2zdnq7aa3gpkomq",
+        "cgcncokm9zuugdtx5pqyc13j",
+        "eq5i8s07vu2u3ycplyflfzke",
+        "flyjqfbb2ey3owh6ujjsa46q",
+        "iuwmuy14xqihl82fwk2cp5xc",
+        "lv0sq4pyyuurto6nmc6yl1xc",
+        "myrvq7q4ed6ye6lmcu46xrzo",
+        "nep6lpct4yg1mir4j15ik3hj"
+      ]
+    },
+    "shells": {
+      "total": 27,
+      "ids": [
+        "a0h2dc7v3om8et2u9nq37we7",
+        "a4ocpxm3s4qgf2zk42bbjijd",
+        "bn1x8kkuecds9oh4cz6azh1s",
+        "d1ne9f06rxe390o3h4sri98w",
+        "drhutbak7bwtq9rhku2hy14o",
+        "hrbd1zw68lyi99ns2o52eg6c",
+        "ij4zsxbre7jv3v06lulvvowu",
+        "iy0olu9gsi8aeup1vguojp7c",
+        "jdkgxvy97scr29did5um61ma",
+        "jyb7jskgszgjcps0y1c1mikx",
+        "k2bp4og7980z4ac38isq5quq",
+        "k5tg148073zh834uh2m9wedu",
+        "k7rvblrqcyhiwrgpfwqwba2b",
+        "mxbok4iuecg6bz21sjqttr5e",
+        "n4oqh0ap8yms8iyq3uyx8l59",
+        "nqph206ecjcxfp8uizh8m5re",
+        "pn3n9v8x0k2qobvbp4xa0tpd",
+        "rz3xlzc8dqa4sc9i8nw1cyql",
+        "tz427q3z77cvz2zncmznplu6",
+        "ub1b5uqv8n0lksvlfv5d6yv7",
+        "vhos6kqjysk07vl1jgota9kb",
+        "viswom4ckuh35huvtgreanj6",
+        "w7lh95cvbez3u6pahpn8j2m2",
+        "wpb4byte44h7ywupphjpkbue",
+        "yg2634zxoqcqdm1k6b7v3yv1",
+        "z3y7qkipayzpsfckbodo0txj",
+        "ze7lz622jotg33mdqaxqil7p"
+      ]
+    }
+  },
+  "strapiAfter": {
+    "pages": {
+      "total": 3,
+      "ids": [
+        "gynyp2d7pqcs7njojs1q5a2v",
+        "vla553v5q4tulwwqk3k4aszc",
+        "vs5f6ada055f7bvy295zmz3o"
+      ]
+    },
+    "blocks": {
+      "total": 8,
+      "ids": [
+        "b3y7qx5bn2zdnq7aa3gpkomq",
+        "cgcncokm9zuugdtx5pqyc13j",
+        "eq5i8s07vu2u3ycplyflfzke",
+        "flyjqfbb2ey3owh6ujjsa46q",
+        "iuwmuy14xqihl82fwk2cp5xc",
+        "lv0sq4pyyuurto6nmc6yl1xc",
+        "myrvq7q4ed6ye6lmcu46xrzo",
+        "nep6lpct4yg1mir4j15ik3hj"
+      ]
+    },
+    "shells": {
+      "total": 27,
+      "ids": [
+        "a0h2dc7v3om8et2u9nq37we7",
+        "a4ocpxm3s4qgf2zk42bbjijd",
+        "bn1x8kkuecds9oh4cz6azh1s",
+        "d1ne9f06rxe390o3h4sri98w",
+        "drhutbak7bwtq9rhku2hy14o",
+        "hrbd1zw68lyi99ns2o52eg6c",
+        "ij4zsxbre7jv3v06lulvvowu",
+        "iy0olu9gsi8aeup1vguojp7c",
+        "jdkgxvy97scr29did5um61ma",
+        "jyb7jskgszgjcps0y1c1mikx",
+        "k2bp4og7980z4ac38isq5quq",
+        "k5tg148073zh834uh2m9wedu",
+        "k7rvblrqcyhiwrgpfwqwba2b",
+        "mxbok4iuecg6bz21sjqttr5e",
+        "n4oqh0ap8yms8iyq3uyx8l59",
+        "nqph206ecjcxfp8uizh8m5re",
+        "pn3n9v8x0k2qobvbp4xa0tpd",
+        "rz3xlzc8dqa4sc9i8nw1cyql",
+        "tz427q3z77cvz2zncmznplu6",
+        "ub1b5uqv8n0lksvlfv5d6yv7",
+        "vhos6kqjysk07vl1jgota9kb",
+        "viswom4ckuh35huvtgreanj6",
+        "w7lh95cvbez3u6pahpn8j2m2",
+        "wpb4byte44h7ywupphjpkbue",
+        "yg2634zxoqcqdm1k6b7v3yv1",
+        "z3y7qkipayzpsfckbodo0txj",
+        "ze7lz622jotg33mdqaxqil7p"
+      ]
+    }
+  }
+}
