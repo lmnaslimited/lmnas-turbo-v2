@@ -42,16 +42,17 @@ const SAMPLE_RESULT: PublishOverlayResult = {
   persistence: {
     source: "fallback",
     mutated: true,
-    themeId: "theme-default"
+    pageId: "page-default"
   }
 };
 
 describe("publish/settings container hardening", () => {
-  it("renders settings surface with shared workflow containers", () => {
+  it("renders v3 publish surface with canonical controls", () => {
     const html = renderToStaticMarkup(<PublishWorkflowPage />);
-    expect(html).toContain("data-testid=\"publish-settings-list-container\"");
-    expect(html).toContain("data-testid=\"publish-settings-detail-container\"");
-    expect(html).toContain("data-testid=\"publish-settings-action-container\"");
+    expect(html).toContain("data-testid=\"publish-workspace\"");
+    expect(html).toContain("data-testid=\"publish-live-button\"");
+    expect(html).toContain("data-testid=\"publish-safety-lock\"");
+    expect(html).toContain("data-testid=\"publish-governance-page\"");
   });
 
   it("renders publish overlay with shared workflow containers", () => {

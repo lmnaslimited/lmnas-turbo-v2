@@ -704,6 +704,11 @@ export interface ApiStudioBlockStudioBlock extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     editableFields: Schema.Attribute.JSON;
     family: Schema.Attribute.String & Schema.Attribute.Required;
+    importMaster: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::studio-import-master.studio-import-master'
+    >;
+    importProposalId: Schema.Attribute.String;
     industryMapping: Schema.Attribute.JSON;
     lifecycle: Schema.Attribute.Enumeration<
       ['draft', 'published', 'archived']
@@ -728,11 +733,14 @@ export interface ApiStudioBlockStudioBlock extends Struct.CollectionTypeSchema {
     scope: Schema.Attribute.Enumeration<['global', 'page-local']> &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'global'>;
+    sourceAssetContext: Schema.Attribute.JSON;
+    sourcePreviewHtml: Schema.Attribute.Text;
     sourceRef: Schema.Attribute.String;
     sourceType: Schema.Attribute.String;
     status: Schema.Attribute.Enumeration<['active', 'inactive', 'draft']> &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'active'>;
+    targetPreviewHtml: Schema.Attribute.Text;
     themeKey: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'default'>;
@@ -740,6 +748,78 @@ export interface ApiStudioBlockStudioBlock extends Struct.CollectionTypeSchema {
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     usageCount: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+  };
+}
+
+export interface ApiStudioImportMasterStudioImportMaster
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'studio_import_masters';
+  info: {
+    displayName: 'Studio Import Master';
+    pluralName: 'studio-import-masters';
+    singularName: 'studio-import-master';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    extractionSummary: Schema.Attribute.JSON;
+    importKey: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    importMode: Schema.Attribute.Enumeration<['blocks', 'page']> &
+      Schema.Attribute.DefaultTo<'blocks'>;
+    lifecycle: Schema.Attribute.Enumeration<['draft', 'active', 'archived']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'draft'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::studio-import-master.studio-import-master'
+    > &
+      Schema.Attribute.Private;
+    processedAt: Schema.Attribute.DateTime;
+    proposalSummary: Schema.Attribute.JSON;
+    publishedAt: Schema.Attribute.DateTime;
+    referencePreviewHtml: Schema.Attribute.Text;
+    selectedShellKey: Schema.Attribute.String;
+    selectedThemeKey: Schema.Attribute.String;
+    sourceAssetBases: Schema.Attribute.JSON;
+    sourceAssetManifest: Schema.Attribute.JSON;
+    sourceBaseUrl: Schema.Attribute.String;
+    sourceHtml: Schema.Attribute.Text;
+    sourceRawMarkupPreview: Schema.Attribute.Text;
+    sourceRef: Schema.Attribute.String;
+    sourceShellCharacteristics: Schema.Attribute.JSON;
+    sourceStyleProfile: Schema.Attribute.JSON;
+    sourceSummary: Schema.Attribute.Text;
+    sourceThemeCharacteristics: Schema.Attribute.JSON;
+    sourceTitle: Schema.Attribute.String;
+    sourceType: Schema.Attribute.Enumeration<
+      [
+        'stitch_section',
+        'stitch_full_page',
+        'figma_section',
+        'figma_full_page',
+        'url',
+        'raw_html',
+      ]
+    > &
+      Schema.Attribute.Required;
+    status: Schema.Attribute.Enumeration<
+      ['processed', 'imported_blocks', 'imported_page', 'failed']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'processed'>;
+    targetPreviewHtml: Schema.Attribute.Text;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    uploadSummary: Schema.Attribute.JSON;
+    warnings: Schema.Attribute.JSON;
   };
 }
 
@@ -765,6 +845,10 @@ export interface ApiStudioPageStudioPage extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     fieldValues: Schema.Attribute.JSON;
+    importMaster: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::studio-import-master.studio-import-master'
+    >;
     industryMapping: Schema.Attribute.JSON;
     lifecycle: Schema.Attribute.Enumeration<
       ['draft', 'published', 'archived']
@@ -786,15 +870,25 @@ export interface ApiStudioPageStudioPage extends Struct.CollectionTypeSchema {
     primaryCta: Schema.Attribute.JSON;
     productMapping: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
+    publishedPreviewHtml: Schema.Attribute.Text;
     seoJsonLdValid: Schema.Attribute.Boolean &
       Schema.Attribute.DefaultTo<false>;
     seoMetadata: Schema.Attribute.JSON;
+    shell: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::studio-shell.studio-shell'
+    >;
     shellKey: Schema.Attribute.String;
     slug: Schema.Attribute.String & Schema.Attribute.Required;
     status: Schema.Attribute.Enumeration<['draft', 'published']> &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'draft'>;
     taxonomyState: Schema.Attribute.JSON;
+    theme: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::studio-theme.studio-theme'
+    >;
+    themeKey: Schema.Attribute.String;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1509,6 +1603,7 @@ declare module '@strapi/strapi' {
       'api::page.page': ApiPagePage;
       'api::shell-variant.shell-variant': ApiShellVariantShellVariant;
       'api::studio-block.studio-block': ApiStudioBlockStudioBlock;
+      'api::studio-import-master.studio-import-master': ApiStudioImportMasterStudioImportMaster;
       'api::studio-page.studio-page': ApiStudioPageStudioPage;
       'api::studio-shell.studio-shell': ApiStudioShellStudioShell;
       'api::studio-theme.studio-theme': ApiStudioThemeStudioTheme;

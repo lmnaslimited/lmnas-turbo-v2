@@ -7,9 +7,21 @@ import { LayoutRegistry } from "@lmnas/layouts";
 import { PageRenderer } from "@lmnas/renderer";
 import { buildSeo } from "@lmnas/seo-engine";
 import { buildShellRenderModel } from "../lib/shell";
+import { loadStudioPageForRoute } from "../lib/studio-page-runtime";
 
 export default async function HomePage() {
   const { isEnabled: isPreview } = await draftMode();
+  const studioPage = await loadStudioPageForRoute({
+    slug: "home",
+    locale: "en",
+    preview: isPreview
+  });
+
+  if (studioPage) {
+    track("page_view", { slug: studioPage.slug, pageType: "simple" });
+    return <div data-testid="studio-runtime-page" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: studioPage.bodyHtml }} />;
+  }
+
   let page;
   try {
     page = await getPageBySlug("home", { preview: isPreview });

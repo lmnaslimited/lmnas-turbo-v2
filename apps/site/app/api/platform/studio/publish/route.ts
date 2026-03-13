@@ -7,6 +7,10 @@ type StrapiCollectionResponse = {
   data?: Array<Record<string, unknown>>;
 };
 
+type StrapiEntityResponse = {
+  data?: Record<string, unknown> | null;
+};
+
 type PublishRequestPayload = {
   mode?: unknown;
   sourceHtml?: unknown;
@@ -61,10 +65,8 @@ type GovernanceReport = {
   source: "strapi" | "fallback";
 };
 
-type ThemeSchemaSource = "canonical" | "legacy";
-
 const CANONICAL_THEME_COLLECTION = "/api/studio-themes";
-const LEGACY_THEME_COLLECTION = "/api/theme-variants";
+const CANONICAL_PAGE_COLLECTION = "/api/studio-pages";
 
 function toIsoDate(input?: unknown): string {
   if (typeof input !== "string" || input.length < 10) {
@@ -163,77 +165,106 @@ function normalizeGovernancePage(value: unknown): GovernancePage {
   };
 }
 
-async function listThemesFromCollection(collectionPath: string): Promise<StudioTheme[]> {
+async function listThemesFromStrapi(): Promise<StudioTheme[]> {
   const response = await requestStrapi<StrapiCollectionResponse>(
-    `${collectionPath}?pagination[pageSize]=200&sort=updatedAt:desc`
+    `${CANONICAL_THEME_COLLECTION}?pagination[pageSize]=200&sort=updatedAt:desc`
   );
   const rows = Array.isArray(response.data) ? response.data : [];
   return rows.map((row) => normalizeTheme(unwrapStrapiEntity(row)));
 }
 
-async function listThemesFromStrapi(): Promise<{ themes: StudioTheme[]; schemaSource: ThemeSchemaSource }> {
-  try {
-    const themes = await listThemesFromCollection(CANONICAL_THEME_COLLECTION);
-    return {
-      themes,
-      schemaSource: "canonical"
-    };
-  } catch {
-    const themes = await listThemesFromCollection(LEGACY_THEME_COLLECTION);
-    return {
-      themes,
-      schemaSource: "legacy"
-    };
-  }
-}
-
-async function listGovernancePagesFromStrapi(): Promise<GovernancePage[]> {
+async function listGovernancePagesFromStrapi(status?: "draft" | "published"): Promise<GovernancePage[]> {
+  const statusQuery = status ? `&status=${status}` : "";
   const response = await requestStrapi<StrapiCollectionResponse>(
-    "/api/studio-pages?pagination[pageSize]=200&sort=updatedAt:desc"
+    `${CANONICAL_PAGE_COLLECTION}?pagination[pageSize]=200&sort=updatedAt:desc${statusQuery}`
   );
   const rows = Array.isArray(response.data) ? response.data : [];
   return rows.map((row) => normalizeGovernancePage(unwrapStrapiEntity(row)));
 }
 
-async function resolveThemeMutationId(themeKey: string, schemaSource: ThemeSchemaSource): Promise<string | null> {
-  const collectionPath = schemaSource === "canonical" ? CANONICAL_THEME_COLLECTION : LEGACY_THEME_COLLECTION;
-  const lookup = await requestStrapi<StrapiCollectionResponse>(
-    `${collectionPath}?filters[themeKey][$eq]=${encodeURIComponent(themeKey)}&pagination[pageSize]=1`
+async function readDraftPagePublishFields(pageId: string): Promise<Record<string, unknown> | null> {
+  const response = await requestStrapi<StrapiEntityResponse>(
+    `${CANONICAL_PAGE_COLLECTION}/${encodeURIComponent(pageId)}?status=draft`
   );
-  const existing = Array.isArray(lookup.data) ? lookup.data[0] : undefined;
-  if (!existing) {
+  if (!response.data) {
     return null;
   }
-  if (typeof existing.documentId === "string" && existing.documentId.length > 0) {
-    return existing.documentId;
-  }
-  if (typeof existing.id === "number" || typeof existing.id === "string") {
-    return String(existing.id);
-  }
-  return null;
+  const row = unwrapStrapiEntity(response.data);
+  return {
+    pageKey: typeof row.pageKey === "string" ? row.pageKey : undefined,
+    name: typeof row.name === "string" ? row.name : undefined,
+    slug: typeof row.slug === "string" ? row.slug : undefined,
+    locale: typeof row.locale === "string" ? row.locale : undefined,
+    activeShellId: typeof row.activeShellId === "string" ? row.activeShellId : undefined,
+    shellKey: typeof row.shellKey === "string" ? row.shellKey : undefined,
+    themeKey: typeof row.themeKey === "string" ? row.themeKey : undefined,
+    blockOrder: row.blockOrder,
+    fieldValues: row.fieldValues,
+    actionOverrides: row.actionOverrides,
+    productMapping: row.productMapping,
+    industryMapping: row.industryMapping,
+    primaryCta: row.primaryCta,
+    conversionConfig: row.conversionConfig,
+    campaignUtmStrategy: row.campaignUtmStrategy,
+    taxonomyState: row.taxonomyState,
+    seoMetadata: row.seoMetadata,
+    seoJsonLdValid: row.seoJsonLdValid,
+    blockSchemaValid: row.blockSchemaValid,
+    previewValid: row.previewValid,
+    previewHtml: row.previewHtml,
+    publishedPreviewHtml: row.previewHtml
+  };
 }
 
-async function resolveActiveTheme(): Promise<{ theme: StudioTheme | null; source: "strapi" | "fallback" }> {
-  if (isStrapiConfigured()) {
+async function publishPageInStrapi(pageId: string): Promise<{ pageId: string }> {
+  const draftFields = await readDraftPagePublishFields(pageId).catch(() => null);
+  const publishedAt = new Date().toISOString();
+  const publishEndpoints = [
+    `${CANONICAL_PAGE_COLLECTION}/${encodeURIComponent(pageId)}/actions/publish`,
+    `${CANONICAL_PAGE_COLLECTION}/${encodeURIComponent(pageId)}/publish`
+  ];
+
+  for (const endpoint of publishEndpoints) {
     try {
-      const { themes } = await listThemesFromStrapi();
-      const activeTheme = themes.find((theme) => theme.status === "active") ?? themes[0] ?? null;
-      if (activeTheme) {
-        return {
-          theme: activeTheme,
-          source: "strapi"
-        };
+      await requestStrapi(endpoint, {
+        method: "POST",
+        body: {}
+      });
+      if (draftFields) {
+        await requestStrapi(`${CANONICAL_PAGE_COLLECTION}/${encodeURIComponent(pageId)}?status=draft`, {
+          method: "PUT",
+          body: {
+            publishedPreviewHtml: draftFields.previewHtml,
+            publishedAt
+          }
+        });
+        await requestStrapi(`${CANONICAL_PAGE_COLLECTION}/${encodeURIComponent(pageId)}?status=published`, {
+          method: "PUT",
+          body: {
+            ...draftFields,
+            status: "published",
+            lifecycle: "published",
+            publishedAt
+          }
+        });
       }
+      return { pageId };
     } catch {
-      // fallback below
+      // try next canonical publish endpoint
     }
   }
 
-  const fallbackThemes = getStudioStore().themes;
-  return {
-    theme: fallbackThemes.find((theme) => theme.status === "active") ?? fallbackThemes[0] ?? null,
-    source: "fallback"
-  };
+  await requestStrapi(`${CANONICAL_PAGE_COLLECTION}/${encodeURIComponent(pageId)}`, {
+    method: "PUT",
+    body: {
+      ...(draftFields ?? {}),
+      publishedPreviewHtml: draftFields?.previewHtml,
+      status: "published",
+      lifecycle: "published",
+      publishedAt
+    }
+  });
+  return { pageId };
 }
 
 function resolveRequestedPage(pages: GovernancePage[], pageId: string | null, pageSlug: string | null): GovernancePage | null {
@@ -284,7 +315,7 @@ function buildGovernanceChecks(page: GovernancePage | null): GovernanceCheck[] {
     {
       id: "seo-metadata-valid",
       label: "SEO metadata valid",
-      pass: Boolean(page?.seoMetadata.metaTitle.trim() && page.seoMetadata.metaDescription.trim())
+      pass: Boolean(page?.seoMetadata.metaTitle.trim() && page?.seoMetadata.metaDescription.trim())
     },
     { id: "seo-jsonld-valid", label: "SEO / JSON-LD valid", pass: Boolean(page?.seoJsonLdValid) }
   ];
@@ -298,7 +329,7 @@ async function resolveGovernanceReport(payload: PublishRequestPayload): Promise<
 
   if (isStrapiConfigured()) {
     try {
-      const strapiPages = await listGovernancePagesFromStrapi();
+      const strapiPages = await listGovernancePagesFromStrapi("draft");
       const selected = resolveRequestedPage(strapiPages, requestedPageId, requestedPageSlug);
       const checks = buildGovernanceChecks(selected);
       return {
@@ -411,46 +442,43 @@ function summarizeTheme(theme: StudioTheme): {
   };
 }
 
-function markFallbackCommitApplied(activeThemeId: string): void {
+function markFallbackPagePublished(pageId: string): void {
   const store = getStudioStore();
-  const themes = store.themes.map((theme) =>
-    theme.id === activeThemeId
-      ? {
-          ...theme,
-          updatedAt: new Date().toISOString().slice(0, 10)
-        }
-      : theme
-  );
   replaceStore({
     ...store,
-    themes
+    pages: store.pages.map((page) =>
+      page.id === pageId
+        ? {
+            ...page,
+            status: "published",
+            lifecycle: "published",
+            updatedAt: new Date().toISOString().slice(0, 10)
+          }
+        : page
+    )
   });
 }
 
-async function persistPublishToStrapi(activeTheme: StudioTheme): Promise<{ themeId: string; schemaSource: ThemeSchemaSource }> {
-  const { schemaSource } = await listThemesFromStrapi();
-  const mutationId = await resolveThemeMutationId(activeTheme.themeKey, schemaSource);
-  if (!mutationId) {
-    throw new Error(`Unable to resolve Strapi mutation id for themeKey="${activeTheme.themeKey}" in ${schemaSource} collection.`);
+async function resolveActiveTheme(): Promise<{ theme: StudioTheme | null; source: "strapi" | "fallback" }> {
+  if (isStrapiConfigured()) {
+    try {
+      const themes = await listThemesFromStrapi();
+      const activeTheme = themes.find((theme) => theme.status === "active") ?? themes[0] ?? null;
+      if (activeTheme) {
+        return {
+          theme: activeTheme,
+          source: "strapi"
+        };
+      }
+    } catch {
+      // fallback below
+    }
   }
 
-  const collectionPath = schemaSource === "canonical" ? CANONICAL_THEME_COLLECTION : LEGACY_THEME_COLLECTION;
-  await requestStrapi(`${collectionPath}/${encodeURIComponent(mutationId)}`, {
-    method: "PUT",
-    body: {
-      themeKey: activeTheme.themeKey,
-      name: activeTheme.name,
-      status: activeTheme.status,
-      sourceRef: activeTheme.sourceRef,
-      tokenCoverage: activeTheme.tokenCoverage,
-      themeDebt: activeTheme.themeDebt,
-      darkMode: activeTheme.darkMode,
-      tokens: activeTheme.tokens
-    }
-  });
+  const fallbackThemes = getStudioStore().themes;
   return {
-    themeId: mutationId,
-    schemaSource
+    theme: fallbackThemes.find((theme) => theme.status === "active") ?? fallbackThemes[0] ?? null,
+    source: "fallback"
   };
 }
 
@@ -464,7 +492,16 @@ export async function POST(request: Request): Promise<Response> {
         ? payload.previewSwatchThemeId.trim()
         : null;
     const governance = await resolveGovernanceReport(payload);
-    const { theme: activeTheme, source } = await resolveActiveTheme();
+    const { theme: activeTheme, source: themeSource } = await resolveActiveTheme();
+    if (isStrapiConfigured() && (governance.source !== "strapi" || themeSource !== "strapi")) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Canonical studio publish requires canonical studio-page governance and canonical studio-theme resolution from Strapi."
+        },
+        { status: 502 }
+      );
+    }
     if (!activeTheme) {
       return Response.json(
         {
@@ -508,30 +545,25 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     const persistence = {
-      source,
+      source: governance.source,
       mutated: false,
-      themeId: null as string | null
+      pageId: null as string | null
     };
 
-    if (applied) {
-      if (source === "fallback") {
-        markFallbackCommitApplied(activeTheme.id);
+    if (applied && governance.page) {
+      if (governance.source === "fallback") {
+        markFallbackPagePublished(governance.page.id);
         persistence.mutated = true;
-        persistence.themeId = activeTheme.id;
+        persistence.pageId = governance.page.id;
       } else {
         try {
-          const persisted = await persistPublishToStrapi(activeTheme);
+          const persisted = await publishPageInStrapi(governance.page.id);
           persistence.mutated = true;
-          persistence.themeId = persisted.themeId;
-          warnings.push({
-            code: "publish.theme_schema_source",
-            message: `Theme mutation persisted through ${persisted.schemaSource} schema collection.`,
-            severity: persisted.schemaSource === "canonical" ? "info" : "warning"
-          });
+          persistence.pageId = persisted.pageId;
         } catch (error) {
           warnings.push({
             code: "publish.strapi_persist_failed",
-            message: `Publish persistence failed in Strapi: ${error instanceof Error ? error.message : String(error)}`,
+            message: `Canonical page publish failed in Strapi: ${error instanceof Error ? error.message : String(error)}`,
             severity: "error"
           });
           applied = false;
@@ -544,6 +576,7 @@ export async function POST(request: Request): Promise<Response> {
       mode,
       activeTheme: summarizeTheme(activeTheme),
       sourceHtml,
+      governancePageId: governance.page?.id ?? null,
       fidelity: {
         mode: settings.fidelity.mode,
         threshold: fidelityReport.threshold,
@@ -567,17 +600,24 @@ export async function POST(request: Request): Promise<Response> {
           fidelity: fidelityBlocked,
           governance: governanceBlocked
         },
-        source,
+        source: governance.source === "strapi" && themeSource === "strapi" ? "strapi" : governance.source,
         fidelityMode: settings.fidelity.mode,
         warnings,
         activeTheme: summarizeTheme(activeTheme),
         ignoredPreviewSwatchThemeId: previewSwatchThemeId,
-        rejectionReason: fidelityBlocked
-          ? "Fidelity threshold rejection in disallow mode."
-          : governanceBlocked
-            ? "Governance readiness checklist failed."
-            : null,
-        fidelity: fidelityReport,
+        rejectionReason: blocked
+          ? fidelityBlocked
+            ? `Highest mismatch ${fidelityReport.highestMismatchRatio.toFixed(3)} exceeded threshold ${fidelityReport.threshold.toFixed(3)}.`
+            : "Governance readiness checks failed."
+          : null,
+        fidelity: {
+          threshold: fidelityReport.threshold,
+          hasDarkMediaQuery: fidelityReport.hasDarkMediaQuery,
+          darkModeMismatchRatio: fidelityReport.darkModeMismatchRatio,
+          typographyMismatchRatio: fidelityReport.typographyMismatchRatio,
+          highestMismatchRatio: fidelityReport.highestMismatchRatio,
+          exceedsThreshold: fidelityReport.exceedsThreshold
+        },
         governance,
         payload: publishPayload,
         persistence

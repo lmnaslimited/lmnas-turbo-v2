@@ -5,7 +5,10 @@ loadProjectEnv({
   mode: process.env.NODE_ENV ?? "test"
 });
 
-const baseURL = "http://127.0.0.1:3000";
+const configuredPort = Number.parseInt(process.env.PLAYWRIGHT_PORT ?? "3000", 10);
+const port = Number.isFinite(configuredPort) && configuredPort > 0 ? configuredPort : 3000;
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${port}`;
+const skipManagedWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === "1";
 
 export default defineConfig({
   testDir: "./apps/site/e2e",
@@ -26,11 +29,14 @@ export default defineConfig({
     screenshot: "only-on-failure",
     video: "retain-on-failure"
   },
-  webServer: {
-    command:
-      "pnpm --filter @lmnas/site exec next dev --hostname 127.0.0.1 --port 3000",
-    url: baseURL,
-    timeout: 240_000,
-    reuseExistingServer: true
-  }
+  ...(skipManagedWebServer
+    ? {}
+    : {
+        webServer: {
+          command: `pnpm --filter @lmnas/site exec next dev --hostname 127.0.0.1 --port ${port}`,
+          url: baseURL,
+          timeout: 240_000,
+          reuseExistingServer: true
+        }
+      })
 });

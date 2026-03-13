@@ -43,8 +43,26 @@
     "activeShellId": {
       "type": "string"
     },
+    "shell": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::studio-shell.studio-shell"
+    },
     "shellKey": {
       "type": "string"
+    },
+    "theme": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::studio-theme.studio-theme"
+    },
+    "themeKey": {
+      "type": "string"
+    },
+    "importMaster": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::studio-import-master.studio-import-master"
     },
     "blockOrder": {
       "type": "json"
@@ -89,6 +107,9 @@
       "default": false
     },
     "previewHtml": {
+      "type": "text"
+    },
+    "publishedPreviewHtml": {
       "type": "text"
     }
   }

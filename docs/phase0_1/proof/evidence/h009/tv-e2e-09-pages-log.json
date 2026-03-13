@@ -1,0 +1,89 @@
+{
+  "resetPayload": {
+    "ok": true,
+    "data": {
+      "canonicalCollectionsReset": 5,
+      "canonicalSterile": true
+    },
+    "source": "strapi",
+    "canonical": {
+      "executedAt": "2026-03-12T16:02:38.072Z",
+      "collections": [
+        {
+          "key": "themes",
+          "endpoint": "/api/studio-themes",
+          "before": 2,
+          "deleted": 2,
+          "seeded": 1,
+          "after": 1
+        },
+        {
+          "key": "shells",
+          "endpoint": "/api/studio-shells",
+          "before": 2,
+          "deleted": 2,
+          "seeded": 2,
+          "after": 2
+        },
+        {
+          "key": "blocks",
+          "endpoint": "/api/studio-blocks",
+          "before": 4,
+          "deleted": 4,
+          "seeded": 2,
+          "after": 2
+        },
+        {
+          "key": "widgets",
+          "endpoint": "/api/studio-widgets",
+          "before": 1,
+          "deleted": 1,
+          "seeded": 1,
+          "after": 1
+        },
+        {
+          "key": "pages",
+          "endpoint": "/api/studio-pages",
+          "before": 1,
+          "deleted": 1,
+          "seeded": 1,
+          "after": 1
+        }
+      ],
+      "sterile": true
+    }
+  },
+  "source": "strapi",
+  "pagesCount": 1,
+  "perViewportChecks": [
+    {
+      "viewport": "desktop",
+      "selectedPageId": "l557bb62ih7lsbu5ufoietie"
+    },
+    {
+      "viewport": "tablet",
+      "selectedPageId": "l557bb62ih7lsbu5ufoietie"
+    },
+    {
+      "viewport": "mobile",
+      "selectedPageId": "l557bb62ih7lsbu5ufoietie"
+    }
+  ],
+  "viewportCoverage": [
+    {
+      "label": "desktop",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "label": "tablet",
+      "width": 1024,
+      "height": 1366
+    },
+    {
+      "label": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ]
+}

@@ -130,6 +130,17 @@ export interface StudioBlockTemplate {
   editableFields: string[];
   actions: StudioBlockTemplateAction[];
   previewHtml: string;
+  sourcePreviewHtml?: string;
+  targetPreviewHtml?: string;
+  sourceAssetContext?: {
+    baseUrl?: string;
+    importKey?: string;
+    importMasterId?: string;
+    assetManifest?: Record<string, string>;
+  };
+  importMasterId?: string;
+  importMasterKey?: string;
+  importProposalId?: string;
   inUseCount: number;
   usageCount?: number;
   createdAt: string;
@@ -172,8 +183,14 @@ export interface StudioPageDocument {
   name: string;
   slug: string;
   locale: string;
+  publishedAt?: string;
+  publishedPreviewHtml?: string;
+  importMasterId?: string;
   activeShellId?: string;
+  shellId?: string;
   shellKey?: string;
+  themeId?: string;
+  themeKey?: string;
   lifecycle?: StudioEntityLifecycle;
   status?: "draft" | "published";
   blockOrder: string[];
@@ -199,6 +216,41 @@ export interface StudioPageDocument {
   blockSchemaValid: boolean;
   previewValid: boolean;
   previewHtml: string;
+  updatedAt: string;
+}
+
+export interface StudioImportMaster {
+  id: string;
+  importKey: string;
+  sourceType: string;
+  sourceRef: string;
+  sourceTitle?: string;
+  sourceSummary?: string;
+  sourceHtml?: string;
+  sourceRawMarkupPreview?: string;
+  sourceBaseUrl?: string;
+  sourceAssetBases?: string[];
+  sourceAssetManifest?: Record<string, string>;
+  sourceStyleProfile?: Record<string, unknown>;
+  sourceThemeCharacteristics?: Record<string, unknown>;
+  sourceShellCharacteristics?: Array<Record<string, unknown>>;
+  referencePreviewHtml: string;
+  targetPreviewHtml: string;
+  selectedThemeKey: string;
+  selectedShellKey: string;
+  importMode: "blocks" | "page";
+  status: "processed" | "imported_blocks" | "imported_page" | "failed";
+  lifecycle: "draft" | "active" | "archived";
+  extractionSummary?: Record<string, unknown>;
+  proposalSummary?: Record<string, unknown>;
+  warnings?: string[];
+  uploadSummary?: {
+    fileName: string;
+    htmlEntry: string;
+    htmlEntryCount: number;
+  };
+  processedAt?: string;
+  createdAt: string;
   updatedAt: string;
 }
 

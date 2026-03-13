@@ -179,6 +179,7 @@ function createSeedStore(): StudioStore {
         locale: "en",
         activeShellId: "shell-main",
         shellKey: "shell-main",
+        themeKey: "default",
         lifecycle: "draft",
         status: "draft",
         blockOrder: ["blk-hero-1", "blk-cta-1"],

@@ -1,4 +1,4 @@
-import type { StudioTheme, StudioThemeToken } from "../../../../platform/onboarding/_lib/studio-types";
+import type { StudioTheme, StudioThemeStatus, StudioThemeToken } from "../../../../platform/onboarding/_lib/studio-types";
 import { ALLOWED_THEME_SOURCES, isStudioThemeSourceType } from "../../../../platform/onboarding/theme/theme-input";
 import { getStudioStore, replaceStore } from "../_lib/store";
 import { isStrapiConfigured, requestStrapi, StudioApiError, unwrapStrapiEntity } from "../_lib/strapi";
@@ -13,10 +13,9 @@ type ThemePostPayload = {
   sourceType?: unknown;
 };
 
-type StrapiSchemaSource = "canonical" | "legacy";
+type StrapiSchemaSource = "canonical";
 
 const CANONICAL_THEME_COLLECTION = "/api/studio-themes";
-const LEGACY_THEME_COLLECTION = "/api/theme-variants";
 
 function toIsoDate(input?: unknown): string {
   if (typeof input !== "string" || input.length < 10) {
@@ -96,20 +95,59 @@ async function listThemesFromCollection(collectionPath: string): Promise<StudioT
   return rows.map((row) => normalizeTheme(unwrapStrapiEntity(row)));
 }
 
-async function listThemesFromStrapi(): Promise<{ themes: StudioTheme[]; schemaSource: StrapiSchemaSource }> {
-  try {
-    const canonicalThemes = await listThemesFromCollection(CANONICAL_THEME_COLLECTION);
-    return {
-      themes: canonicalThemes,
-      schemaSource: "canonical"
-    };
-  } catch {
-    const legacyThemes = await listThemesFromCollection(LEGACY_THEME_COLLECTION);
-    return {
-      themes: legacyThemes,
-      schemaSource: "legacy"
-    };
+async function resolveThemeMutationIdByKey(collectionPath: string, themeKey: string): Promise<string | null> {
+  const lookup = await requestStrapi<StrapiCollectionResponse>(
+    `${collectionPath}?filters[themeKey][$eq]=${encodeURIComponent(themeKey)}&pagination[pageSize]=1`
+  );
+  const existing = Array.isArray(lookup.data) ? lookup.data[0] : undefined;
+  if (!existing) {
+    return null;
   }
+  return resolveEntityMutationId(existing);
+}
+
+async function setThemeStatusInCollection(collectionPath: string, themeKey: string, status: StudioThemeStatus): Promise<void> {
+  const mutationId = await resolveThemeMutationIdByKey(collectionPath, themeKey);
+  if (!mutationId) {
+    return;
+  }
+  await requestStrapi(`${collectionPath}/${encodeURIComponent(mutationId)}`, {
+    method: "PUT",
+    body: { status }
+  });
+}
+
+async function enforceSingleActiveThemeInCollection(collectionPath: string): Promise<StudioTheme[]> {
+  const themes = await listThemesFromCollection(collectionPath);
+  const activeThemes = themes.filter((theme) => theme.status === "active");
+  if (activeThemes.length <= 1) {
+    return themes;
+  }
+
+  const keeper = activeThemes[0];
+  await Promise.all(
+    activeThemes
+      .filter((theme) => theme.themeKey !== keeper.themeKey)
+      .map((theme) => setThemeStatusInCollection(collectionPath, theme.themeKey, "inactive"))
+  );
+  return listThemesFromCollection(collectionPath);
+}
+
+async function activateThemeInCollection(collectionPath: string, themeKey: string): Promise<void> {
+  const themes = await listThemesFromCollection(collectionPath);
+  await Promise.all(
+    themes.map((theme) =>
+      setThemeStatusInCollection(collectionPath, theme.themeKey, theme.themeKey === themeKey ? "active" : theme.status === "draft" ? "draft" : "inactive")
+    )
+  );
+}
+
+async function listThemesFromStrapi(): Promise<{ themes: StudioTheme[]; schemaSource: StrapiSchemaSource }> {
+  const canonicalThemes = await listThemesFromCollection(CANONICAL_THEME_COLLECTION);
+  return {
+    themes: canonicalThemes,
+    schemaSource: "canonical"
+  };
 }
 
 async function upsertThemeInCollection(collectionPath: string, keyField: string, theme: StudioTheme): Promise<void> {
@@ -187,17 +225,22 @@ function findDuplicateTheme(themes: StudioTheme[], theme: StudioTheme): StudioTh
 export async function GET(): Promise<Response> {
   if (isStrapiConfigured()) {
     try {
-      const { themes, schemaSource } = await listThemesFromStrapi();
-      if (themes.length > 0) {
-        return Response.json({
-          ok: true,
-          data: themes,
-          source: "strapi",
-          schemaSource
-        });
-      }
-    } catch {
-      // Fallback below keeps workflow operable when Strapi is offline.
+      const { schemaSource } = await listThemesFromStrapi();
+      const themes = await enforceSingleActiveThemeInCollection(CANONICAL_THEME_COLLECTION);
+      return Response.json({
+        ok: true,
+        data: themes,
+        source: "strapi",
+        schemaSource
+      });
+    } catch (error) {
+      return Response.json(
+        {
+          ok: false,
+          error: `Canonical studio-theme load failed: ${error instanceof Error ? error.message : String(error)}`
+        },
+        { status: 502 }
+      );
     }
   }
 
@@ -228,7 +271,7 @@ export async function POST(request: Request): Promise<Response> {
 
     if (isStrapiConfigured()) {
       try {
-        const { themes: existingThemes } = await listThemesFromStrapi();
+        const existingThemes = await listThemesFromCollection(CANONICAL_THEME_COLLECTION);
         if (mode === "create") {
           const duplicateTheme = findDuplicateTheme(existingThemes, theme);
           if (duplicateTheme) {
@@ -245,48 +288,24 @@ export async function POST(request: Request): Promise<Response> {
         }
 
         await upsertThemeInCollection(CANONICAL_THEME_COLLECTION, "themeKey", theme);
-        const themes = await listThemesFromCollection(CANONICAL_THEME_COLLECTION);
+        if (theme.status === "active") {
+          await activateThemeInCollection(CANONICAL_THEME_COLLECTION, theme.themeKey);
+        }
+        const themes = await enforceSingleActiveThemeInCollection(CANONICAL_THEME_COLLECTION);
         return Response.json({
           ok: true,
           data: themes,
           source: "strapi",
           schemaSource: "canonical"
         });
-      } catch {
-        try {
-          await upsertThemeInCollection(LEGACY_THEME_COLLECTION, "themeKey", theme);
-          const themes = await listThemesFromCollection(LEGACY_THEME_COLLECTION);
-          return Response.json({
-            ok: true,
-            data: themes,
-            source: "strapi",
-            schemaSource: "legacy",
-            warning: "Theme persisted via legacy collection fallback. Run schema migration to canonical studio-themes."
-          });
-        } catch {
-          if (mode === "create") {
-            const duplicateTheme = findDuplicateTheme(getStudioStore().themes, theme);
-            if (duplicateTheme) {
-              return Response.json(
-                {
-                  ok: false,
-                  error: `A theme with key "${duplicateTheme.themeKey}" already exists.`,
-                  code: "theme.duplicate",
-                  duplicateThemeId: duplicateTheme.id
-                },
-                { status: 409 }
-              );
-            }
-          }
-
-          const fallbackThemes = upsertThemeInFallback(theme);
-          return Response.json({
-            ok: true,
-            data: fallbackThemes,
-            source: "fallback",
-            schemaSource: "fallback"
-          });
-        }
+      } catch (error) {
+        return Response.json(
+          {
+            ok: false,
+            error: `Canonical studio-theme persistence failed: ${error instanceof Error ? error.message : String(error)}`
+          },
+          { status: 502 }
+        );
       }
     }
 

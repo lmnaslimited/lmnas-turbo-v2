@@ -1,6 +1,5 @@
 import type { StudioActionType, StudioBlockTemplate, StudioPageDocument } from "../../../../platform/onboarding/_lib/studio-types";
 import { isStudioActionType } from "../../../../platform/onboarding/_lib/studio-types";
-import { getStudioStore, replaceStore } from "../_lib/store";
 import { isStrapiConfigured, requestStrapi, StudioApiError, unwrapStrapiEntity } from "../_lib/strapi";
 
 type StrapiCollectionResponse = {
@@ -9,10 +8,7 @@ type StrapiCollectionResponse = {
 
 type BlockWhereUsedEntry = Pick<StudioPageDocument, "id" | "slug" | "locale">;
 
-type StrapiSchemaSource = "canonical" | "legacy";
-
 const CANONICAL_BLOCK_COLLECTION = "/api/studio-blocks";
-const LEGACY_BLOCK_COLLECTION = "/api/block-templates";
 
 function normalizeActionType(value: unknown): StudioActionType {
   if (isStudioActionType(value)) {
@@ -70,6 +66,23 @@ function normalizeTemplate(value: unknown): StudioBlockTemplate {
     themeKey: typeof row.themeKey === "string" && row.themeKey.length > 0 ? row.themeKey : "default",
     sourceType: typeof row.sourceType === "string" && row.sourceType.length > 0 ? row.sourceType : "unknown",
     sourceRef: typeof row.sourceRef === "string" && row.sourceRef.length > 0 ? row.sourceRef : "unknown",
+    sourcePreviewHtml: typeof row.sourcePreviewHtml === "string" ? row.sourcePreviewHtml : undefined,
+    targetPreviewHtml: typeof row.targetPreviewHtml === "string" ? row.targetPreviewHtml : undefined,
+    sourceAssetContext:
+      row.sourceAssetContext && typeof row.sourceAssetContext === "object" && !Array.isArray(row.sourceAssetContext)
+        ? (row.sourceAssetContext as StudioBlockTemplate["sourceAssetContext"])
+        : undefined,
+    importProposalId: typeof row.importProposalId === "string" ? row.importProposalId : undefined,
+    importMasterId:
+      row.importMaster && typeof row.importMaster === "object" && !Array.isArray(row.importMaster)
+        ? String((row.importMaster as Record<string, unknown>).documentId ?? (row.importMaster as Record<string, unknown>).id ?? "")
+        : undefined,
+    importMasterKey:
+      row.importMaster && typeof row.importMaster === "object" && !Array.isArray(row.importMaster)
+        ? typeof (row.importMaster as Record<string, unknown>).importKey === "string"
+          ? String((row.importMaster as Record<string, unknown>).importKey)
+          : undefined
+        : undefined,
     confidence: typeof row.confidence === "number" ? row.confidence : 0,
     editableFields: Array.isArray(row.editableFields) ? row.editableFields.filter((field): field is string => typeof field === "string") : [],
     actions: Array.isArray(row.actions)
@@ -131,25 +144,19 @@ function applyFilters(templates: StudioBlockTemplate[], url: URL): StudioBlockTe
 }
 
 async function listFromCollection(collectionPath: string): Promise<StudioBlockTemplate[]> {
-  const response = await requestStrapi<StrapiCollectionResponse>(`${collectionPath}?pagination[pageSize]=200&sort=updatedAt:desc`);
+  const response = await requestStrapi<StrapiCollectionResponse>(
+    `${collectionPath}?pagination[pageSize]=200&sort=updatedAt:desc&populate[importMaster][fields][0]=importKey`
+  );
   const rows = Array.isArray(response.data) ? response.data : [];
   return rows.map((row) => normalizeTemplate(unwrapStrapiEntity(row)));
 }
 
-async function listFromStrapi(): Promise<{ templates: StudioBlockTemplate[]; schemaSource: StrapiSchemaSource }> {
-  try {
-    const templates = await listFromCollection(CANONICAL_BLOCK_COLLECTION);
-    return {
-      templates,
-      schemaSource: "canonical"
-    };
-  } catch {
-    const templates = await listFromCollection(LEGACY_BLOCK_COLLECTION);
-    return {
-      templates,
-      schemaSource: "legacy"
-    };
-  }
+async function listFromStrapi(): Promise<{ templates: StudioBlockTemplate[]; schemaSource: "canonical" }> {
+  const templates = await listFromCollection(CANONICAL_BLOCK_COLLECTION);
+  return {
+    templates,
+    schemaSource: "canonical"
+  };
 }
 
 async function upsertInCollection(
@@ -165,28 +172,44 @@ async function upsertInCollection(
   const existingId = existing ? resolveEntityMutationId(existing) : null;
   const usageCount = template.usageCount ?? template.inUseCount;
 
-  const payload: Record<string, unknown> = {
-    blockKey: template.key,
-    templateKey: template.key,
-    name: template.name,
-    family: template.family,
-    status: template.status,
-    lifecycle: template.lifecycle ?? "draft",
-    scope: template.scope ?? "global",
-    schemaStatus: template.schemaStatus ?? "valid",
-    themeKey: template.themeKey,
-    sourceType: template.sourceType,
-    sourceRef: template.sourceRef,
-    confidence: template.confidence,
-    editableFields: template.editableFields,
-    actions: template.actions,
-    previewHtml: template.previewHtml,
-    usageCount
-  };
-
-  if (includeLegacyInUseField) {
-    payload.inUseCount = usageCount;
-  }
+  const payload: Record<string, unknown> =
+    keyField === "blockKey"
+      ? {
+          blockKey: template.key,
+          name: template.name,
+          family: template.family,
+          status: template.status,
+          lifecycle: template.lifecycle ?? "draft",
+          scope: template.scope ?? "global",
+          schemaStatus: template.schemaStatus ?? "valid",
+          themeKey: template.themeKey,
+          sourceType: template.sourceType,
+          sourceRef: template.sourceRef,
+          sourcePreviewHtml: template.sourcePreviewHtml,
+          targetPreviewHtml: template.targetPreviewHtml,
+          sourceAssetContext: template.sourceAssetContext,
+          importProposalId: template.importProposalId,
+          importMaster: template.importMasterId,
+          confidence: template.confidence,
+          editableFields: template.editableFields,
+          actions: template.actions,
+          previewHtml: template.targetPreviewHtml ?? template.previewHtml,
+          usageCount
+        }
+      : {
+          templateKey: template.key,
+          name: template.name,
+          family: template.family,
+          status: template.status,
+          themeKey: template.themeKey,
+          sourceType: template.sourceType,
+          sourceRef: template.sourceRef,
+          confidence: template.confidence,
+          editableFields: template.editableFields,
+          actions: template.actions,
+          previewHtml: template.previewHtml,
+          ...(includeLegacyInUseField ? { inUseCount: usageCount } : {})
+        };
 
   if (existingId !== null) {
     await requestStrapi(`${collectionPath}/${encodeURIComponent(existingId)}`, {
@@ -200,34 +223,6 @@ async function upsertInCollection(
     method: "POST",
     body: payload
   });
-}
-
-function upsertInFallback(template: StudioBlockTemplate): StudioBlockTemplate[] {
-  const store = getStudioStore();
-  const blocks = [...store.blocks];
-  const index = blocks.findIndex((entry) => entry.id === template.id || entry.key === template.key);
-  const next = {
-    ...template,
-    lifecycle: template.lifecycle ?? "draft",
-    scope: template.scope ?? "global",
-    schemaStatus: template.schemaStatus ?? "valid",
-    usageCount: template.usageCount ?? template.inUseCount,
-    inUseCount: template.usageCount ?? template.inUseCount,
-    updatedAt: new Date().toISOString().slice(0, 10),
-    createdAt: index >= 0 ? blocks[index].createdAt : template.createdAt
-  };
-
-  if (index >= 0) {
-    blocks[index] = next;
-  } else {
-    blocks.unshift(next);
-  }
-
-  replaceStore({
-    ...store,
-    blocks
-  });
-  return blocks;
 }
 
 function findWhereUsedPages(template: StudioBlockTemplate, pages: StudioPageDocument[]): BlockWhereUsedEntry[] {
@@ -256,40 +251,75 @@ async function deleteInCollection(collectionPath: string, keyField: string, temp
   });
 }
 
-function deleteInFallback(target: StudioBlockTemplate): StudioBlockTemplate[] {
-  const store = getStudioStore();
-  const blocks = store.blocks.filter((template) => template.id !== target.id && template.key !== target.key);
-  replaceStore({
-    ...store,
-    blocks
+function mapPagesFromStrapi(rows: Array<Record<string, unknown>>): StudioPageDocument[] {
+  return rows.map((row) => {
+    const entity = unwrapStrapiEntity(row);
+    const blockOrderRaw = entity.blockOrder;
+    const blockOrder = Array.isArray(blockOrderRaw) ? blockOrderRaw.filter((entry): entry is string => typeof entry === "string") : [];
+    return {
+      id: String(entity.documentId ?? entity.id ?? ""),
+      name: typeof entity.name === "string" ? entity.name : "Page",
+      slug: typeof entity.slug === "string" ? entity.slug : "",
+      locale: typeof entity.locale === "string" ? entity.locale : "en",
+      blockOrder,
+      fieldValues: {},
+      actionOverrides: {},
+      productMapping: "",
+      industryMapping: [],
+      primaryCta: { text: "", url: "" },
+      conversionConfig: { trackConversions: false, strategy: "", valuePoints: 0 },
+      campaignUtmStrategy: { source: "", medium: "", campaign: "" },
+      taxonomyState: { valid: false, tags: [] },
+      seoMetadata: { metaTitle: "", metaDescription: "" },
+      seoJsonLdValid: false,
+      blockSchemaValid: false,
+      previewValid: false,
+      previewHtml: "",
+      updatedAt: new Date().toISOString().slice(0, 10)
+    };
   });
-  return blocks;
 }
 
 export async function GET(request: Request): Promise<Response> {
   const requestUrl = new URL(request.url);
-  if (isStrapiConfigured()) {
-    try {
-      const { templates, schemaSource } = await listFromStrapi();
-      if (templates.length > 0) {
-        return Response.json({
-          ok: true,
-          data: applyFilters(templates, requestUrl),
-          source: "strapi",
-          schemaSource
-        });
-      }
-    } catch {
-      // fallback below
-    }
+  if (!isStrapiConfigured()) {
+    return Response.json(
+      {
+        ok: false,
+        error: "Canonical studio-block access requires Strapi configuration."
+      },
+      { status: 503 }
+    );
   }
 
-  return Response.json({
-    ok: true,
-    data: applyFilters(getStudioStore().blocks, requestUrl),
-    source: "fallback",
-    schemaSource: "fallback"
-  });
+  try {
+    const { templates, schemaSource } = await listFromStrapi();
+    return Response.json({
+      ok: true,
+      data: applyFilters(templates, requestUrl),
+      source: "strapi",
+      schemaSource
+    });
+  } catch (error) {
+    if (error instanceof StudioApiError) {
+      return Response.json(
+        {
+          ok: false,
+          error: error.operatorMessage,
+          developerError: error.developerMessage
+        },
+        { status: error.status }
+      );
+    }
+
+    return Response.json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : String(error)
+      },
+      { status: 502 }
+    );
+  }
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -298,44 +328,20 @@ export async function POST(request: Request): Promise<Response> {
     const block = normalizeTemplate(payload.block);
 
     if (isStrapiConfigured()) {
-      try {
-        await upsertInCollection(CANONICAL_BLOCK_COLLECTION, "blockKey", block, false);
-        const templates = await listFromCollection(CANONICAL_BLOCK_COLLECTION);
-        return Response.json({
-          ok: true,
-          data: templates,
-          source: "strapi",
-          schemaSource: "canonical"
-        });
-      } catch {
-        try {
-          await upsertInCollection(LEGACY_BLOCK_COLLECTION, "templateKey", block, true);
-          const templates = await listFromCollection(LEGACY_BLOCK_COLLECTION);
-          return Response.json({
-            ok: true,
-            data: templates,
-            source: "strapi",
-            schemaSource: "legacy",
-            warning: "Block persisted via legacy collection fallback. Run schema migration to canonical studio-blocks."
-          });
-        } catch {
-          const fallbackTemplates = upsertInFallback(block);
-          return Response.json({
-            ok: true,
-            data: fallbackTemplates,
-            source: "fallback",
-            schemaSource: "fallback"
-          });
-        }
-      }
+      await upsertInCollection(CANONICAL_BLOCK_COLLECTION, "blockKey", block, false);
+      const templates = await listFromCollection(CANONICAL_BLOCK_COLLECTION);
+      return Response.json({
+        ok: true,
+        data: templates,
+        source: "strapi",
+        schemaSource: "canonical"
+      });
     }
 
-    const fallbackTemplates = upsertInFallback(block);
-    return Response.json({
-      ok: true,
-      data: fallbackTemplates,
-      source: "fallback",
-      schemaSource: "fallback"
+    throw new StudioApiError({
+      status: 503,
+      operatorMessage: "Canonical studio-block persistence requires Strapi configuration.",
+      developerMessage: "blocks.canonical_strapi_required"
     });
   } catch (error) {
     if (error instanceof StudioApiError) {
@@ -374,8 +380,16 @@ export async function DELETE(request: Request): Promise<Response> {
       );
     }
 
-    const store = getStudioStore();
-    const target = store.blocks.find((template) => template.id === blockId || template.key === blockKey);
+    if (!isStrapiConfigured()) {
+      throw new StudioApiError({
+        status: 503,
+        operatorMessage: "Canonical studio-block delete requires Strapi configuration.",
+        developerMessage: "blocks.canonical_strapi_required"
+      });
+    }
+
+    const templates = await listFromCollection(CANONICAL_BLOCK_COLLECTION);
+    const target = templates.find((template) => template.id === blockId || template.key === blockKey);
     if (!target) {
       return Response.json(
         {
@@ -386,7 +400,11 @@ export async function DELETE(request: Request): Promise<Response> {
       );
     }
 
-    const whereUsed = findWhereUsedPages(target, store.pages);
+    const pagesResponse = await requestStrapi<StrapiCollectionResponse>(
+      "/api/studio-pages?pagination[pageSize]=200&fields[0]=slug&fields[1]=blockOrder"
+    );
+    const pages = mapPagesFromStrapi(Array.isArray(pagesResponse.data) ? pagesResponse.data : []);
+    const whereUsed = findWhereUsedPages(target, pages);
     if (whereUsed.length > 0 || target.inUseCount > 0) {
       return Response.json(
         {
@@ -400,44 +418,13 @@ export async function DELETE(request: Request): Promise<Response> {
       );
     }
 
-    if (isStrapiConfigured()) {
-      try {
-        await deleteInCollection(CANONICAL_BLOCK_COLLECTION, "blockKey", target.key);
-        const templates = await listFromCollection(CANONICAL_BLOCK_COLLECTION);
-        return Response.json({
-          ok: true,
-          data: applyFilters(templates, requestUrl),
-          source: "strapi",
-          schemaSource: "canonical"
-        });
-      } catch {
-        try {
-          await deleteInCollection(LEGACY_BLOCK_COLLECTION, "templateKey", target.key);
-          const templates = await listFromCollection(LEGACY_BLOCK_COLLECTION);
-          return Response.json({
-            ok: true,
-            data: applyFilters(templates, requestUrl),
-            source: "strapi",
-            schemaSource: "legacy"
-          });
-        } catch {
-          const fallbackTemplates = deleteInFallback(target);
-          return Response.json({
-            ok: true,
-            data: applyFilters(fallbackTemplates, requestUrl),
-            source: "fallback",
-            schemaSource: "fallback"
-          });
-        }
-      }
-    }
-
-    const fallbackTemplates = deleteInFallback(target);
+    await deleteInCollection(CANONICAL_BLOCK_COLLECTION, "blockKey", target.key);
+    const nextTemplates = await listFromCollection(CANONICAL_BLOCK_COLLECTION);
     return Response.json({
       ok: true,
-      data: applyFilters(fallbackTemplates, requestUrl),
-      source: "fallback",
-      schemaSource: "fallback"
+      data: applyFilters(nextTemplates, requestUrl),
+      source: "strapi",
+      schemaSource: "canonical"
     });
   } catch (error) {
     if (error instanceof StudioApiError) {

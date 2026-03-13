@@ -14,7 +14,10 @@ function normalizePreviewTarget(rawTarget: string | null): string {
 
   const path = decodeURIComponent(parsed.pathname).replace(/^\/+/, "/");
   const normalizedPath = !path || path === "/preview" ? "/" : path;
-  return normalizedPath === "/home" ? "/" : normalizedPath;
+  const finalPath = normalizedPath === "/home" ? "/" : normalizedPath;
+  const forwardedParams = new URLSearchParams(parsed.searchParams);
+  const query = forwardedParams.toString();
+  return query.length > 0 ? `${finalPath}?${query}` : finalPath;
 }
 
 function resolveExpectedPreviewSecret(): string | undefined {

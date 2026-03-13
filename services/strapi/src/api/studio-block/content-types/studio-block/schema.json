@@ -58,6 +58,23 @@
     "sourceRef": {
       "type": "string"
     },
+    "sourcePreviewHtml": {
+      "type": "text"
+    },
+    "targetPreviewHtml": {
+      "type": "text"
+    },
+    "sourceAssetContext": {
+      "type": "json"
+    },
+    "importProposalId": {
+      "type": "string"
+    },
+    "importMaster": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::studio-import-master.studio-import-master"
+    },
     "confidence": {
       "type": "decimal"
     },

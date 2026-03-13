@@ -10,7 +10,6 @@ type StrapiCollectionResponse = {
 type StrapiSchemaSource = "canonical" | "legacy";
 
 const CANONICAL_THEME_COLLECTION = "/api/studio-themes";
-const LEGACY_THEME_COLLECTION = "/api/theme-variants";
 
 function resolveEntityMutationId(value: Record<string, unknown>): string | null {
   if (typeof value.documentId === "string" && value.documentId.length > 0) {
@@ -38,6 +37,19 @@ function normalizeTheme(value: unknown): StudioTheme {
     themeDebt: typeof row.themeDebt === "string" ? row.themeDebt : "",
     darkMode: Boolean(row.darkMode),
     tokens: Array.isArray(row.tokens) ? (row.tokens as StudioTheme["tokens"]) : []
+  };
+}
+
+function toThemeMutationPayload(theme: StudioTheme, status: StudioTheme["status"]): Record<string, unknown> {
+  return {
+    themeKey: theme.themeKey,
+    name: theme.name,
+    status,
+    sourceRef: theme.sourceRef,
+    tokenCoverage: theme.tokenCoverage,
+    themeDebt: theme.themeDebt,
+    darkMode: theme.darkMode,
+    tokens: theme.tokens
   };
 }
 
@@ -72,10 +84,7 @@ async function activateThemeInCollection(
     const nextStatus = String(current.id) === selectedId ? "active" : current.status === "draft" ? "draft" : "inactive";
     await requestStrapi(`${collectionPath}/${encodeURIComponent(mutationId)}`, {
       method: "PUT",
-      body: {
-        ...(current as Record<string, unknown>),
-        status: nextStatus
-      }
+      body: toThemeMutationPayload(normalizeTheme(current), nextStatus)
     });
   }
 
@@ -87,19 +96,11 @@ async function activateThemeInStrapi(
   themeId: string,
   themeKey?: string
 ): Promise<{ themes: StudioTheme[]; schemaSource: StrapiSchemaSource }> {
-  try {
-    const themes = await activateThemeInCollection(CANONICAL_THEME_COLLECTION, themeId, themeKey);
-    return {
-      themes,
-      schemaSource: "canonical"
-    };
-  } catch {
-    const themes = await activateThemeInCollection(LEGACY_THEME_COLLECTION, themeId, themeKey);
-    return {
-      themes,
-      schemaSource: "legacy"
-    };
-  }
+  const themes = await activateThemeInCollection(CANONICAL_THEME_COLLECTION, themeId, themeKey);
+  return {
+    themes,
+    schemaSource: "canonical"
+  };
 }
 
 function activateThemeInFallback(themeId: string, themeKey?: string): StudioTheme[] {
@@ -145,14 +146,11 @@ export async function POST(request: Request): Promise<Response> {
           source: "strapi",
           schemaSource
         });
-      } catch {
-        const fallback = activateThemeInFallback(themeId, themeKey);
+      } catch (error) {
         return Response.json({
-          ok: true,
-          data: fallback,
-          source: "fallback",
-          schemaSource: "fallback"
-        });
+          ok: false,
+          error: `Canonical studio-theme activation failed: ${error instanceof Error ? error.message : String(error)}`
+        }, { status: 502 });
       }
     }
 

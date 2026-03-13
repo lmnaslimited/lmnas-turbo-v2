@@ -1,1290 +1,996 @@
 "use client";
 
-import React, { useMemo, useRef, useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
-import {
-    buildDetectionThumbnailDocument
-} from "@lmnas/integrations/onboarding/preview-renderer";
-import type {
-    ActionType,
-    CanonicalBlockFamily,
-    OnboardingActionProposal,
-    OnboardingAnalysis,
-    OnboardingBlockProposal,
-    OnboardingItemType,
-    OnboardingPublishResult,
-    OnboardingSourceType,
-    OnboardingWidgetProposal,
-    SegmentationMode
-} from "@lmnas/contracts";
-import { StepIndicator } from "../_components/StepIndicator";
-import { PreviewPane } from "../_components/PreviewPane";
-import { FidelityDisplay } from "../_components/FidelityDisplay";
-import { StudioActionMenu, StudioDetailContainer, StudioListContainer } from "../_components/workflow";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { requestClientJson } from "../_lib/client-request";
-import type { StudioActionType, StudioBlockTemplate, StudioPageDocument } from "../_lib/studio-types";
-import { injectProjectStyles, withBlockStructuralFallback } from "./preview-fallback";
+import {
+  buildPlatformTargetDocument,
+  ensureHtmlDocument,
+  extractBodyHtml,
+  sanitizeTargetHtml,
+  usePlatformPreviewAssets
+} from "../_lib/platform-preview";
+import { readPreviewSwatchThemeId, setPreviewSwatchThemeId as setGlobalPreviewSwatchThemeId, subscribePreviewSwatchThemeId } from "../_lib/preview-swatch-state";
+import type { StudioBlockTemplate, StudioPageDocument, StudioTheme } from "../_lib/studio-types";
 
-/* ─── Project Styles ─── */
+type BlocksResponse = {
+  ok: boolean;
+  data?: StudioBlockTemplate[];
+  source?: "strapi" | "fallback";
+  schemaSource?: "canonical" | "legacy" | "fallback";
+  error?: string;
+  code?: string;
+  whereUsed?: Array<{ id: string; slug: string; locale: string }>;
+};
 
-function useProjectStyles(): string {
-    const [styles, setStyles] = useState("");
-    useEffect(() => {
-        const styleTags = Array.from(document.querySelectorAll("style"));
-        const linkTags = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'));
-        let collected = styleTags.map((s) => s.outerHTML).join("\n");
-        collected += linkTags.map((l) => l.outerHTML).join("\n");
-        setStyles(collected);
-    }, []);
-    return styles;
+type PreviewDevice = "desktop" | "tablet" | "mobile";
+type BlockPreviewVariant = "target" | "source";
+type BlockMenuAction = "toggle-status" | "duplicate" | "delete";
+
+type ThemesResponse = {
+  ok: boolean;
+  data?: StudioTheme[];
+  source?: "strapi" | "fallback";
+  schemaSource?: "canonical" | "legacy" | "fallback";
+  error?: string;
+};
+
+const STATUS_OPTIONS: Array<StudioBlockTemplate["status"]> = ["draft", "active", "inactive"];
+
+function canonicalGuard(payload: BlocksResponse, fallbackMessage: string): asserts payload is Required<Pick<BlocksResponse, "ok" | "data" | "source" | "schemaSource">> {
+  if (!payload.ok || !Array.isArray(payload.data)) {
+    throw new Error(payload.error ?? fallbackMessage);
+  }
+  if (payload.source !== "strapi" || payload.schemaSource !== "canonical") {
+    throw new Error("Blocks page requires canonical studio-blocks from Strapi. Legacy/fallback source detected.");
+  }
 }
 
-/* ─── Source type cards ─── */
-
-const SOURCE_OPTIONS: Array<{ value: OnboardingSourceType; label: string; icon: string; desc: string }> = [
-    { value: "raw_html", label: "HTML Paste", icon: "code", desc: "Paste section HTML directly" },
-    { value: "url", label: "Website URL", icon: "language", desc: "Import from a live page" },
-    { value: "stitch_section", label: "Stitch Section", icon: "content_cut", desc: "Section snapshot from Stitch" },
-    { value: "stitch_full_page", label: "Stitch Full Page", icon: "crop_free", desc: "Full page from Stitch" },
-    { value: "figma_section", label: "Figma Section", icon: "design_services", desc: "Section export from Figma" },
-    { value: "figma_full_page", label: "Figma Full Page", icon: "web_stories", desc: "Full page export from Figma" }
-];
-
-const BLOCK_FAMILIES: CanonicalBlockFamily[] = [
-    "hero", "logo_wall", "problem_grid", "feature_grid", "testimonial_list",
-    "stats_band", "process_steps", "cta_banner", "faq", "rich_text_section",
-    "comparison_table", "pricing_teaser", "contact_strip", "authority_section",
-    "case_highlight", "timeline", "split_content_media", "form_section", "embedded_asset_section"
-];
-
-const ACTION_TYPES: Array<{ value: ActionType; label: string }> = [
-    { value: "link_url", label: "Navigate to page / URL" },
-    { value: "scroll_to_section", label: "Scroll to section" },
-    { value: "open_modal", label: "Open modal" },
-    { value: "open_drawer", label: "Open drawer" },
-    { value: "open_widget", label: "Open widget" },
-    { value: "submit_form", label: "Submit form" },
-    { value: "download_asset", label: "Download asset" },
-    { value: "external_booking", label: "Open external booking" },
-    { value: "workflow", label: "Trigger backend workflow" }
-];
-
-const STEPS = [
-    "Source",
-    "Reference Preview",
-    "Production Preview",
-    "Detection Review",
-    "Action Mapping",
-    "Publish Block"
-] as const;
-
-/* ─── Types ─── */
-
-interface ActionTargetOverride {
-    url?: string;
-    sectionId?: string;
-    widgetId?: string;
-    exitId?: string;
+function schemaBadgeTone(schemaStatus: StudioBlockTemplate["schemaStatus"]): string {
+  if (schemaStatus === "valid") {
+    return "border-emerald-500/30 bg-emerald-500/[0.12] text-emerald-200";
+  }
+  if (schemaStatus === "warning") {
+    return "border-amber-500/30 bg-amber-500/[0.12] text-amber-200";
+  }
+  return "border-red-500/30 bg-red-500/[0.12] text-red-200";
 }
 
-/* ─── Component ─── */
+function lifecycleBadgeTone(value: StudioBlockTemplate["lifecycle"]): string {
+  if (value === "published") {
+    return "border-blue-500/30 bg-blue-500/[0.12] text-blue-200";
+  }
+  if (value === "archived") {
+    return "border-slate-500/30 bg-slate-500/[0.12] text-slate-300";
+  }
+  return "border-violet-500/30 bg-violet-500/[0.12] text-violet-200";
+}
 
-export default function BlockImportPage() {
-    const pathname = usePathname();
-    const importRouteActive = pathname?.startsWith("/platform/onboarding/import") ?? false;
-    const projectStyles = useProjectStyles();
-    const fileInputRef = useRef<HTMLInputElement | null>(null);
-    const [step, setStep] = useState(0);
+function scopeBadgeTone(value: StudioBlockTemplate["scope"]): string {
+  if (value === "page-local") {
+    return "border-orange-500/30 bg-orange-500/[0.12] text-orange-200";
+  }
+  return "border-cyan-500/30 bg-cyan-500/[0.12] text-cyan-200";
+}
 
-    // Intake
-    const [sourceType, setSourceType] = useState<OnboardingSourceType>("raw_html");
-    const [sourceValue, setSourceValue] = useState("");
+function stripScriptTags(input: string): string {
+  return input.replace(/<script[\s\S]*?<\/script>/gi, "");
+}
 
-    // Analysis
-    const [analysis, setAnalysis] = useState<OnboardingAnalysis | null>(null);
-    const [publishResult, setPublishResult] = useState<OnboardingPublishResult | null>(null);
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [isPublishing, setIsPublishing] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+function sanitizePreviewHtml(input: string): string {
+  return stripScriptTags(input)
+    .replace(/<link[^>]+href=["']https?:\/\/[^"']+["'][^>]*>/gi, "")
+    .replace(/\s(?:src|href)=["']https?:\/\/[^"']+["']/gi, "");
+}
 
-    // Detection state
-    const [selectedBlockIndex, setSelectedBlockIndex] = useState(0);
-    const [itemImportState, setItemImportState] = useState<Record<string, boolean>>({});
-    const [displayNameOverrides, setDisplayNameOverrides] = useState<Record<string, string>>({});
-    const [blockFamilyOverrides, setBlockFamilyOverrides] = useState<Record<string, CanonicalBlockFamily>>({});
-    const [fieldOverrides, setFieldOverrides] = useState<Record<string, string[]>>({});
-    const [actionTypeOverrides, setActionTypeOverrides] = useState<Record<string, ActionType>>({});
-    const [actionTargetOverrides, setActionTargetOverrides] = useState<Record<string, ActionTargetOverride>>({});
-    const [itemTypeOverrides, setItemTypeOverrides] = useState<Record<string, OnboardingItemType>>({});
-    const [segmentationOverrides, setSegmentationOverrides] = useState<Record<string, SegmentationMode>>({});
-    const [mapToExisting, setMapToExisting] = useState<Record<string, string>>({});
-    const [exitStateOverrides, setExitStateOverrides] = useState<Record<string, "active" | "inactive">>({});
+function buildThumbnailSrcDoc(input: string): string {
+  const documentHtml = ensureHtmlDocument(input);
+  const thumbnailStyles = [
+    "<style>",
+    "html,body{margin:0;padding:0;overflow:hidden;height:100%}",
+    "body{min-height:100%}",
+    ".thumb-root{width:320%;transform:scale(.3125);transform-origin:top left;min-height:320%;}",
+    ".thumb-root *{animation:none !important;transition:none !important;}",
+    "</style>"
+  ].join("");
 
-    // Action mapping state
-    const [selectedActionIndex, setSelectedActionIndex] = useState(0);
-    const [libraryBlocks, setLibraryBlocks] = useState<StudioBlockTemplate[]>([]);
-    const [librarySearch, setLibrarySearch] = useState("");
-    const [libraryFamilyFilter, setLibraryFamilyFilter] = useState("all");
-    const [libraryStatusFilter, setLibraryStatusFilter] = useState("all");
-    const [libraryThemeFilter, setLibraryThemeFilter] = useState("all");
-    const [libraryRecentOnly, setLibraryRecentOnly] = useState(false);
-    const [libraryInUseOnly, setLibraryInUseOnly] = useState(false);
-    const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
-    const [viewMode, setViewMode] = useState<"browse" | "import">(importRouteActive ? "import" : "browse");
-    const [selectedBrowseFamily, setSelectedBrowseFamily] = useState<string | null>(null);
-    const [selectedBrowseBlockId, setSelectedBrowseBlockId] = useState<string | null>(null);
-    const [libraryPages, setLibraryPages] = useState<StudioPageDocument[]>([]);
-    const [whereUsedModal, setWhereUsedModal] = useState<{
-        blockName: string;
-        whereUsed: Array<{ id: string; slug: string; locale: string }>;
-    } | null>(null);
+  const withThumbnailStyles = documentHtml.includes("</head>")
+    ? documentHtml.replace("</head>", `${thumbnailStyles}</head>`)
+    : documentHtml.replace(/<html([^>]*)>/i, `<html$1><head>${thumbnailStyles}</head>`);
 
-    const canAnalyze = sourceValue.trim().length > 0;
-    const input = "w-full rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500/40";
+  if (/<body[^>]*>/i.test(withThumbnailStyles)) {
+    return withThumbnailStyles
+      .replace(/<body([^>]*)>/i, "<body$1><div class=\"thumb-root\">")
+      .replace(/<\/body>/i, "</div></body>");
+  }
 
-    async function loadBlockLibrary() {
-        setIsLoadingLibrary(true);
-        try {
-            const params = new URLSearchParams();
-            if (librarySearch.trim().length > 0) params.set("search", librarySearch.trim());
-            if (libraryFamilyFilter !== "all") params.set("family", libraryFamilyFilter);
-            if (libraryStatusFilter !== "all") params.set("status", libraryStatusFilter);
-            if (libraryThemeFilter !== "all") params.set("theme", libraryThemeFilter);
-            if (libraryRecentOnly) params.set("recent", "1");
-            if (libraryInUseOnly) params.set("inUse", "1");
+  return [
+    "<!doctype html><html><head><meta charset=\"utf-8\"/>",
+    "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>",
+    thumbnailStyles,
+    "</head><body>",
+    `<div class="thumb-root">${extractBodyHtml(withThumbnailStyles)}</div>`,
+    "</body></html>"
+  ].join("");
+}
 
-            const query = params.toString();
-            const payload = await requestClientJson<{
-                ok: boolean;
-                data?: StudioBlockTemplate[];
-                error?: string;
-            }>(`/api/platform/studio/blocks${query ? `?${query}` : ""}`, {
-                method: "GET",
-                headers: { "content-type": "application/json" }
-            }, {
-                timeoutMessage: "Loading block library timed out. Retry in a moment.",
-                fallbackErrorMessage: "Unable to load block library."
-            });
-            if (!payload.ok || !payload.data) {
-                throw new Error(payload.error ?? "Unable to load block library.");
-            }
-            setLibraryBlocks(payload.data);
-        } finally {
-            setIsLoadingLibrary(false);
-        }
+function buildThemedTargetPreview(params: {
+  proposalHtml: string;
+  theme: StudioTheme | null;
+  hostAssets: ReturnType<typeof usePlatformPreviewAssets>;
+}): string {
+  const proposalBody = extractBodyHtml(ensureHtmlDocument(sanitizeTargetHtml(params.proposalHtml)));
+  return buildPlatformTargetDocument({
+    bodyHtml: `<main class="lmnas-target-main">${proposalBody}</main>`,
+    theme: params.theme,
+    hostAssets: params.hostAssets
+  });
+}
+
+function tokenValue(theme: StudioTheme, matchers: string[], fallback: string): string {
+  const token = theme.tokens.find((entry) => matchers.some((matcher) => entry.key.toLowerCase().includes(matcher)));
+  return token?.value ?? fallback;
+}
+
+function themeSwatchGradient(theme: StudioTheme): string {
+  const primary = tokenValue(theme, ["primary", "accent"], theme.darkMode ? "#2563eb" : "#0f172a");
+  const background = tokenValue(theme, ["background", "surface", "bg"], theme.darkMode ? "#020617" : "#e2e8f0");
+  const muted = tokenValue(theme, ["muted", "secondary"], theme.darkMode ? "#334155" : "#94a3b8");
+  return `linear-gradient(135deg, ${background} 0%, ${primary} 62%, ${muted} 100%)`;
+}
+
+export default function BlocksWorkflowPage(): React.ReactElement {
+  const platformPreviewAssets = usePlatformPreviewAssets();
+  const [blocks, setBlocks] = useState<StudioBlockTemplate[]>([]);
+  const [pages, setPages] = useState<StudioPageDocument[]>([]);
+  const [themes, setThemes] = useState<StudioTheme[]>([]);
+  const [previewSwatchThemeId, setPreviewSwatchThemeId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [previewDevice, setPreviewDevice] = useState<PreviewDevice>("desktop");
+  const [previewVariant, setPreviewVariant] = useState<BlockPreviewVariant>("target");
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [renamingBlockId, setRenamingBlockId] = useState<string | null>(null);
+  const [inlineBlockName, setInlineBlockName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isMutating, setIsMutating] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    void loadBlocks("");
+    void loadPages();
+    void loadThemes();
+    setPreviewSwatchThemeId(readPreviewSwatchThemeId());
+  }, []);
+
+  useEffect(() => {
+    return subscribePreviewSwatchThemeId((themeId) => {
+      setPreviewSwatchThemeId(themeId);
+    });
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent): void {
+      if (!menuRef.current) {
+        return;
+      }
+      if (event.target instanceof Node && menuRef.current.contains(event.target)) {
+        return;
+      }
+      setOpenMenuId(null);
     }
 
-    async function loadPageLibrary() {
-        try {
-            const payload = await requestClientJson<{
-                ok: boolean;
-                data?: StudioPageDocument[];
-                error?: string;
-            }>("/api/platform/studio/pages", {
-                method: "GET",
-                headers: { "content-type": "application/json" }
-            }, {
-                timeoutMessage: "Loading pages timed out. Retry in a moment.",
-                fallbackErrorMessage: "Unable to load pages."
-            });
-            if (!payload.ok || !payload.data) {
-                throw new Error(payload.error ?? "Unable to load pages.");
-            }
-            setLibraryPages(payload.data);
-        } catch (loadError) {
-            setError(loadError instanceof Error ? loadError.message : String(loadError));
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  async function loadBlocks(query: string): Promise<void> {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const searchQuery = query.trim();
+      const suffix = searchQuery.length > 0 ? `?search=${encodeURIComponent(searchQuery)}` : "";
+      const payload = await requestClientJson<BlocksResponse>(
+        `/api/platform/studio/blocks${suffix}`,
+        {
+          method: "GET",
+          headers: { "content-type": "application/json" }
+        },
+        {
+          timeoutMessage: "Loading canonical blocks timed out. Please retry.",
+          fallbackErrorMessage: "Unable to load blocks."
         }
+      );
+
+      canonicalGuard(payload, "Unable to load blocks.");
+      setBlocks(payload.data);
+      setSelectedId((current) => current ?? payload.data[0]?.id ?? null);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : String(loadError));
+      setBlocks([]);
+      setSelectedId(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function loadPages(): Promise<void> {
+    try {
+      const payload = await requestClientJson<{
+        ok: boolean;
+        data?: StudioPageDocument[];
+        source?: "strapi" | "fallback";
+        error?: string;
+      }>(
+        "/api/platform/studio/pages",
+        {
+          method: "GET",
+          headers: { "content-type": "application/json" }
+        },
+        {
+          timeoutMessage: "Loading page references timed out. Please retry.",
+          fallbackErrorMessage: "Unable to load page references."
+        }
+      );
+
+      if (!payload.ok || !Array.isArray(payload.data)) {
+        throw new Error(payload.error ?? "Unable to load pages.");
+      }
+      if (payload.source !== "strapi") {
+        throw new Error("Page references require canonical studio-pages from Strapi.");
+      }
+      setPages(payload.data);
+    } catch {
+      setPages([]);
+    }
+  }
+
+  async function loadThemes(): Promise<void> {
+    try {
+      const payload = await requestClientJson<ThemesResponse>(
+        "/api/platform/studio/themes",
+        {
+          method: "GET",
+          headers: { "content-type": "application/json" }
+        },
+        {
+          timeoutMessage: "Loading themes timed out. Please retry.",
+          fallbackErrorMessage: "Unable to load themes."
+        }
+      );
+
+      if (!payload.ok || !Array.isArray(payload.data)) {
+        throw new Error(payload.error ?? "Unable to load themes.");
+      }
+      if (payload.source !== "strapi" || payload.schemaSource !== "canonical") {
+        throw new Error("Blocks page requires canonical studio-themes from Strapi.");
+      }
+      setThemes(payload.data);
+    } catch {
+      setThemes([]);
+    }
+  }
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (q.length === 0) {
+      return blocks;
+    }
+    return blocks.filter((block) => `${block.name} ${block.family} ${block.key}`.toLowerCase().includes(q));
+  }, [blocks, search]);
+
+  const selected = useMemo(() => filtered.find((entry) => entry.id === selectedId) ?? filtered[0] ?? null, [filtered, selectedId]);
+  const activeTheme = useMemo(() => themes.find((theme) => theme.status === "active") ?? themes[0] ?? null, [themes]);
+  const previewTheme = useMemo(
+    () => themes.find((theme) => theme.id === previewSwatchThemeId) ?? activeTheme,
+    [activeTheme, previewSwatchThemeId, themes]
+  );
+
+  const blockUsage = useMemo(() => {
+    const map = new Map<string, number>();
+    pages.forEach((page) => {
+      page.blockOrder.forEach((blockKey) => {
+        map.set(blockKey, (map.get(blockKey) ?? 0) + 1);
+      });
+    });
+    return map;
+  }, [pages]);
+
+  const whereUsedPages = useMemo(() => {
+    if (!selected) {
+      return [] as StudioPageDocument[];
+    }
+    return pages.filter((page) => page.blockOrder.includes(selected.key) || page.blockOrder.includes(selected.id));
+  }, [pages, selected]);
+
+  function patchSelected(next: Partial<StudioBlockTemplate>): void {
+    if (!selected) {
+      return;
+    }
+    setBlocks((current) =>
+      current.map((entry) =>
+        entry.id === selected.id
+          ? {
+              ...entry,
+              ...next,
+              updatedAt: new Date().toISOString().slice(0, 10)
+            }
+          : entry
+      )
+    );
+  }
+
+  function startInlineRename(block: StudioBlockTemplate): void {
+    setSelectedId(block.id);
+    setRenamingBlockId(block.id);
+    setInlineBlockName(block.name);
+    setOpenMenuId(null);
+    setError(null);
+    setStatusMessage(null);
+  }
+
+  function cancelInlineRename(): void {
+    setRenamingBlockId(null);
+    setInlineBlockName("");
+  }
+
+  async function commitInlineRename(block: StudioBlockTemplate): Promise<void> {
+    const trimmedName = inlineBlockName.trim();
+    if (trimmedName.length === 0) {
+      setError("Block name is required.");
+      return;
+    }
+    if (trimmedName === block.name) {
+      cancelInlineRename();
+      return;
     }
 
-    useEffect(() => {
-        void loadBlockLibrary().catch((loadError) => {
-            setError(loadError instanceof Error ? loadError.message : String(loadError));
-        });
-        void loadPageLibrary();
-    }, []);
+    setIsMutating(true);
+    setError(null);
+    setStatusMessage(null);
 
-    useEffect(() => {
-        if (importRouteActive) {
-            setViewMode("import");
-        } else if (pathname?.startsWith("/platform/onboarding/blocks")) {
-            setViewMode("browse");
-        }
-    }, [importRouteActive, pathname]);
+    try {
+      await persistBlock(
+        {
+          ...block,
+          name: trimmedName
+        },
+        `Renamed ${block.name} to ${trimmedName}.`
+      );
+      cancelInlineRename();
+    } catch (renameError) {
+      setError(renameError instanceof Error ? renameError.message : String(renameError));
+    } finally {
+      setIsMutating(false);
+    }
+  }
 
-    useEffect(() => {
-        const timeout = setTimeout(() => {
-            void loadBlockLibrary().catch((loadError) => {
-                setError(loadError instanceof Error ? loadError.message : String(loadError));
-            });
-        }, 220);
-        return () => clearTimeout(timeout);
-    }, [librarySearch, libraryFamilyFilter, libraryStatusFilter, libraryThemeFilter, libraryRecentOnly, libraryInUseOnly]);
+  async function persistBlock(block: StudioBlockTemplate, successMessage: string): Promise<void> {
+    const payload = await requestClientJson<BlocksResponse>(
+      "/api/platform/studio/blocks",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ block })
+      },
+      {
+        timeoutMessage: "Saving canonical block timed out. Please retry.",
+        fallbackErrorMessage: "Unable to save canonical block."
+      }
+    );
 
-    /* ─── File upload ─── */
+    canonicalGuard(payload, "Unable to save canonical block.");
+    setBlocks(payload.data);
+    const persisted = payload.data.find((entry) => entry.key === block.key) ?? payload.data.find((entry) => entry.id === block.id);
+    setSelectedId(persisted?.id ?? block.id);
+    setStatusMessage(successMessage);
+    setError(null);
+  }
 
-    function handleFileUpload(file: File) {
-        const reader = new FileReader();
-        reader.onload = () => {
-            if (typeof reader.result === "string") setSourceValue(reader.result);
+  async function saveSelected(): Promise<void> {
+    if (!selected) {
+      return;
+    }
+
+    setIsMutating(true);
+    setStatusMessage(null);
+    setError(null);
+    try {
+      await persistBlock(selected, `Saved canonical block ${selected.name}.`);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : String(saveError));
+    } finally {
+      setIsMutating(false);
+    }
+  }
+
+  async function runBlockAction(action: BlockMenuAction, block: StudioBlockTemplate): Promise<void> {
+    setIsMutating(true);
+    setError(null);
+    setStatusMessage(null);
+
+    try {
+      if (action === "toggle-status") {
+        const nextStatus: StudioBlockTemplate["status"] = block.status === "active" ? "inactive" : "active";
+        await persistBlock(
+          {
+            ...block,
+            status: nextStatus
+          },
+          `${block.name} is now ${nextStatus}.`
+        );
+      }
+
+      if (action === "duplicate") {
+        const suffix = Date.now().toString().slice(-6);
+        const duplicateKey = `${block.key}-copy-${suffix}`;
+        const duplicate: StudioBlockTemplate = {
+          ...block,
+          id: `dup-${duplicateKey}`,
+          key: duplicateKey,
+          name: `${block.name} Copy`,
+          lifecycle: "draft",
+          status: "draft",
+          usageCount: 0,
+          inUseCount: 0,
+          updatedAt: new Date().toISOString().slice(0, 10)
         };
-        reader.readAsText(file);
-    }
+        await persistBlock(duplicate, `Duplicated ${block.name} as ${duplicate.name}.`);
+        setSelectedId(duplicate.id);
+      }
 
-    /* ─── Analysis ─── */
-
-    async function runAnalysis() {
-        setError(null);
-        setIsAnalyzing(true);
-        try {
-            const data = await requestClientJson<{ ok: boolean; analysis?: OnboardingAnalysis; error?: string }>(
-                "/api/platform/onboarding/analyze",
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ sourceType, sourceValue, slug: "block-import", locale: "en", themeKey: "default" })
-                },
-                {
-                    timeoutMessage: "Analyze timed out. Please retry or reduce source size.",
-                    fallbackErrorMessage: "Analysis failed."
-                }
-            );
-            if (!data.ok || !data.analysis) {
-                throw new Error(data.error ?? "Analysis failed");
-            }
-            setAnalysis(data.analysis);
-            const toggles: Record<string, boolean> = {};
-            for (const b of data.analysis.blockProposals ?? []) toggles[b.id] = true;
-            for (const w of data.analysis.widgetProposals ?? []) toggles[w.id] = true;
-            for (const a of data.analysis.actionProposals ?? []) toggles[a.id] = true;
-            setItemImportState(toggles);
-            setSelectedBlockIndex(0);
-            setSelectedActionIndex(0);
-            setStep(1);
-        } catch (e) {
-            setError(e instanceof Error ? e.message : String(e));
-        } finally {
-            setIsAnalyzing(false);
-        }
-    }
-
-    /* ─── Publish (blocks only) ─── */
-
-    async function publish(mode: "dry-run" | "apply") {
-        if (!analysis) return;
-        setError(null);
-        setIsPublishing(true);
-        try {
-            const data = await requestClientJson<{ ok: boolean; result?: OnboardingPublishResult; error?: string }>(
-                "/api/platform/studio/blocks/publish",
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        mode,
-                        analysis,
-                        overrides: {
-                            itemImportState, itemTypeOverrides, displayNameOverrides,
-                            blockFamilyOverrides, fieldOverrides, segmentationOverrides,
-                            actionTypeOverrides, actionLabelOverrides: {}, actionTargetOverrides,
-                            exitStateOverrides, mapToExisting
-                        }
-                    })
-                },
-                {
-                    timeoutMessage: "Publish timed out. Please retry.",
-                    fallbackErrorMessage: "Publish failed."
-                }
-            );
-            if (!data.ok || !data.result) {
-                throw new Error(data.error ?? "Publish failed");
-            }
-            setPublishResult(data.result);
-            await loadBlockLibrary();
-        } catch (e) {
-            setError(e instanceof Error ? e.message : String(e));
-        } finally {
-            setIsPublishing(false);
-        }
-    }
-
-    async function saveBrowseBlock(next: StudioBlockTemplate): Promise<void> {
-        const payload = await requestClientJson<{
-            ok: boolean;
-            data?: StudioBlockTemplate[];
-            error?: string;
-        }>("/api/platform/studio/blocks", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ block: next })
-        }, {
-            timeoutMessage: "Saving block timed out. Please retry.",
-            fallbackErrorMessage: "Unable to save block."
-        });
-        if (!payload.ok || !payload.data) {
-            throw new Error(payload.error ?? "Unable to save block.");
-        }
-        setLibraryBlocks(payload.data);
-    }
-
-    async function deleteBrowseBlock(block: StudioBlockTemplate): Promise<void> {
-        setError(null);
-        const response = await fetch(`/api/platform/studio/blocks?id=${encodeURIComponent(block.id)}&key=${encodeURIComponent(block.key)}`, {
+      if (action === "delete") {
+        const response = await requestClientJson<BlocksResponse>(
+          `/api/platform/studio/blocks?key=${encodeURIComponent(block.key)}`,
+          {
             method: "DELETE",
             headers: { "content-type": "application/json" }
-        });
-
-        const payload = (await response.json()) as {
-            ok: boolean;
-            data?: StudioBlockTemplate[];
-            error?: string;
-            code?: string;
-            whereUsed?: Array<{ id: string; slug: string; locale: string }>;
-        };
-
-        if (!response.ok || !payload.ok) {
-            if (payload.code === "blocks.where_used") {
-                setWhereUsedModal({
-                    blockName: block.name,
-                    whereUsed: payload.whereUsed ?? []
-                });
-                return;
-            }
-            throw new Error(payload.error ?? "Unable to delete block.");
-        }
-
-        setLibraryBlocks(payload.data ?? []);
-        setSelectedBrowseBlockId((current) => (current === block.id ? null : current));
-    }
-
-    /* ─── Block helpers ─── */
-
-    const blocks = analysis?.blockProposals ?? [];
-    const importedBlocks = blocks.filter((b) => itemImportState[b.id] !== false);
-    const currentBlock = blocks[selectedBlockIndex] ?? null;
-
-    const allActions = analysis?.actionProposals ?? [];
-    const importedActions = allActions.filter((a) => itemImportState[a.id] !== false);
-    const currentAction = importedActions[selectedActionIndex] ?? null;
-
-    const blockActions = useMemo(() => {
-        if (!analysis || !currentBlock) return [];
-        return analysis.actionProposals.filter(
-            (a) => a.sourceItemId === currentBlock.id || currentBlock.actionIds.includes(a.id)
+          },
+          {
+            timeoutMessage: "Deleting canonical block timed out. Please retry.",
+            fallbackErrorMessage: "Unable to delete canonical block."
+          }
         );
-    }, [analysis, currentBlock]);
 
-    function skipBlock(blockId: string) {
-        const newState = { ...itemImportState, [blockId]: false };
-        if (analysis) {
-            const block = analysis.blockProposals.find((b) => b.id === blockId);
-            if (block) {
-                block.actionIds.forEach((aid) => { newState[aid] = false; });
-                analysis.widgetProposals.forEach((w) => {
-                    if (block.actionIds.some((aid) => {
-                        const action = analysis.actionProposals.find((a) => a.id === aid);
-                        return action?.destination.kind === "widget" && action.destination.value === w.id;
-                    })) {
-                        newState[w.id] = false;
-                    }
-                });
-            }
+        if (!response.ok) {
+          const whereUsedList = Array.isArray(response.whereUsed)
+            ? response.whereUsed.map((entry) => entry.slug).join(", ")
+            : "";
+          const whereUsedMessage = whereUsedList.length > 0 ? ` Referenced by: ${whereUsedList}.` : "";
+          throw new Error((response.error ?? "Unable to delete block.") + whereUsedMessage);
         }
-        setItemImportState(newState);
-    }
 
-    function buildCardPreview(snippet: string | undefined): string {
-        return buildDetectionThumbnailDocument({
-            sourcePreviewHtml: analysis?.source?.productionPreviewHtml ?? "",
-            snippetHtml: withBlockStructuralFallback(snippet),
-            baseUrl: analysis?.source?.baseUrl ?? "",
-            themeScopeClass: analysis?.source?.themeScopeClass ?? "theme-default"
+        canonicalGuard(response, "Unable to delete canonical block.");
+        setBlocks(response.data);
+        setSelectedId((current) => {
+          if (!current) {
+            return response.data[0]?.id ?? null;
+          }
+          const stillExists = response.data.some((entry) => entry.id === current);
+          return stillExists ? current : response.data[0]?.id ?? null;
         });
+        setStatusMessage(`Deleted ${block.name}.`);
+      }
+
+      await loadPages();
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : String(actionError));
+    } finally {
+      setOpenMenuId(null);
+      setIsMutating(false);
     }
+  }
 
-    function getActionParentBlock(action: OnboardingActionProposal): OnboardingBlockProposal | undefined {
-        return analysis?.blockProposals.find(
-            (b) => b.id === action.sourceItemId || b.actionIds.includes(action.id)
-        );
+  function deviceFrameClass(): string {
+    if (previewDevice === "tablet") {
+      return "mx-auto h-[420px] w-[740px] max-w-full";
     }
+    if (previewDevice === "mobile") {
+      return "mx-auto h-[460px] w-[320px] max-w-full";
+    }
+    return "h-[420px] w-full";
+  }
 
-    const groupedFamilies = useMemo(() => {
-        const grouped = new Map<string, StudioBlockTemplate[]>();
-        for (const block of libraryBlocks) {
-            const family = block.family;
-            const existing = grouped.get(family) ?? [];
-            existing.push(block);
-            grouped.set(family, existing);
-        }
+  const selectedUsageCount = selected ? blockUsage.get(selected.key) ?? blockUsage.get(selected.id) ?? selected.usageCount ?? selected.inUseCount : 0;
 
-        return Array.from(grouped.entries())
-            .map(([family, items]) => ({
-                id: family,
-                family,
-                count: items.length,
-                activeCount: items.filter((item) => item.status === "active").length
-            }))
-            .sort((left, right) => left.family.localeCompare(right.family));
-    }, [libraryBlocks]);
+  function resolveTargetPreview(block: StudioBlockTemplate): string {
+    const proposalHtml = (block.previewHtml ?? block.targetPreviewHtml ?? block.sourcePreviewHtml ?? "").trim();
+    if (proposalHtml.length === 0) {
+      return "";
+    }
+    return buildThemedTargetPreview({
+      proposalHtml,
+      theme: previewTheme,
+      hostAssets: platformPreviewAssets
+    });
+  }
 
-    useEffect(() => {
-        if (!selectedBrowseFamily && groupedFamilies.length > 0) {
-            setSelectedBrowseFamily(groupedFamilies[0].id);
-        }
-    }, [groupedFamilies, selectedBrowseFamily]);
-
-    const browseBlocks = useMemo(() => {
-        if (!selectedBrowseFamily) {
-            return [] as StudioBlockTemplate[];
-        }
-        return libraryBlocks.filter((block) => block.family === selectedBrowseFamily);
-    }, [libraryBlocks, selectedBrowseFamily]);
-
-    useEffect(() => {
-        if (browseBlocks.length === 0) {
-            setSelectedBrowseBlockId(null);
-            return;
-        }
-        if (!selectedBrowseBlockId || !browseBlocks.some((block) => block.id === selectedBrowseBlockId)) {
-            setSelectedBrowseBlockId(browseBlocks[0].id);
-        }
-    }, [browseBlocks, selectedBrowseBlockId]);
-
-    const selectedBrowseBlock = browseBlocks.find((block) => block.id === selectedBrowseBlockId) ?? null;
-    const selectedBrowseWhereUsed = selectedBrowseBlock
-        ? libraryPages.filter((page) =>
-            page.blockOrder.some((blockId) => blockId === selectedBrowseBlock.id || blockId === selectedBrowseBlock.key)
-        )
-        : [];
-
-    /* ─── Render ─── */
-
-    return (
-        <div className="max-w-[1400px] mx-auto flex flex-col gap-5">
-            {/* Header */}
-            <header className="flex items-end justify-between gap-3">
-                <div>
-                    <h1 className="text-xl font-bold text-slate-100 flex items-center gap-2.5">
-                    <span className="material-symbols-outlined text-2xl text-violet-400">dashboard_customize</span>
-                        Blocks Workflow
-                    </h1>
-                    <p className="text-xs text-slate-500 mt-0.5">Grouped browse is the default. Import and detection review remain available in this route.</p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <button
-                        type="button"
-                        data-testid="blocks-browse-mode"
-                        onClick={() => setViewMode("browse")}
-                        className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${viewMode === "browse" ? "bg-blue-500/20 text-blue-200" : "bg-white/[0.04] text-slate-400"}`}
-                    >
-                        Browse
-                    </button>
-                    <button
-                        type="button"
-                        data-testid="blocks-import-mode"
-                        onClick={() => setViewMode("import")}
-                        className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${viewMode === "import" ? "bg-blue-500/20 text-blue-200" : "bg-white/[0.04] text-slate-400"}`}
-                    >
-                        Import
-                    </button>
-                </div>
-            </header>
-
-            {error && (
-                <div className="rounded-lg bg-red-500/[0.08] border border-red-500/15 p-3">
-                    <p className="text-xs text-red-400">{error}</p>
-                </div>
-            )}
-
-            {whereUsedModal ? (
-                <div data-testid="blocks-where-used-modal" className="rounded-xl border border-amber-500/30 bg-amber-500/[0.08] p-4">
-                    <p className="text-sm font-semibold text-amber-200">Delete blocked by Where-Used dependency</p>
-                    <p className="mt-1 text-xs text-amber-300">
-                        Block <strong>{whereUsedModal.blockName}</strong> is mapped to one or more pages.
-                    </p>
-                    <ul className="mt-2 space-y-1">
-                        {whereUsedModal.whereUsed.map((entry) => (
-                            <li key={entry.id} className="text-xs text-amber-300">
-                                {entry.locale}/{entry.slug}
-                            </li>
-                        ))}
-                        {whereUsedModal.whereUsed.length === 0 ? (
-                            <li className="text-xs text-amber-300">One or more active page mappings were detected.</li>
-                        ) : null}
-                    </ul>
-                    <button
-                        type="button"
-                        className="mt-3 rounded-lg bg-amber-500/20 px-3 py-1.5 text-xs font-semibold text-amber-100"
-                        onClick={() => setWhereUsedModal(null)}
-                    >
-                        Close
-                    </button>
-                </div>
-            ) : null}
-
-            {viewMode === "browse" ? (
-                <section className="grid gap-5 lg:grid-cols-[280px_320px_1fr]">
-                    <StudioListContainer
-                        title="Browse Groups"
-                        description="Families are grouped by canonical block type."
-                        items={groupedFamilies}
-                        selectedId={selectedBrowseFamily}
-                        onSelectItem={(group) => setSelectedBrowseFamily(group.id)}
-                        getItemTestId={(group) => `blocks-group-${group.id}`}
-                        getItemTitle={(group) => group.family.replaceAll("_", " ")}
-                        getItemSubtitle={(group) => `${group.count} total`}
-                        getItemMeta={(group) => `${group.activeCount} active`}
-                        emptyTitle="No block groups yet"
-                        emptyDescription="Import or publish blocks to populate grouped browse."
-                    />
-
-                    <StudioListContainer
-                        title="Blocks"
-                        description={selectedBrowseFamily ? `${selectedBrowseFamily.replaceAll("_", " ")} family` : "Select a family"}
-                        items={browseBlocks}
-                        selectedId={selectedBrowseBlockId}
-                        onSelectItem={(block) => setSelectedBrowseBlockId(block.id)}
-                        getItemTestId={(block) => `blocks-browse-item-${block.id}`}
-                        getItemTitle={(block) => block.name}
-                        getItemSubtitle={(block) => `${block.status} • ${block.lifecycle ?? "draft"} • ${block.scope ?? "global"}`}
-                        getItemMeta={(block) => `schema ${block.schemaStatus ?? "valid"} • usage ${block.usageCount ?? block.inUseCount}`}
-                        emptyTitle="No blocks in this group"
-                        emptyDescription="Select a different family or import new blocks."
-                    />
-
-                    <div className="flex flex-col gap-5">
-                        <StudioDetailContainer
-                            title={selectedBrowseBlock ? selectedBrowseBlock.name : "Block Detail"}
-                            description={
-                                selectedBrowseBlock
-                                    ? `Native action mapping is embedded here. In-use pages: ${selectedBrowseWhereUsed.length}`
-                                    : "Select a block from grouped browse."
-                            }
-                            isEmpty={!selectedBrowseBlock}
-                            emptyTitle="No block selected"
-                            emptyDescription="Choose a grouped block row to inspect preview, usage, and actions."
-                        >
-                            {selectedBrowseBlock ? (
-                                <div className="space-y-3">
-                                    <iframe
-                                        data-testid="blocks-browse-preview"
-                                        className="w-full rounded-lg border border-white/[0.08] bg-white"
-                                        style={{ minHeight: "240px" }}
-                                        srcDoc={injectProjectStyles(withBlockStructuralFallback(selectedBrowseBlock.previewHtml), projectStyles)}
-                                        sandbox="allow-scripts allow-same-origin"
-                                        title={`${selectedBrowseBlock.id} browse preview`}
-                                    />
-
-                                    <div className="grid grid-cols-4 gap-2">
-                                        <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-2 text-center">
-                                            <p className="text-sm font-semibold text-slate-100">{selectedBrowseBlock.family}</p>
-                                            <p className="text-[10px] text-slate-500">Family</p>
-                                        </div>
-                                        <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-2 text-center">
-                                            <p className="text-sm font-semibold text-slate-100">{selectedBrowseBlock.scope ?? "global"}</p>
-                                            <p className="text-[10px] text-slate-500">Scope</p>
-                                        </div>
-                                        <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-2 text-center">
-                                            <p className="text-sm font-semibold text-slate-100">{selectedBrowseBlock.schemaStatus ?? "valid"}</p>
-                                            <p className="text-[10px] text-slate-500">Schema</p>
-                                        </div>
-                                        <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-2 text-center">
-                                            <p className="text-sm font-semibold text-slate-100">{selectedBrowseBlock.usageCount ?? selectedBrowseWhereUsed.length}</p>
-                                            <p className="text-[10px] text-slate-500">Usage</p>
-                                        </div>
-                                    </div>
-
-                                    <div data-testid="blocks-native-action-map" className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-3">
-                                        <p className="text-xs font-semibold text-slate-300">Detection Review: Native Action Mapping</p>
-                                        <div className="mt-2 space-y-2">
-                                            {selectedBrowseBlock.actions.map((action) => (
-                                                <div key={action.id} className="grid grid-cols-[1fr_160px_1fr] gap-2 rounded-lg border border-white/[0.08] bg-white/[0.015] p-2">
-                                                    <input
-                                                        className={input}
-                                                        value={action.label}
-                                                        onChange={(event) => {
-                                                            const next = {
-                                                                ...selectedBrowseBlock,
-                                                                actions: selectedBrowseBlock.actions.map((entry) =>
-                                                                    entry.id === action.id ? { ...entry, label: event.target.value } : entry
-                                                                )
-                                                            };
-                                                            void saveBrowseBlock(next).catch((saveError) => {
-                                                                setError(saveError instanceof Error ? saveError.message : String(saveError));
-                                                            });
-                                                        }}
-                                                    />
-                                                    <select
-                                                        className={input}
-                                                        value={action.type}
-                                                        onChange={(event) => {
-                                                            const next = {
-                                                                ...selectedBrowseBlock,
-                                                                actions: selectedBrowseBlock.actions.map((entry) =>
-                                                                    entry.id === action.id
-                                                                        ? { ...entry, type: event.target.value as StudioActionType }
-                                                                        : entry
-                                                                )
-                                                            };
-                                                            void saveBrowseBlock(next).catch((saveError) => {
-                                                                setError(saveError instanceof Error ? saveError.message : String(saveError));
-                                                            });
-                                                        }}
-                                                    >
-                                                        {ACTION_TYPES.map((option) => (
-                                                            <option key={option.value} value={option.value}>
-                                                                {option.label}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                    <input
-                                                        className={input}
-                                                        value={action.target}
-                                                        onChange={(event) => {
-                                                            const next = {
-                                                                ...selectedBrowseBlock,
-                                                                actions: selectedBrowseBlock.actions.map((entry) =>
-                                                                    entry.id === action.id ? { ...entry, target: event.target.value } : entry
-                                                                )
-                                                            };
-                                                            void saveBrowseBlock(next).catch((saveError) => {
-                                                                setError(saveError instanceof Error ? saveError.message : String(saveError));
-                                                            });
-                                                        }}
-                                                    />
-                                                </div>
-                                            ))}
-                                            {selectedBrowseBlock.actions.length === 0 ? (
-                                                <p className="text-xs text-slate-500">No actions mapped for this block.</p>
-                                            ) : null}
-                                        </div>
-                                    </div>
-
-                                    <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-3">
-                                        <p className="text-xs font-semibold text-slate-300">Where Used</p>
-                                        {selectedBrowseWhereUsed.length === 0 ? (
-                                            <p className="mt-1 text-xs text-slate-500">No page dependencies found.</p>
-                                        ) : (
-                                            <ul className="mt-1 space-y-1">
-                                                {selectedBrowseWhereUsed.map((entry) => (
-                                                    <li key={entry.id} className="text-xs text-slate-400">
-                                                        {entry.locale}/{entry.slug}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        )}
-                                    </div>
-                                </div>
-                            ) : null}
-                        </StudioDetailContainer>
-
-                        <StudioActionMenu
-                            title="Block Actions"
-                            description="Delete is blocked when where-used dependencies exist."
-                            items={
-                                selectedBrowseBlock
-                                    ? [
-                                        {
-                                            id: "toggle-status",
-                                            label: selectedBrowseBlock.status === "active" ? "Deactivate Block" : "Activate Block",
-                                            description: "Update lifecycle status from grouped browse.",
-                                            tone: "accent",
-                                            onSelect: () => {
-                                                const next = {
-                                                    ...selectedBrowseBlock,
-                                                    status: selectedBrowseBlock.status === "active" ? "inactive" : "active"
-                                                } as StudioBlockTemplate;
-                                                void saveBrowseBlock(next).catch((saveError) => {
-                                                    setError(saveError instanceof Error ? saveError.message : String(saveError));
-                                                });
-                                            }
-                                        },
-                                        {
-                                            id: "delete-block",
-                                            label: "Delete Block",
-                                            description: "Runs local where-used dependency guard before deletion.",
-                                            tone: "danger",
-                                            onSelect: () => {
-                                                void deleteBrowseBlock(selectedBrowseBlock).catch((deleteError) => {
-                                                    setError(deleteError instanceof Error ? deleteError.message : String(deleteError));
-                                                });
-                                            }
-                                        }
-                                    ]
-                                    : []
-                            }
-                        />
-                    </div>
-                </section>
-            ) : (
-                <>
-                    <StepIndicator steps={STEPS} current={step} onStepClick={(i) => i <= step && setStep(i)} />
-
-                    {/* ── Step 0: Source Intake ── */}
-                    {step === 0 && (
-                <section className="flex flex-col gap-5">
-                    {/* Source type selection – visual cards */}
-                    <div>
-                        <h2 className="text-sm font-semibold text-slate-300 mb-3">Choose source type</h2>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
-                            {SOURCE_OPTIONS.map((opt) => (
-                                <button
-                                    key={opt.value}
-                                    type="button"
-                                    onClick={() => { setSourceType(opt.value); setSourceValue(""); }}
-                                    className={`flex flex-col items-center gap-2 rounded-xl p-4 text-center transition-all cursor-pointer ${sourceType === opt.value
-                                            ? "bg-blue-500/[0.1] border border-blue-500/25"
-                                            : "bg-white/[0.02] border border-white/[0.05] hover:border-white/[0.12]"
-                                        }`}
-                                >
-                                    <span className={`material-symbols-outlined text-2xl ${sourceType === opt.value ? "text-blue-400" : "text-slate-500"}`}>
-                                        {opt.icon}
-                                    </span>
-                                    <span className={`text-xs font-semibold ${sourceType === opt.value ? "text-blue-300" : "text-slate-400"}`}>
-                                        {opt.label}
-                                    </span>
-                                    <span className="text-[10px] text-slate-600 leading-tight">{opt.desc}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Source input */}
-                    <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] p-5">
-                        {sourceType === "url" ? (
-                            <label className="flex flex-col gap-1.5">
-                                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">URL</span>
-                                <input data-testid="blocks-source-url-input" className={input} value={sourceValue} onChange={(e) => setSourceValue(e.target.value)} placeholder="https://example.com/landing" />
-                            </label>
-                        ) : (
-                            <div className="flex flex-col gap-3">
-                                <label className="flex flex-col gap-1.5">
-                                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                                        {sourceType.startsWith("figma") ? "Figma Export HTML" : sourceType.startsWith("stitch") ? "Stitch Artifact HTML" : "HTML Source"}
-                                    </span>
-                                    <textarea data-testid="blocks-source-input" className={`${input} min-h-[200px] font-mono text-xs`} value={sourceValue} onChange={(e) => setSourceValue(e.target.value)} placeholder="<section>...</section>" />
-                                </label>
-                                <div className="flex items-center gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-xs font-semibold text-slate-400 hover:text-slate-300 hover:bg-white/[0.06] cursor-pointer transition-colors"
-                                    >
-                                        <span className="material-symbols-outlined text-sm">upload_file</span>
-                                        Upload HTML file
-                                    </button>
-                                    <input ref={fileInputRef} type="file" accept=".html,.htm,.txt" className="hidden" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])} />
-                                    {sourceValue && <span className="text-[10px] text-slate-600">{sourceValue.length.toLocaleString()} characters loaded</span>}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={runAnalysis}
-                        disabled={!canAnalyze || isAnalyzing}
-                        data-testid="blocks-analyze-button"
-                        className="self-start px-6 py-2.5 rounded-lg bg-blue-500 text-white text-sm font-bold shadow-lg shadow-blue-500/20 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                    >
-                        {isAnalyzing ? "Analyzing…" : "Analyze Source →"}
-                    </button>
-                </section>
-            )}
-
-            {/* ── Step 1: Reference Preview ── */}
-            {step === 1 && analysis && (
-                <section className="flex flex-col gap-4">
-                    <div>
-                        <h2 className="text-sm font-semibold text-slate-300 mb-1">Reference Preview</h2>
-                        <p className="text-xs text-slate-500">This shows the source with its original styling. Validate against your reference screenshot.</p>
-                    </div>
-                    <PreviewPane title="Reference Design" badge="Original" srcDoc={analysis.source.referencePreviewHtml} testId="reference-preview" />
-                    <div className="flex justify-end">
-                        <button type="button" onClick={() => setStep(2)} className="px-5 py-2 rounded-lg bg-blue-500 text-white text-sm font-bold shadow-lg shadow-blue-500/20 hover:brightness-110 cursor-pointer">
-                            Continue →
-                        </button>
-                    </div>
-                </section>
-            )}
-
-            {/* ── Step 2: Production Preview + Fidelity ── */}
-            {step === 2 && analysis && (
-                <section className="flex flex-col gap-4">
-                    <div>
-                        <h2 className="text-sm font-semibold text-slate-300 mb-1">Production Preview &amp; Fidelity</h2>
-                        <p className="text-xs text-slate-500">Compare how blocks render with the active project theme versus the original reference.</p>
-                    </div>
-
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                        <PreviewPane title="Reference" badge="Original" srcDoc={analysis.source.referencePreviewHtml} minHeight="450px" />
-                        <PreviewPane title="Production" badge="Project Theme" srcDoc={injectProjectStyles(analysis.source.productionPreviewHtml, projectStyles)} minHeight="450px" />
-                    </div>
-
-                    <FidelityDisplay
-                        score={analysis.theme.tokenFirstMatchRatio}
-                        arbitraryValueCount={analysis.theme.arbitraryValueCount}
-                        hasDarkMode={analysis.theme.hasDarkModeTrigger}
-                        extractedFonts={analysis.theme.extractedFonts}
-                        themeDebtSummary={analysis.theme.themeDebtSummary}
-                    />
-
-                    {analysis.theme.tokenFirstMatchRatio < 0.5 && (
-                        <div className="rounded-lg bg-amber-500/[0.06] border border-amber-500/15 p-3">
-                            <p className="text-xs text-amber-400"><strong>Low fidelity.</strong> Adapt source classes to project tokens, or update the active theme in the Theme Workflow.</p>
-                        </div>
-                    )}
-
-                    <div className="flex justify-between">
-                        <button type="button" onClick={() => setStep(1)} className="px-4 py-2 rounded-lg bg-white/[0.04] text-slate-400 text-xs font-semibold hover:bg-white/[0.08] cursor-pointer">← Back</button>
-                        <button type="button" onClick={() => setStep(3)} className="px-5 py-2 rounded-lg bg-blue-500 text-white text-sm font-bold shadow-lg shadow-blue-500/20 hover:brightness-110 cursor-pointer">Continue →</button>
-                    </div>
-                </section>
-            )}
-
-            {/* ── Step 3: Detection Review — One block at a time ── */}
-            {step === 3 && analysis && (
-                <section className="flex flex-col gap-4">
-                    <div>
-                        <h2 className="text-sm font-semibold text-slate-300 mb-1">Detection Review</h2>
-                        <p className="text-xs text-slate-500">Review each detected block. Import or skip blocks individually.</p>
-                    </div>
-
-                    <div className="grid gap-4" style={{ gridTemplateColumns: "260px 1fr" }}>
-                        {/* Block list */}
-                        <div className="flex flex-col gap-1.5 overflow-y-auto pr-1" style={{ maxHeight: "700px" }}>
-                            <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest mb-1">{blocks.length} detected</p>
-                            {blocks.map((block, i) => (
-                                <button
-                                    key={block.id}
-                                    type="button"
-                                    onClick={() => setSelectedBlockIndex(i)}
-                                    className={`flex items-center gap-2.5 rounded-lg p-2.5 text-left transition-all cursor-pointer ${selectedBlockIndex === i
-                                            ? "bg-blue-500/[0.1] border border-blue-500/20"
-                                            : itemImportState[block.id] === false
-                                                ? "bg-white/[0.01] border border-white/[0.03] opacity-40"
-                                                : "bg-white/[0.02] border border-white/[0.05] hover:border-white/[0.1]"
-                                        }`}
-                                >
-                                    <span className={`flex items-center justify-center w-6 h-6 rounded-md text-[10px] font-bold ${selectedBlockIndex === i ? "bg-blue-500 text-white" :
-                                            itemImportState[block.id] === false ? "bg-white/[0.04] text-slate-600 line-through" :
-                                                "bg-violet-500/15 text-violet-400"
-                                        }`}>{i + 1}</span>
-                                    <div className="flex-1 min-w-0">
-                                        <p className={`text-xs font-medium truncate ${itemImportState[block.id] === false ? "text-slate-600 line-through" : "text-slate-300"}`}>
-                                            {displayNameOverrides[block.id] ?? block.displayName ?? block.family.replaceAll("_", " ")}
-                                        </p>
-                                        <p className="text-[10px] text-slate-600">{Math.round(block.confidence * 100)}%</p>
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* Block detail workspace */}
-                        {currentBlock && (
-                            <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] overflow-hidden">
-                                <header className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3">
-                                    <div>
-                                        <h3 className="text-sm font-bold text-slate-200">
-                                            {displayNameOverrides[currentBlock.id] ?? currentBlock.displayName ?? currentBlock.family.replaceAll("_", " ")}
-                                        </h3>
-                                        <p className="text-[10px] text-slate-600 font-mono">{currentBlock.selectorHint}</p>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        {itemImportState[currentBlock.id] !== false ? (
-                                            <button type="button" onClick={() => skipBlock(currentBlock.id)} className="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold hover:bg-red-500/20 cursor-pointer">Skip</button>
-                                        ) : (
-                                            <button type="button" onClick={() => setItemImportState((p) => ({ ...p, [currentBlock.id]: true }))} className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold hover:bg-emerald-500/20 cursor-pointer">Import</button>
-                                        )}
-                                    </div>
-                                </header>
-
-                                <div className="p-5 flex flex-col gap-4 max-h-[600px] overflow-y-auto">
-                                    {/* Large block preview */}
-                                    <iframe
-                                        className="w-full rounded-lg border border-white/[0.06] bg-white"
-                                        style={{ minHeight: "280px", height: "280px" }}
-                                        srcDoc={injectProjectStyles(buildCardPreview(currentBlock.previewHtml), projectStyles)}
-                                        sandbox="allow-scripts allow-same-origin"
-                                        title={`${currentBlock.id} preview`}
-                                    />
-
-                                    {/* Metrics row */}
-                                    <div className="grid grid-cols-3 gap-3">
-                                        <div className="rounded-lg bg-white/[0.03] border border-white/[0.05] p-3 text-center">
-                                            <p className={`text-lg font-bold ${currentBlock.confidence >= 0.8 ? "text-emerald-400" : currentBlock.confidence >= 0.5 ? "text-amber-400" : "text-red-400"}`}>
-                                                {Math.round(currentBlock.confidence * 100)}%
-                                            </p>
-                                            <p className="text-[10px] text-slate-500">Confidence</p>
-                                        </div>
-                                        <div className="rounded-lg bg-white/[0.03] border border-white/[0.05] p-3 text-center">
-                                            <p className="text-lg font-bold text-slate-300">{currentBlock.editableFields.length}</p>
-                                            <p className="text-[10px] text-slate-500">Fields</p>
-                                        </div>
-                                        <div className="rounded-lg bg-white/[0.03] border border-white/[0.05] p-3 text-center">
-                                            <p className="text-lg font-bold text-slate-300">{blockActions.length}</p>
-                                            <p className="text-[10px] text-slate-500">Actions</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Mapping */}
-                                    <div className="grid grid-cols-3 gap-3">
-                                        <label className="flex flex-col gap-1">
-                                            <span className="text-[10px] text-slate-500 uppercase tracking-wider">Display Name</span>
-                                            <input className={input} value={displayNameOverrides[currentBlock.id] ?? currentBlock.displayName ?? currentBlock.family.replaceAll("_", " ")} onChange={(e) => setDisplayNameOverrides((p) => ({ ...p, [currentBlock.id]: e.target.value }))} />
-                                        </label>
-                                        <label className="flex flex-col gap-1">
-                                            <span className="text-[10px] text-slate-500 uppercase tracking-wider">Block Family</span>
-                                            <select className={input} value={blockFamilyOverrides[currentBlock.id] ?? currentBlock.family} onChange={(e) => setBlockFamilyOverrides((p) => ({ ...p, [currentBlock.id]: e.target.value as CanonicalBlockFamily }))}>
-                                                {BLOCK_FAMILIES.map((f) => <option key={f} value={f}>{f.replaceAll("_", " ")}</option>)}
-                                            </select>
-                                        </label>
-                                        <label className="flex flex-col gap-1">
-                                            <span className="text-[10px] text-slate-500 uppercase tracking-wider">Map to Existing</span>
-                                            <select
-                                                className={input}
-                                                value={mapToExisting[currentBlock.id] ?? ""}
-                                                onChange={(event) => setMapToExisting((previous) => ({ ...previous, [currentBlock.id]: event.target.value }))}
-                                            >
-                                                <option value="">Create new block</option>
-                                                {libraryBlocks.map((block) => (
-                                                    <option key={block.id} value={block.key}>
-                                                        {block.name} ({block.family})
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </label>
-                                    </div>
-
-                                    {/* Fields summary */}
-                                    {currentBlock.editableFields.length > 0 && (
-                                        <div>
-                                            <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1.5">Editable Fields</p>
-                                            <div className="flex flex-wrap gap-1.5">
-                                                {currentBlock.editableFields.map((fieldKey) => (
-                                                    <span key={fieldKey} className="text-[10px] font-mono bg-white/[0.04] border border-white/[0.06] rounded px-2 py-0.5 text-slate-400">
-                                                        {fieldKey}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Actions summary */}
-                                    {blockActions.length > 0 && (
-                                        <div>
-                                            <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1.5">Linked Actions</p>
-                                            <div className="flex flex-col gap-1.5">
-                                                {blockActions.map((a) => (
-                                                    <div key={a.id} className="flex items-center gap-2 rounded-lg bg-white/[0.02] border border-white/[0.04] p-2">
-                                                        <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/15 rounded px-1.5 py-0.5">{a.actionType.replaceAll("_", " ")}</span>
-                                                        <span className="text-xs text-slate-300">{a.label}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {mapToExisting[currentBlock.id] ? (
-                                        <div className="rounded-lg bg-blue-500/[0.08] border border-blue-500/20 p-3">
-                                            {(() => {
-                                                const mapped = libraryBlocks.find((block) => block.key === mapToExisting[currentBlock.id]);
-                                                if (!mapped) {
-                                                    return <p className="text-xs text-blue-300">Mapped block no longer exists in library.</p>;
-                                                }
-                                                return (
-                                                    <div className="space-y-1.5">
-                                                        <p className="text-xs font-semibold text-blue-300">Compare with existing block</p>
-                                                        <p className="text-[11px] text-blue-200">
-                                                            Existing: <strong>{mapped.name}</strong> ({mapped.family})
-                                                        </p>
-                                                        <p className="text-[11px] text-blue-200">
-                                                            Field count: detected {currentBlock.editableFields.length} vs existing {mapped.editableFields.length}
-                                                        </p>
-                                                        <p className="text-[11px] text-blue-200">
-                                                            Action count: detected {blockActions.length} vs existing {mapped.actions.length}
-                                                        </p>
-                                                    </div>
-                                                );
-                                            })()}
-                                        </div>
-                                    ) : null}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    <article className="rounded-xl bg-white/[0.02] border border-white/[0.06] p-4">
-                        <header className="flex items-center justify-between gap-3 mb-3">
-                            <div>
-                                <h3 className="text-sm font-bold text-slate-200">Studio Block Explorer</h3>
-                                <p className="text-[11px] text-slate-500">Browse reusable blocks and choose map-to-existing before publish.</p>
-                            </div>
-                            <span className="text-[10px] text-slate-500">{isLoadingLibrary ? "Loading…" : `${libraryBlocks.length} blocks`}</span>
-                        </header>
-                        <div className="grid grid-cols-6 gap-2 mb-3">
-                            <input
-                                className={`${input} col-span-2`}
-                                placeholder="Search name/family"
-                                value={librarySearch}
-                                onChange={(event) => setLibrarySearch(event.target.value)}
-                            />
-                            <select className={input} value={libraryFamilyFilter} onChange={(event) => setLibraryFamilyFilter(event.target.value)}>
-                                <option value="all">All families</option>
-                                {Array.from(new Set(libraryBlocks.map((block) => block.family))).map((family) => (
-                                    <option key={family} value={family}>
-                                        {family}
-                                    </option>
-                                ))}
-                            </select>
-                            <select className={input} value={libraryStatusFilter} onChange={(event) => setLibraryStatusFilter(event.target.value)}>
-                                <option value="all">Any status</option>
-                                <option value="active">active</option>
-                                <option value="inactive">inactive</option>
-                                <option value="draft">draft</option>
-                            </select>
-                            <select className={input} value={libraryThemeFilter} onChange={(event) => setLibraryThemeFilter(event.target.value)}>
-                                <option value="all">Any theme</option>
-                                {Array.from(new Set(libraryBlocks.map((block) => block.themeKey))).map((theme) => (
-                                    <option key={theme} value={theme}>
-                                        {theme}
-                                    </option>
-                                ))}
-                            </select>
-                            <div className="flex items-center gap-3 px-2">
-                                <label className="flex items-center gap-1 text-[11px] text-slate-400">
-                                    <input type="checkbox" checked={libraryRecentOnly} onChange={(event) => setLibraryRecentOnly(event.target.checked)} />
-                                    recent
-                                </label>
-                                <label className="flex items-center gap-1 text-[11px] text-slate-400">
-                                    <input type="checkbox" checked={libraryInUseOnly} onChange={(event) => setLibraryInUseOnly(event.target.checked)} />
-                                    in use
-                                </label>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-3 gap-2 max-h-[260px] overflow-y-auto">
-                            {libraryBlocks.map((block) => (
-                                <button
-                                    key={block.id}
-                                    type="button"
-                                    className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-2 text-left hover:border-white/[0.14] transition-colors cursor-pointer"
-                                    onClick={() => {
-                                        if (currentBlock) {
-                                            setMapToExisting((previous) => ({ ...previous, [currentBlock.id]: block.key }));
-                                        }
-                                    }}
-                                >
-                                    <p className="text-xs font-semibold text-slate-300 truncate">{block.name}</p>
-                                    <p className="text-[10px] text-slate-500">{block.family}</p>
-                                    <p className="text-[10px] text-slate-600">
-                                        {block.status} · {block.lifecycle ?? "draft"} · {block.scope ?? "global"} · schema {block.schemaStatus ?? "valid"} ·
-                                        usage {block.usageCount ?? block.inUseCount}
-                                    </p>
-                                </button>
-                            ))}
-                            {libraryBlocks.length === 0 && <p className="text-xs text-slate-600">No blocks found with current filters.</p>}
-                        </div>
-                    </article>
-
-                    <div className="flex justify-between">
-                        <button type="button" onClick={() => setStep(2)} className="px-4 py-2 rounded-lg bg-white/[0.04] text-slate-400 text-xs font-semibold hover:bg-white/[0.08] cursor-pointer">← Back</button>
-                        <button type="button" onClick={() => setStep(4)} className="px-5 py-2 rounded-lg bg-blue-500 text-white text-sm font-bold shadow-lg shadow-blue-500/20 hover:brightness-110 cursor-pointer">Continue →</button>
-                    </div>
-                </section>
-            )}
-
-            {/* ── Step 4: Action Mapping — one at a time, block-contextual ── */}
-            {step === 4 && analysis && (
-                <section className="flex flex-col gap-4">
-                    <div>
-                        <h2 className="text-sm font-semibold text-slate-300 mb-1">Action Mapping</h2>
-                        <p className="text-xs text-slate-500">Configure each action. Context shows the parent block and CTA position.</p>
-                    </div>
-
-                    {importedActions.length === 0 ? (
-                        <div className="rounded-xl bg-white/[0.02] border border-dashed border-white/[0.06] p-8 text-center">
-                            <span className="material-symbols-outlined text-3xl text-slate-700">touch_app</span>
-                            <p className="text-sm text-slate-500 mt-2">No actions to map. All linked actions were skipped.</p>
-                        </div>
-                    ) : (
-                        <div className="grid gap-4" style={{ gridTemplateColumns: "260px 1fr" }}>
-                            {/* Action list */}
-                            <div className="flex flex-col gap-1.5 overflow-y-auto" style={{ maxHeight: "600px" }}>
-                                <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest mb-1">{importedActions.length} actions</p>
-                                {importedActions.map((action, i) => {
-                                    const parent = getActionParentBlock(action);
-                                    return (
-                                        <button
-                                            key={action.id}
-                                            type="button"
-                                            onClick={() => setSelectedActionIndex(i)}
-                                            className={`flex flex-col gap-0.5 rounded-lg p-2.5 text-left transition-all cursor-pointer ${selectedActionIndex === i
-                                                    ? "bg-blue-500/[0.1] border border-blue-500/20"
-                                                    : "bg-white/[0.02] border border-white/[0.05] hover:border-white/[0.1]"
-                                                }`}
-                                        >
-                                            <p className="text-xs font-medium text-slate-300 truncate">{action.label}</p>
-                                            <p className="text-[10px] text-slate-600 truncate">
-                                                {parent ? parent.displayName ?? parent.family.replaceAll("_", " ") : "Orphan"}
-                                            </p>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-
-                            {/* Action detail */}
-                            {currentAction && (() => {
-                                const parentBlock = getActionParentBlock(currentAction);
-                                return (
-                                    <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] overflow-hidden">
-                                        <header className="border-b border-white/[0.06] px-5 py-3">
-                                            <h3 className="text-sm font-bold text-slate-200">{currentAction.label}</h3>
-                                            <p className="text-[10px] text-slate-500 mt-0.5">
-                                                Parent block: <span className="text-violet-400 font-medium">{parentBlock?.displayName ?? parentBlock?.family.replaceAll("_", " ") ?? "Unknown"}</span>
-                                            </p>
-                                        </header>
-
-                                        <div className="p-5 flex flex-col gap-4">
-                                            {/* Block context preview */}
-                                            {parentBlock?.previewHtml && (
-                                                <div>
-                                                    <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1.5">Block Context</p>
-                                                    <iframe
-                                                        className="w-full rounded-lg border border-white/[0.06] bg-white"
-                                                        style={{ height: "160px" }}
-                                                        srcDoc={injectProjectStyles(buildCardPreview(parentBlock.previewHtml), projectStyles)}
-                                                        sandbox="allow-scripts allow-same-origin"
-                                                        title="Block context"
-                                                    />
-                                                </div>
-                                            )}
-
-                                            {/* Action details */}
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div className="rounded-lg bg-white/[0.03] border border-white/[0.05] p-3">
-                                                    <p className="text-[10px] text-slate-500 uppercase mb-1">CTA Text</p>
-                                                    <p className="text-sm font-semibold text-slate-200">{currentAction.label}</p>
-                                                </div>
-                                                <div className="rounded-lg bg-white/[0.03] border border-white/[0.05] p-3">
-                                                    <p className="text-[10px] text-slate-500 uppercase mb-1">CTA Kind</p>
-                                                    <p className="text-sm text-slate-300">{currentAction.ctaKind}</p>
-                                                </div>
-                                            </div>
-
-                                            <label className="flex flex-col gap-1">
-                                                <span className="text-[10px] text-slate-500 uppercase tracking-wider">Action Type</span>
-                                                <select
-                                                    className={input}
-                                                    value={actionTypeOverrides[currentAction.id] ?? currentAction.actionType}
-                                                    onChange={(e) => setActionTypeOverrides((p) => ({ ...p, [currentAction.id]: e.target.value as ActionType }))}
-                                                >
-                                                    {ACTION_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                                                </select>
-                                            </label>
-
-                                            <div className="rounded-lg bg-white/[0.03] border border-white/[0.05] p-3">
-                                                <p className="text-[10px] text-slate-500 uppercase mb-1">Resulting Behavior</p>
-                                                <p className="text-xs text-slate-300">{currentAction.summary}</p>
-                                            </div>
-
-                                            {/* Advanced / technical (collapsible) */}
-                                            <details className="group">
-                                                <summary className="text-[10px] text-slate-600 cursor-pointer hover:text-slate-400 uppercase tracking-wider">Advanced details</summary>
-                                                <div className="mt-2 rounded-lg bg-white/[0.02] border border-white/[0.04] p-3 text-[10px] font-mono text-slate-500 space-y-1">
-                                                    <p>Selector: {currentAction.selectorHint}</p>
-                                                    <p>Destination: {currentAction.destination.kind} → {currentAction.destination.value ?? "none"}</p>
-                                                    {currentAction.suggestedExitId && <p>Exit ID: {currentAction.suggestedExitId}</p>}
-                                                </div>
-                                            </details>
-                                        </div>
-                                    </div>
-                                );
-                            })()}
-                        </div>
-                    )}
-
-                    <div className="flex justify-between">
-                        <button type="button" onClick={() => setStep(3)} className="px-4 py-2 rounded-lg bg-white/[0.04] text-slate-400 text-xs font-semibold hover:bg-white/[0.08] cursor-pointer">← Back</button>
-                        <button type="button" onClick={() => setStep(5)} className="px-5 py-2 rounded-lg bg-blue-500 text-white text-sm font-bold shadow-lg shadow-blue-500/20 hover:brightness-110 cursor-pointer">Continue →</button>
-                    </div>
-                </section>
-            )}
-
-            {/* ── Step 5: Publish Block ── */}
-            {step === 5 && analysis && (
-                <section className="flex flex-col gap-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h2 className="text-sm font-semibold text-slate-300 mb-1">Publish Blocks</h2>
-                            <p className="text-xs text-slate-500">Create block structures in Strapi. No pages will be created.</p>
-                        </div>
-                        <div className="flex gap-2">
-                            <button onClick={() => publish("dry-run")} disabled={isPublishing} className="px-4 py-2 rounded-lg bg-white/[0.06] border border-white/[0.08] text-slate-300 text-xs font-semibold hover:bg-white/[0.1] disabled:opacity-40 cursor-pointer">
-                                Preview
-                            </button>
-                            <button data-testid="blocks-publish-apply-button" onClick={() => publish("apply")} disabled={isPublishing} className="px-5 py-2 rounded-lg bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-500/20 hover:brightness-110 disabled:opacity-40 cursor-pointer">
-                                <span className="sr-only">Publish blocks</span>
-                                {isPublishing ? "Publishing…" : "Publish to Strapi"}
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Summary */}
-                    <div className="grid grid-cols-3 gap-3">
-                        {[
-                            { label: "Blocks", count: importedBlocks.length, color: "text-violet-400" },
-                            { label: "Actions", count: importedActions.length, color: "text-amber-400" },
-                            { label: "Fields", count: importedBlocks.reduce((s, b) => s + b.editableFields.length, 0), color: "text-slate-300" }
-                        ].map(({ label, count, color }) => (
-                            <div key={label} className="rounded-lg bg-white/[0.03] border border-white/[0.05] p-3 text-center">
-                                <p className={`text-xl font-bold ${color}`}>{count}</p>
-                                <p className="text-[10px] text-slate-500">{label}</p>
-                            </div>
-                        ))}
-                    </div>
-
-                    <FidelityDisplay
-                        score={analysis.theme.tokenFirstMatchRatio}
-                        arbitraryValueCount={analysis.theme.arbitraryValueCount}
-                        hasDarkMode={analysis.theme.hasDarkModeTrigger}
-                        extractedFonts={analysis.theme.extractedFonts}
-                        themeDebtSummary={analysis.theme.themeDebtSummary}
-                    />
-
-                    <PreviewPane
-                        title="Production Preview"
-                        badge="Project Theme"
-                        srcDoc={injectProjectStyles(analysis.source.productionPreviewHtml, projectStyles)}
-                        testId="publish-preview"
-                        minHeight="500px"
-                    />
-
-                    {publishResult && (
-                        <div className={`rounded-lg border p-3 ${publishResult.applied ? "bg-emerald-500/[0.08] border-emerald-500/20" : "bg-amber-500/[0.06] border-amber-500/15"}`}>
-                            <p className={`text-sm font-medium ${publishResult.applied ? "text-emerald-400" : "text-amber-400"}`}>
-                                {publishResult.applied ? "Blocks published to Strapi." : publishResult.applyReadiness.operatorMessage}
-                            </p>
-                        </div>
-                    )}
-
-                    {publishResult?.warnings.length ? (
-                        <div className="flex flex-col gap-1.5">
-                            {publishResult.warnings.map((w) => (
-                                <div key={w.code} className={`rounded-lg border p-2.5 ${w.severity === "error" ? "bg-red-500/[0.06] border-red-500/15" : w.severity === "warning" ? "bg-amber-500/[0.06] border-amber-500/15" : "bg-white/[0.02] border-white/[0.05]"}`}>
-                                    <p className={`text-[11px] ${w.severity === "error" ? "text-red-400" : w.severity === "warning" ? "text-amber-400" : "text-slate-400"}`}>
-                                        <strong>{w.code}</strong>: {w.message}
-                                    </p>
-                                </div>
-                            ))}
-                        </div>
-                    ) : null}
-
-                    <div className="flex justify-start">
-                        <button type="button" onClick={() => setStep(4)} className="px-4 py-2 rounded-lg bg-white/[0.04] text-slate-400 text-xs font-semibold hover:bg-white/[0.08] cursor-pointer">← Back</button>
-                    </div>
-                </section>
-            )}
-                </>
-            )}
+  return (
+    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4" data-testid="blocks-workspace">
+      <header className="flex flex-wrap items-end justify-between gap-3 border-b border-white/[0.08] pb-3">
+        <div>
+          <h1 className="text-xl font-bold text-slate-100">Reusable Blocks</h1>
+          <p className="mt-1 text-xs text-slate-500">Manage and edit your library of reusable content blocks.</p>
         </div>
-    );
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="mr-2 flex items-center gap-2 border-r border-white/[0.1] pr-4">
+            <div className="flex -space-x-1.5">
+              {themes.slice(0, 5).map((theme) => {
+                const selected = previewSwatchThemeId === theme.id || (!previewSwatchThemeId && activeTheme?.id === theme.id);
+                return (
+                  <button
+                    key={theme.id}
+                    type="button"
+                    data-testid={`blocks-theme-swatch-${theme.id}`}
+                    onClick={() => {
+                      const nextId = previewSwatchThemeId === theme.id ? null : theme.id;
+                      setGlobalPreviewSwatchThemeId(nextId);
+                    }}
+                    className={`h-5 w-5 rounded-full border-2 border-[#071226] ${selected ? "ring-2 ring-blue-500/40" : ""}`}
+                    style={{ background: themeSwatchGradient(theme) }}
+                    title={`Preview ${theme.name}`}
+                  />
+                );
+              })}
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              {previewTheme ? `Theme · ${previewTheme.name}` : "Theme"}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (!selected) {
+                return;
+              }
+              void runBlockAction("duplicate", selected);
+            }}
+            className="rounded-lg bg-blue-500 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-500/90"
+          >
+            <span className="material-symbols-outlined mr-1 align-middle text-[16px]">add</span>
+            New Block
+          </button>
+        </div>
+      </header>
+
+      {error ? <div className="rounded-lg border border-red-500/30 bg-red-500/[0.08] px-3 py-2 text-xs text-red-300">{error}</div> : null}
+      {statusMessage ? (
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/[0.08] px-3 py-2 text-xs text-emerald-300">{statusMessage}</div>
+      ) : null}
+
+      <div className="min-h-0 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#081327]">
+        <div className="grid min-h-[72vh] gap-0 xl:grid-cols-[430px_minmax(0,1fr)]">
+          <section className="flex min-h-0 flex-col border-b border-white/[0.08] bg-[#071226] xl:border-b-0 xl:border-r">
+            <div className="border-b border-white/[0.08] p-3">
+              <div className="relative">
+                <span className="material-symbols-outlined pointer-events-none absolute left-3 top-2.5 text-[18px] text-slate-500">search</span>
+                <input
+                  data-testid="blocks-search-input"
+                  value={search}
+                  onChange={(event) => {
+                    setSearch(event.target.value);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      void loadBlocks(search);
+                    }
+                  }}
+                  placeholder="Search blocks..."
+                  className="w-full rounded-lg border border-white/[0.1] bg-white/[0.03] py-2 pl-9 pr-3 text-xs text-slate-100 placeholder:text-slate-500"
+                />
+              </div>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {isLoading ? <p className="px-3 py-4 text-xs text-slate-500">Loading canonical blocks…</p> : null}
+              {!isLoading && filtered.length === 0 ? <p className="px-3 py-4 text-xs text-slate-500">No canonical blocks found.</p> : null}
+
+              <div ref={menuRef} className="divide-y divide-white/[0.06]">
+                {filtered.map((block) => {
+                  const active = selected?.id === block.id;
+                  const itemUsage = blockUsage.get(block.key) ?? blockUsage.get(block.id) ?? block.usageCount ?? block.inUseCount;
+                  const itemPreview = resolveTargetPreview(block).trim();
+                  const hasPreview = itemPreview.length > 0;
+                  const menuOpen = openMenuId === block.id;
+                  return (
+                    <div
+                      key={block.id}
+                      role="button"
+                      tabIndex={0}
+                      data-testid={`blocks-item-${block.id}`}
+                      onClick={() => {
+                        setSelectedId(block.id);
+                        setOpenMenuId(null);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setSelectedId(block.id);
+                          setOpenMenuId(null);
+                        }
+                      }}
+                      className={`group relative w-full px-3 py-2 text-left transition-colors ${
+                        active ? "border-l-4 border-l-blue-500 bg-blue-500/[0.14]" : "bg-transparent hover:bg-white/[0.03]"
+                      }`}
+                    >
+                    <div className="flex gap-3">
+                      <div className="h-16 w-24 shrink-0 overflow-hidden rounded border border-white/[0.1] bg-[#020d1f]" data-testid={`blocks-item-preview-${block.id}`}>
+                          {hasPreview ? (
+                            <iframe title={`${block.key}-thumb`} className="h-full w-full" srcDoc={buildThumbnailSrcDoc(itemPreview)} sandbox="allow-scripts allow-same-origin" />
+                          ) : (
+                            <div className="flex h-full items-center justify-center px-1 text-center text-[10px] text-slate-500">Preview unavailable</div>
+                          )}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              {renamingBlockId === block.id ? (
+                                <input
+                                  data-testid={`blocks-item-rename-input-${block.id}`}
+                                  value={inlineBlockName}
+                                  autoFocus
+                                  onChange={(event) => setInlineBlockName(event.target.value)}
+                                  onClick={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                  }}
+                                  onBlur={() => {
+                                    void commitInlineRename(block);
+                                  }}
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter") {
+                                      event.preventDefault();
+                                      void commitInlineRename(block);
+                                    }
+                                    if (event.key === "Escape") {
+                                      event.preventDefault();
+                                      cancelInlineRename();
+                                    }
+                                  }}
+                                  className="w-full rounded border border-blue-400/35 bg-[#10233f] px-2 py-1 text-sm font-semibold text-slate-100"
+                                />
+                              ) : (
+                                <p className={`truncate text-sm font-semibold ${active ? "text-blue-300" : "text-slate-100"}`}>{block.name}</p>
+                              )}
+                            </div>
+                            <span className="relative flex shrink-0 items-center">
+                              <button
+                                type="button"
+                                data-testid={`blocks-item-rename-${block.id}`}
+                                onClick={(event) => {
+                                  event.preventDefault();
+                                  event.stopPropagation();
+                                  startInlineRename(block);
+                                }}
+                                className="rounded p-1 text-slate-400 transition-colors hover:bg-white/[0.08] hover:text-slate-200"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">edit</span>
+                              </button>
+                              <button
+                                type="button"
+                                data-testid={`blocks-item-menu-${block.id}`}
+                                onClick={(event) => {
+                                  event.preventDefault();
+                                  event.stopPropagation();
+                                  setSelectedId(block.id);
+                                  setOpenMenuId((current) => (current === block.id ? null : block.id));
+                                }}
+                                className="rounded p-1 text-slate-400 transition-colors hover:bg-white/[0.08] hover:text-slate-200"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">more_vert</span>
+                              </button>
+
+                              {menuOpen ? (
+                                <div className="absolute right-0 top-7 z-20 min-w-[180px] rounded-lg border border-white/[0.12] bg-[#0d1d36] p-1 shadow-2xl">
+                                  <button
+                                    type="button"
+                                    data-testid={`blocks-menu-action-toggle-status-${block.id}`}
+                                    onClick={(event) => {
+                                      event.preventDefault();
+                                      event.stopPropagation();
+                                      void runBlockAction("toggle-status", block);
+                                    }}
+                                    className="block w-full rounded px-2 py-1.5 text-left text-xs text-slate-200 hover:bg-white/[0.08]"
+                                  >
+                                    {block.status === "active" ? "Set Inactive" : "Set Active"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    data-testid={`blocks-menu-action-duplicate-${block.id}`}
+                                    onClick={(event) => {
+                                      event.preventDefault();
+                                      event.stopPropagation();
+                                      void runBlockAction("duplicate", block);
+                                    }}
+                                    className="block w-full rounded px-2 py-1.5 text-left text-xs text-slate-200 hover:bg-white/[0.08]"
+                                  >
+                                    Duplicate Block
+                                  </button>
+                                  <button
+                                    type="button"
+                                    data-testid={`blocks-menu-action-delete-${block.id}`}
+                                    onClick={(event) => {
+                                      event.preventDefault();
+                                      event.stopPropagation();
+                                      void runBlockAction("delete", block);
+                                    }}
+                                    className="block w-full rounded px-2 py-1.5 text-left text-xs text-red-300 hover:bg-red-500/[0.16]"
+                                  >
+                                    Delete Block
+                                  </button>
+                                </div>
+                              ) : null}
+                            </span>
+                          </div>
+
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px]">
+                            <span className="rounded border border-white/[0.1] bg-white/[0.04] px-1.5 py-0.5 uppercase tracking-wide text-slate-400">{block.family}</span>
+                            <span className={`rounded border px-1.5 py-0.5 uppercase tracking-wide ${schemaBadgeTone(block.schemaStatus ?? "valid")}`}>
+                              schema {block.schemaStatus ?? "valid"}
+                            </span>
+                            <span className={`rounded border px-1.5 py-0.5 uppercase tracking-wide ${lifecycleBadgeTone(block.lifecycle ?? "draft")}`}>
+                              {block.lifecycle ?? "draft"}
+                            </span>
+                            <span className={`rounded border px-1.5 py-0.5 uppercase tracking-wide ${scopeBadgeTone(block.scope ?? "global")}`}>
+                              {block.scope ?? "global"}
+                            </span>
+                          </div>
+
+                          <div className="mt-1 flex items-center gap-2 text-[10px] text-slate-500">
+                            <span className="material-symbols-outlined text-[12px]">link</span>
+                            <span>{itemUsage} pages</span>
+                            <span>•</span>
+                            <span>{block.status}</span>
+                          </div>
+                          {block.importMasterKey ? (
+                            <p className="mt-1 truncate text-[10px] font-mono text-slate-500" title={block.importMasterKey}>
+                              {block.importMasterKey}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+
+          <section className="flex min-h-0 flex-col bg-[#081327]">
+            {selected ? (
+              <>
+                <div className="border-b border-white/[0.08] bg-white/[0.015] px-5 py-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500">Visual Preview</h2>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewVariant("target")}
+                        className={`rounded px-2 py-0.5 text-[10px] font-semibold ${previewVariant === "target" ? "bg-blue-500/20 text-blue-200" : "text-slate-500"}`}
+                      >
+                        Target
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewVariant("source")}
+                        className={`rounded px-2 py-0.5 text-[10px] font-semibold ${previewVariant === "source" ? "bg-white/[0.08] text-slate-200" : "text-slate-500"}`}
+                      >
+                        Source
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDevice("desktop")}
+                        className={`rounded p-1.5 ${previewDevice === "desktop" ? "bg-blue-500/20 text-blue-200" : "bg-white/[0.03] text-slate-400"}`}
+                      >
+                        <span className="material-symbols-outlined text-[18px]">desktop_windows</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDevice("tablet")}
+                        className={`rounded p-1.5 ${previewDevice === "tablet" ? "bg-blue-500/20 text-blue-200" : "bg-white/[0.03] text-slate-400"}`}
+                      >
+                        <span className="material-symbols-outlined text-[18px]">tablet_android</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDevice("mobile")}
+                        className={`rounded p-1.5 ${previewDevice === "mobile" ? "bg-blue-500/20 text-blue-200" : "bg-white/[0.03] text-slate-400"}`}
+                      >
+                        <span className="material-symbols-outlined text-[18px]">smartphone</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="overflow-auto rounded-xl border border-white/[0.12] bg-[#020d1f] p-3">
+                    <div className={deviceFrameClass()} data-testid="blocks-selected-preview">
+                      {(previewVariant === "source" ? selected.sourcePreviewHtml ?? "" : resolveTargetPreview(selected)).trim().length > 0 ? (
+                          <iframe
+                            title={`${selected.key}-preview`}
+                            className="h-full w-full rounded-lg border border-white/[0.08] bg-white"
+                            srcDoc={(previewVariant === "source" ? selected.sourcePreviewHtml ?? "" : resolveTargetPreview(selected)).trim()}
+                            sandbox="allow-scripts allow-same-origin"
+                          />
+                      ) : (
+                        <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-white/[0.12] text-xs text-slate-500">
+                          No preview available for this block.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto px-5 py-5">
+                  <h3 className="mb-4 text-xs font-bold uppercase tracking-widest text-slate-500">Properties</h3>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">Block Name</label>
+                      <input
+                        data-testid="blocks-name-input"
+                        value={selected.name}
+                        onChange={(event) => patchSelected({ name: event.target.value })}
+                        className="w-full rounded-lg border border-white/[0.1] bg-white/[0.02] px-3 py-2 text-sm text-slate-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">Visibility</label>
+                      <div className="flex items-center justify-between rounded-lg border border-white/[0.1] bg-white/[0.02] px-3 py-2">
+                        <span className="text-sm text-slate-200">{selected.status === "active" ? "Published" : selected.status}</span>
+                        <button
+                          type="button"
+                          onClick={() => patchSelected({ status: selected.status === "active" ? "inactive" : "active" })}
+                          className={`relative h-5 w-10 rounded-full ${selected.status === "active" ? "bg-blue-500" : "bg-slate-600"}`}
+                        >
+                          <span
+                            className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${selected.status === "active" ? "right-0.5" : "left-0.5"}`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">Lifecycle</label>
+                      <select
+                        value={selected.lifecycle ?? "draft"}
+                        onChange={(event) => patchSelected({ lifecycle: event.target.value as StudioBlockTemplate["lifecycle"] })}
+                        className="w-full rounded-lg border border-white/[0.1] bg-white/[0.02] px-3 py-2 text-sm text-slate-200"
+                      >
+                        <option value="draft">draft</option>
+                        <option value="published">published</option>
+                        <option value="archived">archived</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">Status</label>
+                      <select
+                        value={selected.status}
+                        onChange={(event) => patchSelected({ status: event.target.value as StudioBlockTemplate["status"] })}
+                        className="w-full rounded-lg border border-white/[0.1] bg-white/[0.02] px-3 py-2 text-sm text-slate-200"
+                      >
+                        {STATUS_OPTIONS.map((status) => (
+                          <option key={status} value={status}>
+                            {status}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">Block Type</label>
+                      <div className="grid grid-cols-4 gap-2">
+                        {["hero", "section", "conversion", "footer"].map((type) => {
+                          const active = selected.family.toLowerCase().includes(type === "section" ? "section" : type);
+                          return (
+                            <button
+                              key={type}
+                              type="button"
+                              onClick={() => {
+                                if (type === "section") {
+                                  patchSelected({ family: "feature_section" });
+                                  return;
+                                }
+                                if (type === "conversion") {
+                                  patchSelected({ family: "cta_banner" });
+                                  return;
+                                }
+                                patchSelected({ family: type });
+                              }}
+                              className={`rounded-lg border p-2 text-center text-[10px] font-bold uppercase ${
+                                active ? "border-blue-500 bg-blue-500/[0.12] text-blue-200" : "border-white/[0.1] bg-white/[0.02] text-slate-400"
+                              }`}
+                            >
+                              {type}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-500">Internal Description</label>
+                      <textarea
+                        value={selected.sourceRef ?? ""}
+                        onChange={(event) => patchSelected({ sourceRef: event.target.value })}
+                        rows={3}
+                        className="w-full rounded-lg border border-white/[0.1] bg-white/[0.02] px-3 py-2 text-sm text-slate-200"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] p-3 text-[11px] text-slate-300 md:grid-cols-2">
+                    <p>
+                      <span className="text-slate-500">Schema:</span> {selected.schemaStatus}
+                    </p>
+                    <p>
+                      <span className="text-slate-500">Scope:</span> {selected.scope}
+                    </p>
+                    <p>
+                      <span className="text-slate-500">Usage:</span> {selectedUsageCount} pages
+                    </p>
+                    <p className="truncate">
+                      <span className="text-slate-500">Key:</span> {selected.key}
+                    </p>
+                    <p className="truncate">
+                      <span className="text-slate-500">Import:</span> {selected.importMasterKey ?? "n/a"}
+                    </p>
+                  </div>
+
+                  {whereUsedPages.length > 0 ? (
+                    <div className="mt-4 rounded-lg border border-white/[0.08] bg-white/[0.02] p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Used By</p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {whereUsedPages.map((page) => (
+                          <span key={page.id} className="rounded bg-white/[0.07] px-2 py-0.5 text-[10px] text-slate-300">
+                            {page.slug}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="mt-6 flex flex-wrap justify-end gap-2 border-t border-white/[0.08] pt-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void loadBlocks(search);
+                        setStatusMessage("Reverted unsaved block edits.");
+                      }}
+                      className="rounded-lg border border-white/[0.12] px-4 py-2 text-xs font-semibold text-slate-300"
+                    >
+                      Discard Changes
+                    </button>
+                    <button
+                      data-testid="blocks-save-button"
+                      type="button"
+                      onClick={() => {
+                        void saveSelected();
+                      }}
+                      disabled={isMutating}
+                      className="rounded-lg bg-blue-500 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                    >
+                      {isMutating ? "Saving…" : "Save Changes"}
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="flex h-full items-center justify-center px-5 py-12">
+                <div className="rounded-xl border border-dashed border-white/[0.12] px-6 py-10 text-center text-sm text-slate-500">
+                  Select a canonical block to inspect details.
+                </div>
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+    </div>
+  );
 }

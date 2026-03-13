@@ -1,884 +1,708 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import type { StudioShell, StudioTheme, StudioThemeToken } from "../_lib/studio-types";
 import { requestClientJson } from "../_lib/client-request";
 import { setPreviewSwatchThemeId } from "../_lib/preview-swatch-state";
-import { StudioActionMenu, StudioDetailContainer, StudioListContainer } from "../_components/workflow";
-import {
-  ALLOWED_THEME_SOURCES,
-  isStudioThemeSourceType,
-  normalizeThemeKey,
-  type StudioThemeSourceType
-} from "./theme-input";
+import type { StudioShell, StudioTheme, StudioThemeToken } from "../_lib/studio-types";
 
-type ThemeWorkflowMode = "browse" | "derive";
-
-type ThemeSaveMode = "create" | "upsert";
-
-type ThemeSaveResponse =
-  | {
-      ok: true;
-      data: StudioTheme[];
-      source: "fallback" | "strapi";
-    }
-  | {
-      ok: false;
-      error: string;
-      code?: string;
-      duplicateThemeId?: string;
-    };
-
-const SOURCE_LABELS: Record<StudioThemeSourceType, string> = {
-  url: "Website URL",
-  html_upload: "HTML Upload",
-  figma_export: "Figma Export Code",
-  stitch_export: "Stitch Export Code",
-  zip_upload: "ZIP Upload",
-  local_repo_path: "Local Repo/Test Path"
+type ThemeResponse = {
+  ok: boolean;
+  data?: StudioTheme[];
+  source?: "strapi" | "fallback";
+  schemaSource?: "canonical" | "legacy" | "fallback";
+  error?: string;
 };
 
-function nowDateIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+type ShellResponse = {
+  ok: boolean;
+  data?: StudioShell[];
+  source?: "strapi" | "fallback";
+  schemaSource?: "canonical" | "legacy" | "fallback";
+  error?: string;
+};
 
-function extractHexColors(source: string): string[] {
-  const matches = source.match(/#[0-9a-fA-F]{3,8}/g) ?? [];
-  const unique = Array.from(new Set(matches.map((value) => value.toLowerCase())));
-  return unique.slice(0, 5);
-}
+type PreviewInheritanceMode = "auto" | "forced-dark" | "forced-light";
+type PreviewDevice = "desktop" | "tablet" | "mobile";
 
-function extractFontName(source: string): string | null {
-  const fontFamilyMatch = source.match(/font-family\s*:\s*([^;\n]+)/i);
-  if (!fontFamilyMatch) {
-    return null;
+function canonicalThemesGuard(payload: ThemeResponse): asserts payload is Required<Pick<ThemeResponse, "ok" | "data" | "source" | "schemaSource">> {
+  if (!payload.ok || !Array.isArray(payload.data)) {
+    throw new Error(payload.error ?? "Unable to load canonical themes.");
   }
-
-  return fontFamilyMatch[1].replace(/["']/g, "").split(",")[0]?.trim() ?? null;
+  if (payload.source !== "strapi" || payload.schemaSource !== "canonical") {
+    throw new Error("Theme & Shell requires canonical studio-themes from Strapi.");
+  }
 }
 
-function buildDerivedTokens(sourceType: StudioThemeSourceType, sourceValue: string): StudioThemeToken[] {
-  const colors = extractHexColors(sourceValue);
-  const fallbackColors = ["#0b1120", "#f1f5f9", "#3b82f6", "#111827", "#94a3b8"];
-  const palette = colors.length > 0 ? colors : fallbackColors;
-  const font = extractFontName(sourceValue) ?? "Manrope";
-
-  return [
-    {
-      key: "surface-bg",
-      label: "Surface Background",
-      category: "color",
-      value: palette[0] ?? fallbackColors[0],
-      cssVariable: "--theme-surface-bg",
-      mapped: true
-    },
-    {
-      key: "surface-text",
-      label: "Surface Text",
-      category: "color",
-      value: palette[1] ?? fallbackColors[1],
-      cssVariable: "--theme-surface-text",
-      mapped: true
-    },
-    {
-      key: "surface-accent",
-      label: "Surface Accent",
-      category: "color",
-      value: palette[2] ?? fallbackColors[2],
-      cssVariable: "--theme-surface-accent",
-      mapped: true
-    },
-    {
-      key: "surface-muted",
-      label: "Surface Muted",
-      category: "color",
-      value: palette[4] ?? fallbackColors[4],
-      cssVariable: "--theme-surface-muted",
-      mapped: true
-    },
-    {
-      key: "font-display",
-      label: "Display Font",
-      category: "typography",
-      value: font,
-      cssVariable: "--theme-font-display",
-      mapped: true
-    },
-    {
-      key: "radius-md",
-      label: "Radius",
-      category: "radius",
-      value: sourceType === "zip_upload" ? "14px" : "12px",
-      cssVariable: "--theme-radius-md",
-      mapped: true
-    }
-  ];
+function canonicalShellsGuard(payload: ShellResponse): asserts payload is Required<Pick<ShellResponse, "ok" | "data" | "source" | "schemaSource">> {
+  if (!payload.ok || !Array.isArray(payload.data)) {
+    throw new Error(payload.error ?? "Unable to load canonical shells.");
+  }
+  if (payload.source !== "strapi" || payload.schemaSource !== "canonical") {
+    throw new Error("Theme & Shell requires canonical studio-shells from Strapi.");
+  }
 }
 
-function buildPreviewCssVariables(tokens: StudioThemeToken[]): React.CSSProperties {
-  const style: Record<string, string> = {
-    "--theme-surface-bg": "#0b1120",
-    "--theme-surface-text": "#f1f5f9",
-    "--theme-surface-accent": "#3b82f6",
-    "--theme-surface-muted": "#94a3b8",
-    "--theme-font-display": "Manrope",
-    "--theme-radius-md": "12px"
+function tokenValue(theme: StudioTheme | null, matchers: string[], fallback: string): string {
+  if (!theme) {
+    return fallback;
+  }
+  const token = theme.tokens.find((entry) => matchers.some((matcher) => entry.key.toLowerCase().includes(matcher)));
+  return token?.value ?? fallback;
+}
+
+function buildPreviewCssVariables(theme: StudioTheme | null, inheritanceMode: PreviewInheritanceMode): React.CSSProperties {
+  const cssVars: Record<string, string> = {
+    "--theme-surface-bg": tokenValue(theme, ["background", "surface-bg", "bg"], "#0b1120"),
+    "--theme-surface-text": tokenValue(theme, ["text", "foreground", "surface-text"], "#f1f5f9"),
+    "--theme-surface-accent": tokenValue(theme, ["primary", "accent"], "#1162d4"),
+    "--theme-surface-muted": tokenValue(theme, ["muted", "secondary"], "#94a3b8"),
+    "--theme-font-display": tokenValue(theme, ["font", "display"], "Inter"),
+    "--theme-radius-md": tokenValue(theme, ["radius"], "12px"),
+    "--theme-panel-bg": "rgba(15, 23, 42, 0.78)",
+    "--theme-panel-border": "rgba(148, 163, 184, 0.16)"
   };
 
-  for (const token of tokens) {
+  theme?.tokens.forEach((token) => {
     if (token.cssVariable.startsWith("--")) {
-      style[token.cssVariable] = token.value;
+      cssVars[token.cssVariable] = token.value;
     }
+  });
+
+  if (inheritanceMode === "forced-light") {
+    cssVars["--theme-surface-bg"] = "#f8fafc";
+    cssVars["--theme-surface-text"] = "#0f172a";
+    cssVars["--theme-panel-bg"] = "rgba(255, 255, 255, 0.9)";
+    cssVars["--theme-panel-border"] = "rgba(15, 23, 42, 0.08)";
   }
 
-  return style as React.CSSProperties;
+  if (inheritanceMode === "forced-dark") {
+    cssVars["--theme-surface-bg"] = theme?.darkMode ? cssVars["--theme-surface-bg"] : "#0b1120";
+    cssVars["--theme-surface-text"] = theme?.darkMode ? cssVars["--theme-surface-text"] : "#e2e8f0";
+    cssVars["--theme-panel-bg"] = "rgba(15, 23, 42, 0.78)";
+    cssVars["--theme-panel-border"] = "rgba(148, 163, 184, 0.16)";
+  }
+
+  return cssVars as React.CSSProperties;
 }
 
-function resolveSourcePlaceholder(sourceType: StudioThemeSourceType): string {
-  if (sourceType === "url") {
-    return "https://example.com";
+function themeGradient(theme: StudioTheme | null): string {
+  const primary = tokenValue(theme, ["primary", "accent"], "#1162d4");
+  const secondary = tokenValue(theme, ["background", "surface-bg", "bg"], "#0f172a");
+  const tertiary = tokenValue(theme, ["muted", "secondary"], "#334155");
+  return `linear-gradient(135deg, ${secondary} 0%, ${primary} 48%, ${tertiary} 100%)`;
+}
+
+function sortThemes(themes: StudioTheme[]): StudioTheme[] {
+  return [...themes].sort((left, right) => {
+    if (left.status === "active" && right.status !== "active") {
+      return -1;
+    }
+    if (left.status !== "active" && right.status === "active") {
+      return 1;
+    }
+    return right.updatedAt.localeCompare(left.updatedAt);
+  });
+}
+
+function sortShells(shells: StudioShell[]): StudioShell[] {
+  return [...shells].sort((left, right) => {
+    if (left.status === "active" && right.status !== "active") {
+      return -1;
+    }
+    if (left.status !== "active" && right.status === "active") {
+      return 1;
+    }
+    return left.name.localeCompare(right.name);
+  });
+}
+
+function deriveShellPreviewKind(shell: StudioShell | null): "sidebar" | "topbar" {
+  const key = `${shell?.key ?? ""} ${shell?.name ?? ""}`.toLowerCase();
+  if (key.includes("sidebar") || key.includes("left nav")) {
+    return "sidebar";
   }
-  if (sourceType === "local_repo_path") {
-    return "docs/testing-artifacts/code.html";
+  return "topbar";
+}
+
+function tokenByCategory(theme: StudioTheme | null, category: StudioThemeToken["category"]): StudioThemeToken[] {
+  return (theme?.tokens ?? []).filter((token) => token.category === category);
+}
+
+function deviceFrameClass(device: PreviewDevice): string {
+  if (device === "tablet") {
+    return "mx-auto h-[620px] w-[520px]";
   }
-  if (sourceType === "zip_upload") {
-    return "Upload a .zip file containing exported theme assets.";
+  if (device === "mobile") {
+    return "mx-auto h-[620px] w-[320px]";
   }
-  if (sourceType === "figma_export") {
-    return "Paste exported Figma HTML/CSS snippet...";
-  }
-  if (sourceType === "stitch_export") {
-    return "Paste exported Stitch code snippet...";
-  }
-  return "Paste HTML source...";
+  return "mx-auto h-[620px] w-[760px] max-w-full";
 }
 
 export default function ThemeWorkflowPage(): React.ReactElement {
   const [themes, setThemes] = useState<StudioTheme[]>([]);
   const [shells, setShells] = useState<StudioShell[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [mode, setMode] = useState<ThemeWorkflowMode>("browse");
-  const [sourceType, setSourceType] = useState<StudioThemeSourceType>("html_upload");
-  const [sourceValue, setSourceValue] = useState("");
-  const [sourceFileName, setSourceFileName] = useState<string | null>(null);
-  const [themeName, setThemeName] = useState("Derived Theme");
-  const [themeKeyInput, setThemeKeyInput] = useState("derived-theme");
-  const [candidateTheme, setCandidateTheme] = useState<StudioTheme | null>(null);
-  const [swatchThemeId, setSwatchThemeId] = useState<string | null>(null);
-  const [duplicateWarning, setDuplicateWarning] = useState<{ message: string; duplicateThemeId?: string } | null>(null);
-  const [isLoadingThemes, setIsLoadingThemes] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isActivating, setIsActivating] = useState(false);
+  const [pendingThemeId, setPendingThemeId] = useState<string | null>(null);
+  const [pendingShellId, setPendingShellId] = useState<string | null>(null);
+  const [themeDebtReviewOpen, setThemeDebtReviewOpen] = useState(false);
+  const [inheritanceMode, setInheritanceMode] = useState<PreviewInheritanceMode>("auto");
+  const [previewDevice, setPreviewDevice] = useState<PreviewDevice>("desktop");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isApplying, setIsApplying] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function loadThemes(): Promise<void> {
-    setIsLoadingThemes(true);
+  async function loadContext(): Promise<void> {
+    setIsLoading(true);
     setError(null);
+
     try {
-      const payload = await requestClientJson<{ ok: boolean; data?: StudioTheme[]; error?: string }>(
-        "/api/platform/studio/themes",
-        {
-          method: "GET",
-          headers: { "content-type": "application/json" }
-        },
-        {
-          timeoutMessage: "Loading themes timed out. Please retry.",
-          fallbackErrorMessage: "Unable to load themes."
-        }
-      );
+      const [themesPayload, shellsPayload] = await Promise.all([
+        requestClientJson<ThemeResponse>(
+          "/api/platform/studio/themes",
+          { method: "GET", headers: { "content-type": "application/json" } },
+          {
+            timeoutMessage: "Loading themes timed out. Please retry.",
+            fallbackErrorMessage: "Unable to load canonical themes."
+          }
+        ),
+        requestClientJson<ShellResponse>(
+          "/api/platform/studio/shells",
+          { method: "GET", headers: { "content-type": "application/json" } },
+          {
+            timeoutMessage: "Loading shells timed out. Please retry.",
+            fallbackErrorMessage: "Unable to load canonical shells."
+          }
+        )
+      ]);
 
-      if (!payload.ok || !Array.isArray(payload.data)) {
-        throw new Error(payload.error ?? "Unable to load themes.");
-      }
+      canonicalThemesGuard(themesPayload);
+      canonicalShellsGuard(shellsPayload);
 
-      setThemes(payload.data);
-      if (!selectedId && payload.data.length > 0) {
-        setSelectedId(payload.data[0].id);
-      }
+      const loadedThemes = sortThemes(themesPayload.data);
+      const loadedShells = sortShells(shellsPayload.data);
+      const activeTheme = loadedThemes.find((theme) => theme.status === "active") ?? loadedThemes[0] ?? null;
+      const activeShell = loadedShells.find((shell) => shell.status === "active") ?? loadedShells[0] ?? null;
+
+      setThemes(loadedThemes);
+      setShells(loadedShells);
+      setPendingThemeId(activeTheme?.id ?? null);
+      setPendingShellId(activeShell?.id ?? null);
+      setStatusMessage(null);
     } catch (loadError) {
+      setThemes([]);
+      setShells([]);
+      setPendingThemeId(null);
+      setPendingShellId(null);
       setError(loadError instanceof Error ? loadError.message : String(loadError));
     } finally {
-      setIsLoadingThemes(false);
+      setIsLoading(false);
     }
   }
 
-  async function loadShells(): Promise<void> {
-    try {
-      const payload = await requestClientJson<{ ok: boolean; data?: StudioShell[]; error?: string }>(
-        "/api/platform/studio/shells",
-        {
-          method: "GET",
-          headers: { "content-type": "application/json" }
-        },
-        {
-          timeoutMessage: "Loading shell presets timed out. Please retry.",
-          fallbackErrorMessage: "Unable to load shell presets."
-        }
-      );
-      if (!payload.ok || !Array.isArray(payload.data)) {
-        throw new Error(payload.error ?? "Unable to load shell presets.");
-      }
-      setShells(payload.data);
-    } catch {
-      setShells([]);
-    }
-  }
+  useEffect(() => {
+    void loadContext();
+  }, []);
 
-  async function activateTheme(themeId: string, themeKey: string): Promise<void> {
-    setIsActivating(true);
+  const activeTheme = useMemo(() => themes.find((theme) => theme.status === "active") ?? null, [themes]);
+  const activeShell = useMemo(() => shells.find((shell) => shell.status === "active") ?? null, [shells]);
+  const pendingTheme = useMemo(() => themes.find((theme) => theme.id === pendingThemeId) ?? activeTheme, [themes, pendingThemeId, activeTheme]);
+  const pendingShell = useMemo(() => shells.find((shell) => shell.id === pendingShellId) ?? activeShell, [shells, pendingShellId, activeShell]);
+  const previewStyle = useMemo(() => buildPreviewCssVariables(pendingTheme, inheritanceMode), [pendingTheme, inheritanceMode]);
+  const shellPreviewKind = useMemo(() => deriveShellPreviewKind(pendingShell), [pendingShell]);
+  const colorTokens = useMemo(() => tokenByCategory(pendingTheme, "color").slice(0, 3), [pendingTheme]);
+  const typographyTokens = useMemo(() => tokenByCategory(pendingTheme, "typography").slice(0, 2), [pendingTheme]);
+  const shapeTokens = useMemo(
+    () => (pendingTheme?.tokens ?? []).filter((token) => token.category === "radius" || token.category === "spacing" || token.category === "shadow").slice(0, 3),
+    [pendingTheme]
+  );
+
+  const hasPendingChanges = (pendingTheme?.id ?? null) !== (activeTheme?.id ?? null) || (pendingShell?.id ?? null) !== (activeShell?.id ?? null);
+
+  useEffect(() => {
+    if (!pendingTheme || !activeTheme || pendingTheme.id === activeTheme.id) {
+      setPreviewSwatchThemeId(null);
+      return;
+    }
+    setPreviewSwatchThemeId(pendingTheme.id);
+  }, [activeTheme, pendingTheme]);
+
+  async function applyChanges(): Promise<void> {
+    if (!pendingTheme && !pendingShell) {
+      return;
+    }
+
+    setIsApplying(true);
     setError(null);
+    setStatusMessage(null);
+
     try {
-      const payload = await requestClientJson<{ ok: boolean; data?: StudioTheme[]; error?: string }>(
+      if (pendingTheme && activeTheme && pendingTheme.id !== activeTheme.id) {
+        const themePayload = await requestClientJson<ThemeResponse>(
+          "/api/platform/studio/themes/activate",
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ id: pendingTheme.id, themeKey: pendingTheme.themeKey })
+          },
+          {
+            timeoutMessage: "Activating theme timed out. Please retry.",
+            fallbackErrorMessage: "Unable to activate canonical theme."
+          }
+        );
+        canonicalThemesGuard(themePayload);
+      }
+
+      if (pendingShell && activeShell && pendingShell.id !== activeShell.id) {
+        const shellPayload = await requestClientJson<ShellResponse>(
+          "/api/platform/studio/shells/activate",
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ id: pendingShell.id, key: pendingShell.key })
+          },
+          {
+            timeoutMessage: "Activating shell timed out. Please retry.",
+            fallbackErrorMessage: "Unable to activate canonical shell."
+          }
+        );
+        canonicalShellsGuard(shellPayload);
+      }
+
+      await loadContext();
+      setStatusMessage("Applied canonical Theme & Shell changes.");
+    } catch (applyError) {
+      setError(applyError instanceof Error ? applyError.message : String(applyError));
+    } finally {
+      setIsApplying(false);
+    }
+  }
+
+  async function activateTheme(theme: StudioTheme): Promise<void> {
+    if (theme.status === "active") {
+      setStatusMessage(`${theme.name} is already active.`);
+      setError(null);
+      return;
+    }
+
+    setIsApplying(true);
+    setError(null);
+    setStatusMessage(null);
+
+    try {
+      const themePayload = await requestClientJson<ThemeResponse>(
         "/api/platform/studio/themes/activate",
         {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ id: themeId, themeKey })
+          body: JSON.stringify({ id: theme.id, themeKey: theme.themeKey })
         },
         {
           timeoutMessage: "Activating theme timed out. Please retry.",
-          fallbackErrorMessage: "Unable to activate theme."
+          fallbackErrorMessage: "Unable to activate canonical theme."
         }
       );
-
-      if (!payload.ok || !Array.isArray(payload.data)) {
-        throw new Error(payload.error ?? "Unable to activate theme.");
-      }
-
-      setThemes(payload.data);
-    } catch (activationError) {
-      setError(activationError instanceof Error ? activationError.message : String(activationError));
+      canonicalThemesGuard(themePayload);
+      await loadContext();
+      setPreviewSwatchThemeId(theme.id);
+      setStatusMessage(`Activated canonical theme ${theme.name}.`);
+    } catch (applyError) {
+      setError(applyError instanceof Error ? applyError.message : String(applyError));
     } finally {
-      setIsActivating(false);
+      setIsApplying(false);
     }
   }
 
-  async function saveTheme(theme: StudioTheme, options: { saveMode: ThemeSaveMode; source: StudioThemeSourceType }): Promise<ThemeSaveResponse> {
-    const response = await fetch("/api/platform/studio/themes", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        mode: options.saveMode,
-        sourceType: options.source,
-        theme
-      })
-    });
-
-    const payload = (await response.json()) as ThemeSaveResponse;
-    return payload;
-  }
-
-  useEffect(() => {
-    void loadThemes();
-    void loadShells();
-  }, []);
-
-  useEffect(() => {
-    setPreviewSwatchThemeId(swatchThemeId);
-  }, [swatchThemeId]);
-
-  const selectedTheme = themes.find((theme) => theme.id === selectedId) ?? null;
-  const activeTheme = themes.find((theme) => theme.status === "active") ?? null;
-  const activeShell = shells.find((shell) => shell.status === "active") ?? null;
-  const swatchTheme = themes.find((theme) => theme.id === swatchThemeId) ?? null;
-
-  const previewTheme = useMemo(() => {
-    if (swatchTheme) {
-      return swatchTheme;
-    }
-    if (selectedTheme) {
-      return selectedTheme;
-    }
-    return activeTheme;
-  }, [activeTheme, selectedTheme, swatchTheme]);
-
-  const previewStyle = useMemo(() => buildPreviewCssVariables(previewTheme?.tokens ?? []), [previewTheme]);
-
-  function resetDeriveState(): void {
-    setSourceType("html_upload");
-    setSourceValue("");
-    setSourceFileName(null);
-    setThemeName("Derived Theme");
-    setThemeKeyInput("derived-theme");
-    setCandidateTheme(null);
-    setDuplicateWarning(null);
+  function discardChanges(): void {
+    setPendingThemeId(activeTheme?.id ?? null);
+    setPendingShellId(activeShell?.id ?? null);
+    setInheritanceMode("auto");
+    setStatusMessage("Discarded pending Theme & Shell changes.");
     setError(null);
   }
-
-  function startDerivePreview(): void {
-    setError(null);
-    setDuplicateWarning(null);
-
-    if (!isStudioThemeSourceType(sourceType)) {
-      setError(`Unsupported source type. Allowed: ${ALLOWED_THEME_SOURCES.join(", ")}.`);
-      return;
-    }
-
-    if (sourceType !== "zip_upload" && sourceValue.trim().length === 0) {
-      setError("A source value is required for this theme source type.");
-      return;
-    }
-
-    if (sourceType === "zip_upload" && !sourceFileName) {
-      setError("Upload a ZIP file to continue.");
-      return;
-    }
-
-    const normalizedThemeKey = normalizeThemeKey(themeKeyInput);
-    const now = nowDateIso();
-    const sourceRef = sourceType === "zip_upload" ? sourceFileName ?? "zip_upload" : sourceValue.trim();
-    const tokens = buildDerivedTokens(sourceType, sourceRef);
-    const coverage = Math.min(0.98, 0.62 + tokens.filter((token) => token.mapped).length * 0.05);
-
-    setCandidateTheme({
-      id: `theme-candidate-${Date.now()}`,
-      themeKey: normalizedThemeKey,
-      name: themeName.trim().length > 0 ? themeName.trim() : "Derived Theme",
-      status: "draft",
-      sourceRef,
-      createdAt: now,
-      updatedAt: now,
-      tokenCoverage: coverage,
-      themeDebt: "Preview candidate only. Save to persist.",
-      darkMode: true,
-      tokens
-    });
-  }
-
-  async function persistCandidateTheme(): Promise<void> {
-    if (!candidateTheme) {
-      return;
-    }
-
-    setIsSaving(true);
-    setError(null);
-    setDuplicateWarning(null);
-    try {
-      const payload = await saveTheme(candidateTheme, {
-        saveMode: "create",
-        source: sourceType
-      });
-
-      if (!payload.ok) {
-        if (payload.code === "theme.duplicate") {
-          setDuplicateWarning({
-            message: payload.error,
-            duplicateThemeId: payload.duplicateThemeId
-          });
-          if (payload.duplicateThemeId) {
-            setSelectedId(payload.duplicateThemeId);
-            setMode("browse");
-          }
-          return;
-        }
-        throw new Error(payload.error);
-      }
-
-      setThemes(payload.data);
-      const saved = payload.data.find((theme) => theme.themeKey === candidateTheme.themeKey) ?? payload.data[0];
-      setSelectedId(saved?.id ?? null);
-      setMode("browse");
-      resetDeriveState();
-    } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : String(saveError));
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  async function saveSelectedPatch(patch: Partial<StudioTheme>): Promise<void> {
-    if (!selectedTheme) {
-      return;
-    }
-
-    const nextTheme: StudioTheme = {
-      ...selectedTheme,
-      ...patch,
-      updatedAt: nowDateIso()
-    };
-
-    setIsSaving(true);
-    setError(null);
-    try {
-      const payload = await saveTheme(nextTheme, {
-        saveMode: "upsert",
-        source: "html_upload"
-      });
-      if (!payload.ok) {
-        throw new Error(payload.error);
-      }
-      setThemes(payload.data);
-    } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : String(saveError));
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  const browseActions = selectedTheme
-    ? [
-        {
-          id: "activate-theme",
-          label: selectedTheme.status === "active" ? "Already Active" : "Set As Active",
-          description:
-            selectedTheme.status === "active"
-              ? "This theme is currently the production active record."
-              : "Promote this theme to active production state.",
-          tone: "accent" as const,
-          disabled: selectedTheme.status === "active" || isSaving || isActivating,
-          onSelect: () => {
-            void activateTheme(selectedTheme.id, selectedTheme.themeKey);
-          }
-        },
-        {
-          id: "apply-swatch",
-          label: swatchThemeId === selectedTheme.id ? "Clear Preview Swatch" : "Apply Preview Swatch",
-          description:
-            swatchThemeId === selectedTheme.id
-              ? "Clear temporary preview and view the active production theme."
-              : "Apply visual swatch preview only (no DB persistence).",
-          tone: "neutral" as const,
-          disabled: false,
-          onSelect: () => {
-            setSwatchThemeId((previous) => (previous === selectedTheme.id ? null : selectedTheme.id));
-          }
-        },
-        {
-          id: "archive-theme",
-          label: "Archive Theme",
-          description: "Move this theme to inactive state.",
-          tone: "danger" as const,
-          disabled: selectedTheme.status === "inactive" || isSaving,
-          onSelect: () => {
-            void saveSelectedPatch({ status: "inactive" });
-          }
-        }
-      ]
-    : [];
 
   return (
-    <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-5" style={previewStyle}>
-      <header className="flex items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-slate-100">Theme &amp; Shell Studio</h1>
-          <p className="mt-1 text-xs text-slate-500">
-            Govern Theme Presets, Shell Presets, and token mappings used by the Studio import and page composition flow.
-          </p>
+    <div className="mx-auto flex w-full max-w-[1620px] flex-col gap-4">
+      <header className="flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] bg-[#071226]/70 px-2 pb-3">
+        <div className="flex flex-col">
+          <h1 className="text-lg font-bold leading-tight text-white">Theme &amp; Shell Studio</h1>
+          <p className="text-xs text-slate-400">Manage the visual identity and global shell of your studio output.</p>
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Inheritance</span>
+            <select
+              value={inheritanceMode}
+              onChange={(event) => setInheritanceMode(event.target.value as PreviewInheritanceMode)}
+              className="border-none bg-transparent p-0 text-[10px] font-bold text-white focus:outline-none"
+            >
+              <option value="auto">Auto (System)</option>
+              <option value="forced-dark">Forced Dark</option>
+              <option value="forced-light">Forced Light</option>
+            </select>
+          </div>
+
+          <div className="flex items-center rounded-lg bg-white/[0.04] p-1">
+            <button
+              type="button"
+              onClick={() => setInheritanceMode("forced-light")}
+              className={`rounded-md p-1.5 ${inheritanceMode === "forced-light" ? "bg-white/[0.08] text-white" : "text-slate-400"}`}
+              aria-label="Preview light"
+            >
+              <span className="material-symbols-outlined block text-sm">light_mode</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setInheritanceMode("forced-dark")}
+              className={`rounded-md p-1.5 ${inheritanceMode === "forced-dark" ? "bg-white/[0.08] text-white" : "text-slate-400"}`}
+              aria-label="Preview dark"
+            >
+              <span className="material-symbols-outlined block text-sm">dark_mode</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setInheritanceMode("auto")}
+              className={`rounded-md p-1.5 ${inheritanceMode === "auto" ? "bg-white/[0.08] text-white" : "text-slate-400"}`}
+              aria-label="Preview system"
+            >
+              <span className="material-symbols-outlined block text-sm">desktop_windows</span>
+            </button>
+          </div>
+
           <button
             type="button"
-            onClick={() => setMode("browse")}
-            className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-              mode === "browse" ? "bg-blue-500/20 text-blue-200" : "bg-white/[0.04] text-slate-400"
-            }`}
+            data-testid="theme-discard-changes"
+            onClick={discardChanges}
+            className="text-sm font-medium text-slate-400 transition-colors hover:text-white"
           >
-            Browse
+            Discard
           </button>
           <button
             type="button"
-            data-testid="theme-open-derive"
+            data-testid="theme-apply-changes"
             onClick={() => {
-              setMode("derive");
-              setDuplicateWarning(null);
-              setError(null);
+              void applyChanges();
             }}
-            className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-              mode === "derive" ? "bg-blue-500/20 text-blue-200" : "bg-white/[0.04] text-slate-400"
-            }`}
+            disabled={isApplying || isLoading || !hasPendingChanges}
+            className="rounded-lg bg-blue-500 px-5 py-2 text-sm font-bold text-white shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-500/90 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Derive / Upload
+            {isApplying ? "Applying..." : "Apply Changes"}
           </button>
         </div>
       </header>
 
-      {swatchThemeId ? (
-        <div data-testid="theme-swatch-banner" className="rounded-xl border border-amber-500/35 bg-amber-500/[0.08] px-3 py-2">
-          <p className="text-xs text-amber-300">
-            Preview Swatch Active: <strong>{swatchTheme?.name ?? "Unknown"}</strong>. Refreshing the browser resets to Active Production Theme.
-          </p>
-        </div>
+      {error ? <div className="rounded-xl border border-red-500/30 bg-red-500/[0.08] px-3 py-2 text-xs text-red-300">{error}</div> : null}
+      {statusMessage ? (
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.08] px-3 py-2 text-xs text-emerald-300">{statusMessage}</div>
       ) : null}
 
-      {duplicateWarning ? (
-        <div data-testid="theme-duplicate-warning" className="rounded-xl border border-amber-500/35 bg-amber-500/[0.08] px-3 py-3">
-          <p className="text-sm font-semibold text-amber-200">Duplicate Theme Upload Blocked</p>
-          <p className="mt-1 text-xs text-amber-300">{duplicateWarning.message}</p>
-        </div>
-      ) : null}
-
-      {error ? (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/[0.08] px-3 py-2">
-          <p className="text-xs text-red-300">{error}</p>
-        </div>
-      ) : null}
-
-      {mode === "derive" ? (
-        <div className="grid gap-5 lg:grid-cols-[340px_1fr]">
-          <StudioListContainer
-            title="Theme Source"
-            description="Allowed inputs only: URL, HTML, Figma export, Stitch export, ZIP, local repo/test path."
-            items={ALLOWED_THEME_SOURCES.map((value) => ({ id: value, value }))}
-            selectedId={sourceType}
-            onSelectItem={(item) => {
-              setSourceType(item.value);
-              setSourceValue("");
-              setSourceFileName(null);
-              setCandidateTheme(null);
-              setDuplicateWarning(null);
-              setError(null);
-            }}
-            getItemTitle={(item) => SOURCE_LABELS[item.value]}
-            getItemSubtitle={(item) => item.value}
-            emptyTitle="No source types"
-          />
-
-          <div className="flex flex-col gap-5">
-            <StudioDetailContainer
-              title="Derive Theme Candidate"
-              description="Generate a sample preview before saving a draft theme record."
-              isEmpty={false}
-            >
-              <div className="grid gap-3 md:grid-cols-2">
-                <label className="flex flex-col gap-1 text-xs text-slate-400">
-                  Theme Name
-                  <input
-                    data-testid="theme-name-input"
-                    className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-slate-100"
-                    value={themeName}
-                    onChange={(event) => {
-                      setThemeName(event.target.value);
-                      if (themeKeyInput === "" || themeKeyInput === "derived-theme") {
-                        setThemeKeyInput(normalizeThemeKey(event.target.value));
-                      }
+      <div className="grid min-h-[calc(100vh-170px)] gap-0 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#071226] xl:grid-cols-[288px_minmax(0,1fr)_320px]">
+        <section className="overflow-y-auto border-r border-white/[0.08] bg-[#061127] px-5 py-6">
+          <div>
+            <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.24em] text-slate-500">System Presets</h2>
+            <div className="space-y-3">
+              {themes.map((theme) => {
+                const selected = pendingTheme?.id === theme.id;
+                const active = activeTheme?.id === theme.id;
+                return (
+                  <button
+                    key={theme.id}
+                    type="button"
+                    data-testid={`theme-card-${theme.id}`}
+                    onClick={() => {
+                      setPendingThemeId(theme.id);
+                      setStatusMessage(null);
                     }}
-                  />
-                </label>
-                <label className="flex flex-col gap-1 text-xs text-slate-400">
-                  Theme Key
-                  <input
-                    data-testid="theme-key-input"
-                    className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-slate-100"
-                    value={themeKeyInput}
-                    onChange={(event) => setThemeKeyInput(event.target.value)}
-                  />
-                </label>
-              </div>
-
-              {sourceType === "zip_upload" ? (
-                <div className="rounded-xl border border-white/[0.08] bg-white/[0.015] p-3">
-                  <label className="text-xs text-slate-400">ZIP File</label>
-                  <input
-                    data-testid="theme-zip-input"
-                    type="file"
-                    accept=".zip"
-                    className="mt-2 block w-full text-xs text-slate-300"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      setSourceFileName(file?.name ?? null);
-                      setSourceValue(file?.name ?? "");
-                    }}
-                  />
-                  <p className="mt-2 text-[11px] text-slate-500">{sourceFileName ?? "No ZIP selected yet."}</p>
-                </div>
-              ) : sourceType === "url" || sourceType === "local_repo_path" ? (
-                <label className="flex flex-col gap-1 text-xs text-slate-400">
-                  {SOURCE_LABELS[sourceType]}
-                  <input
-                    data-testid="theme-source-input"
-                    className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-slate-100"
-                    placeholder={resolveSourcePlaceholder(sourceType)}
-                    value={sourceValue}
-                    onChange={(event) => setSourceValue(event.target.value)}
-                  />
-                </label>
-              ) : (
-                <label className="flex flex-col gap-1 text-xs text-slate-400">
-                  {SOURCE_LABELS[sourceType]}
-                  <textarea
-                    data-testid="theme-source-textarea"
-                    className="min-h-[180px] rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 font-mono text-xs text-slate-100"
-                    placeholder={resolveSourcePlaceholder(sourceType)}
-                    value={sourceValue}
-                    onChange={(event) => setSourceValue(event.target.value)}
-                  />
-                </label>
-              )}
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  data-testid="theme-generate-preview"
-                  onClick={startDerivePreview}
-                  className="rounded-lg bg-blue-500 px-4 py-2 text-xs font-semibold text-white"
-                >
-                  Generate Sample Preview
-                </button>
-                <button
-                  type="button"
-                  onClick={resetDeriveState}
-                  className="rounded-lg bg-white/[0.04] px-4 py-2 text-xs font-semibold text-slate-400"
-                >
-                  Reset
-                </button>
-              </div>
-            </StudioDetailContainer>
-
-            <StudioDetailContainer
-              title="Sample Preview"
-              description="Visual review before persistence (REQ-THM-03)."
-              isEmpty={!candidateTheme}
-              emptyTitle="No sample generated"
-              emptyDescription="Generate a candidate preview to review swatches before saving."
-            >
-              {candidateTheme ? (
-                <div data-testid="theme-sample-preview" className="space-y-3">
-                  <div className="grid gap-2 md:grid-cols-3">
-                    {candidateTheme.tokens
-                      .filter((token) => token.category === "color")
-                      .map((token) => (
-                        <div key={token.key} className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-2">
-                          <p className="text-[10px] text-slate-500">{token.label}</p>
-                          <div className="mt-1 h-8 rounded border border-white/[0.08]" style={{ background: token.value }} />
-                          <p className="mt-1 text-[10px] text-slate-400">{token.value}</p>
-                        </div>
-                      ))}
-                  </div>
-
-                  <div
-                    data-testid="theme-preview-card"
-                    className="rounded-xl border p-4"
-                    style={{
-                      ...buildPreviewCssVariables(candidateTheme.tokens),
-                      borderColor: "color-mix(in srgb, var(--theme-surface-accent) 50%, transparent)",
-                      background: "var(--theme-surface-bg)",
-                      color: "var(--theme-surface-text)",
-                      borderRadius: "var(--theme-radius-md)",
-                      fontFamily: "var(--theme-font-display), sans-serif"
-                    }}
+                    className={`w-full overflow-hidden rounded-xl border text-left transition-all ${
+                      selected ? "border-blue-500 bg-blue-500/[0.08] shadow-lg shadow-blue-500/10" : "border-white/[0.08] bg-white/[0.02] hover:border-white/[0.18]"
+                    }`}
                   >
-                    <p className="text-sm font-semibold">{candidateTheme.name}</p>
-                    <p className="mt-1 text-xs" style={{ color: "var(--theme-surface-muted)" }}>
-                      This preview is visual-only. Save to persist the draft.
-                    </p>
-                    <button
-                      type="button"
-                      className="mt-3 rounded-lg px-3 py-1.5 text-xs font-semibold"
-                      style={{ background: "var(--theme-surface-accent)", color: "var(--theme-surface-text)" }}
-                    >
-                      Primary CTA
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-            </StudioDetailContainer>
-
-            <StudioActionMenu
-              title="Candidate Actions"
-              description="Duplicate-safe save path with explicit warning response."
-              items={
-                candidateTheme
-                  ? [
-                      {
-                        id: "save-candidate",
-                        label: "Save Theme Draft",
-                        description: "Persist the candidate if no duplicate key exists.",
-                        tone: "accent",
-                        disabled: isSaving,
-                        onSelect: () => {
-                          void persistCandidateTheme();
-                        }
-                      },
-                      {
-                        id: "discard-candidate",
-                        label: "Discard Candidate",
-                        description: "Clear the current preview candidate.",
-                        disabled: false,
-                        onSelect: () => setCandidateTheme(null)
-                      }
-                    ]
-                  : []
-              }
-            />
-          </div>
-        </div>
-      ) : (
-        <div className="grid gap-5 lg:grid-cols-[340px_1fr]">
-          <StudioListContainer
-            title="Theme Library"
-            description={isLoadingThemes ? "Loading themes…" : "Browse active, draft, and archived theme variants."}
-            items={themes}
-            selectedId={selectedId}
-            onSelectItem={(theme) => {
-              setSelectedId(theme.id);
-              setDuplicateWarning(null);
-            }}
-            getItemTestId={(theme) => `theme-card-${theme.id}`}
-            getItemTitle={(theme) => theme.name}
-            getItemSubtitle={(theme) => `${theme.status.toUpperCase()} • ${theme.themeKey}`}
-            getItemMeta={(theme) => `${Math.round(theme.tokenCoverage * 100)}% token coverage • ${theme.tokens.length} tokens`}
-            emptyTitle="No themes found"
-            emptyDescription="Use Derive/Upload mode to create the first theme."
-          />
-
-          <div className="flex flex-col gap-5">
-            <StudioDetailContainer
-              title={selectedTheme ? selectedTheme.name : "Theme Detail"}
-              description={selectedTheme ? `Source: ${selectedTheme.sourceRef}` : "Select a theme to inspect."}
-              isEmpty={!selectedTheme}
-              emptyTitle="No theme selected"
-              emptyDescription="Pick a theme from the library to inspect and manage swatches."
-              headerSlot={
-                selectedTheme ? (
-                  <span className="rounded-lg border border-white/[0.1] bg-white/[0.04] px-2 py-1 text-[11px] text-slate-300">
-                    {selectedTheme.status}
-                  </span>
-                ) : null
-              }
-            >
-              {selectedTheme ? (
-                <div className="space-y-3">
-                  <div className="grid gap-3 md:grid-cols-4">
-                    <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-3 text-center">
-                      <p className="text-sm font-semibold text-slate-100">{Math.round(selectedTheme.tokenCoverage * 100)}%</p>
-                      <p className="text-[10px] text-slate-500">Coverage</p>
-                    </div>
-                    <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-3 text-center">
-                      <p className="text-sm font-semibold text-slate-100">{selectedTheme.tokens.length}</p>
-                      <p className="text-[10px] text-slate-500">Tokens</p>
-                    </div>
-                    <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-3 text-center">
-                      <p className="text-sm font-semibold text-slate-100">{selectedTheme.darkMode ? "Dark" : "Light"}</p>
-                      <p className="text-[10px] text-slate-500">Mode</p>
-                    </div>
-                    <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-3 text-center">
-                      <p className="text-sm font-semibold text-slate-100">{selectedTheme.updatedAt}</p>
-                      <p className="text-[10px] text-slate-500">Updated</p>
-                    </div>
-                  </div>
-
-                  <div data-testid="theme-active-preview" className="rounded-xl border border-white/[0.08] bg-white/[0.015] p-3">
-                    <p className="text-xs text-slate-400">
-                      Active Production Theme: <strong>{activeTheme?.name ?? "None"}</strong>
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      Current Visual Preview: <strong>{previewTheme?.name ?? "None"}</strong>
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      Active Shell Preset: <strong>{activeShell?.name ?? "None"}</strong>
-                    </p>
-                  </div>
-
-                  <div className="rounded-xl border border-white/[0.08] bg-white/[0.015] p-3">
-                    <div className="mb-2 flex items-center justify-between">
-                      <p className="text-xs font-semibold text-slate-300">Shell Presets</p>
-                      <Link href="/platform/onboarding/shells" className="text-[11px] font-semibold text-blue-300 hover:text-blue-200">
-                        Open Shell Workflow
-                      </Link>
-                    </div>
-                    <div className="space-y-2">
-                      {shells.map((shell) => (
-                        <div key={shell.id} className="flex items-center justify-between rounded-lg border border-white/[0.08] bg-white/[0.02] px-2 py-1.5">
-                          <p className="text-xs text-slate-200">{shell.name}</p>
-                          <span
-                            className={`rounded px-1.5 py-0.5 text-[10px] ${
-                              shell.status === "active" ? "bg-emerald-500/20 text-emerald-200" : "bg-white/[0.06] text-slate-400"
-                            }`}
-                          >
-                            {shell.status}
-                          </span>
-                        </div>
-                      ))}
-                      {shells.length === 0 ? <p className="text-xs text-slate-500">No shell presets loaded.</p> : null}
-                    </div>
-                  </div>
-
-                  <div
-                    data-testid="theme-preview-surface"
-                    className="rounded-xl border p-4"
-                    style={{
-                      borderColor: "color-mix(in srgb, var(--theme-surface-accent) 55%, transparent)",
-                      background: "var(--theme-surface-bg)",
-                      color: "var(--theme-surface-text)",
-                      borderRadius: "var(--theme-radius-md)",
-                      fontFamily: "var(--theme-font-display), sans-serif"
-                    }}
-                  >
-                    <h3 className="text-sm font-semibold">Theme Surface Preview</h3>
-                    <p className="mt-1 text-xs" style={{ color: "var(--theme-surface-muted)" }}>
-                      Preview swatches update this panel immediately without mutating active backend state.
-                    </p>
-                    <button
-                      type="button"
-                      className="mt-3 rounded-lg px-3 py-1.5 text-xs font-semibold"
-                      style={{ background: "var(--theme-surface-accent)", color: "var(--theme-surface-text)" }}
-                    >
-                      Sample Button
-                    </button>
-                  </div>
-
-                  <div className="space-y-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Color Tokens</p>
-                    <div className="grid gap-2 md:grid-cols-3">
-                      {selectedTheme.tokens
-                        .filter((token) => token.category === "color")
-                        .map((token) => (
-                          <div key={token.key} className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-2">
-                            <p className="text-[10px] text-slate-500">{token.label}</p>
-                            <div className="mt-1 h-7 rounded border border-white/[0.08]" style={{ background: token.value }} />
-                            <p className="mt-1 text-[10px] text-slate-400">{token.value}</p>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Typography Tokens</p>
-                    <div className="grid gap-2 md:grid-cols-2">
-                      {selectedTheme.tokens
-                        .filter((token) => token.category === "typography")
-                        .map((token) => (
-                          <div key={token.key} className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-2">
-                            <p className="text-[10px] text-slate-500">{token.label}</p>
-                            <p className="mt-1 text-xs text-slate-200">{token.value}</p>
-                            <p className="mt-1 text-[10px] text-slate-500">{token.cssVariable}</p>
-                          </div>
-                        ))}
-                      {selectedTheme.tokens.filter((token) => token.category === "typography").length === 0 ? (
-                        <p className="text-xs text-slate-500">No typography tokens detected.</p>
+                    <div className="relative h-16 p-3" style={{ background: themeGradient(theme) }}>
+                      <div className="flex gap-1.5">
+                        <div className="h-2 w-2 rounded-full bg-white/20" />
+                        <div className="h-2 w-2 rounded-full bg-white/20" />
+                      </div>
+                      {active ? (
+                        <span className="absolute right-3 top-3 material-symbols-outlined text-lg text-white">check_circle</span>
                       ) : null}
                     </div>
-                  </div>
+                    <div className="bg-slate-900/55 p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate text-sm font-bold text-white">{theme.name}</p>
+                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${active ? "bg-blue-500/20 text-blue-200" : "bg-white/[0.06] text-slate-400"}`}>
+                          {theme.status}
+                        </span>
+                      </div>
+                      <p className="mt-1 line-clamp-2 text-[10px] text-slate-500">
+                        {theme.themeDebt || theme.sourceRef}
+                      </p>
+                      <div className="mt-3 flex items-center justify-between gap-2">
+                        <span className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{theme.themeKey}</span>
+                        <button
+                          type="button"
+                          data-testid={`theme-activate-${theme.id}`}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            void activateTheme(theme);
+                          }}
+                          disabled={isApplying || active}
+                          className={`rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${
+                            active ? "bg-blue-500/20 text-blue-200" : "bg-white/[0.08] text-slate-200 hover:bg-blue-500/20 hover:text-blue-200"
+                          } disabled:cursor-not-allowed disabled:opacity-60`}
+                        >
+                          {active ? "Active" : "Activate"}
+                        </button>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+              {!isLoading && themes.length === 0 ? <p className="text-xs text-slate-500">No canonical themes loaded.</p> : null}
+            </div>
+          </div>
 
-                  <div className="space-y-2">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Shape Tokens</p>
-                    {selectedTheme.tokens
-                      .filter((token) => token.category === "radius" || token.category === "shadow" || token.category === "spacing")
-                      .map((token) => (
-                        <div key={token.key} className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-2">
-                          <p className="text-[10px] text-slate-500">
-                            {token.label} <span className="text-slate-600">({token.category})</span>
-                          </p>
-                          <p className="mt-1 text-xs text-slate-200">{token.value}</p>
+          <div className="mt-8">
+            <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.24em] text-slate-500">System Presets</h2>
+            <div className="space-y-3">
+              {shells.map((shell) => {
+                const selected = pendingShell?.id === shell.id;
+                const active = activeShell?.id === shell.id;
+                const previewKind = deriveShellPreviewKind(shell);
+                return (
+                  <button
+                    key={shell.id}
+                    type="button"
+                    data-testid={`theme-shell-card-${shell.id}`}
+                    onClick={() => {
+                      setPendingShellId(shell.id);
+                      setStatusMessage(null);
+                    }}
+                    className={`w-full overflow-hidden rounded-xl border text-left transition-all ${
+                      selected ? "border-blue-500 bg-blue-500/[0.08] shadow-lg shadow-blue-500/10" : "border-white/[0.08] bg-white/[0.02] hover:border-white/[0.18]"
+                    }`}
+                  >
+                    <div className="h-24 bg-gradient-to-br from-slate-800 to-slate-950 p-2">
+                      {previewKind === "sidebar" ? (
+                        <div className="flex h-full gap-2">
+                          <div className="w-4 rounded-sm bg-blue-500/40" />
+                          <div className="flex-1 rounded-sm bg-white/8" />
+                        </div>
+                      ) : (
+                        <div className="flex h-full flex-col gap-2">
+                          <div className="h-3 rounded-sm bg-white/10" />
+                          <div className="flex-1 rounded-sm bg-white/8" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="bg-slate-900/55 p-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate text-[10px] font-bold text-white">{shell.name}</p>
+                        {active ? <span className="text-[10px] uppercase text-blue-300">active</span> : null}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+              {!isLoading && shells.length === 0 ? <p className="text-xs text-slate-500">No canonical shell presets loaded.</p> : null}
+            </div>
+          </div>
+        </section>
+
+        <section className="flex min-w-0 flex-col overflow-hidden bg-[#020817] px-8 py-8">
+          <div className="mb-4 flex items-center justify-between">
+            <span className="rounded bg-white/[0.05] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Live Preview</span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPreviewDevice("desktop")}
+                className={`rounded p-1.5 ${previewDevice === "desktop" ? "bg-blue-500/20 text-blue-200" : "text-slate-500"}`}
+                aria-label="Desktop preview"
+              >
+                <span className="material-symbols-outlined text-lg">desktop_windows</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewDevice("tablet")}
+                className={`rounded p-1.5 ${previewDevice === "tablet" ? "bg-blue-500/20 text-blue-200" : "text-slate-500"}`}
+                aria-label="Tablet preview"
+              >
+                <span className="material-symbols-outlined text-lg">tablet_mac</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewDevice("mobile")}
+                className={`rounded p-1.5 ${previewDevice === "mobile" ? "bg-blue-500/20 text-blue-200" : "text-slate-500"}`}
+                aria-label="Mobile preview"
+              >
+                <span className="material-symbols-outlined text-lg">smartphone</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-auto rounded-2xl border border-white/[0.08] bg-black/30 p-4">
+            <div
+              data-testid="theme-preview-surface"
+              className={`${deviceFrameClass(previewDevice)} overflow-hidden rounded-[24px] border border-white/[0.08] shadow-2xl`}
+              style={previewStyle}
+            >
+              <div className="flex h-full flex-col bg-[var(--theme-surface-bg)] text-[var(--theme-surface-text)]">
+                <div className="flex h-10 items-center justify-between border-b border-[var(--theme-panel-border)] bg-[var(--theme-panel-bg)] px-4">
+                  <div className="flex gap-1.5">
+                    <div className="h-2 w-2 rounded-full bg-white/12" />
+                    <div className="h-2 w-2 rounded-full bg-white/12" />
+                    <div className="h-2 w-2 rounded-full bg-white/12" />
+                  </div>
+                  <div className="h-4 w-44 rounded-full bg-white/8" />
+                  <div className="h-5 w-5 rounded-full" style={{ backgroundColor: "color-mix(in srgb, var(--theme-surface-accent) 70%, transparent)" }} />
+                </div>
+
+                <div className="flex min-h-0 flex-1">
+                  {shellPreviewKind === "sidebar" ? (
+                    <div className="flex w-16 shrink-0 flex-col items-center gap-4 border-r border-[var(--theme-panel-border)] bg-[var(--theme-panel-bg)] py-4">
+                      <div className="h-8 w-8 rounded-lg bg-[var(--theme-surface-accent)]" />
+                      <div className="h-6 w-6 rounded-md bg-white/8" />
+                      <div className="h-6 w-6 rounded-md bg-white/8" />
+                      <div className="h-6 w-6 rounded-md bg-white/8" />
+                    </div>
+                  ) : null}
+
+                  <div className="flex-1 space-y-6 p-8" style={{ fontFamily: "var(--theme-font-display), Inter, sans-serif" }}>
+                    {shellPreviewKind === "topbar" ? (
+                      <div className="flex items-center justify-between rounded-xl border border-[var(--theme-panel-border)] bg-[var(--theme-panel-bg)] px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-lg bg-[var(--theme-surface-accent)]" />
+                          <div className="h-4 w-24 rounded-full bg-white/10" />
+                        </div>
+                        <div className="flex gap-2">
+                          <div className="h-3 w-14 rounded-full bg-white/8" />
+                          <div className="h-3 w-14 rounded-full bg-white/8" />
+                          <div className="h-3 w-14 rounded-full bg-white/8" />
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="flex items-start justify-between gap-6">
+                      <div className="space-y-2">
+                        <div className="h-6 w-40 rounded bg-white/90" />
+                        <div className="h-3 w-64 rounded" style={{ backgroundColor: "color-mix(in srgb, var(--theme-surface-muted) 60%, transparent)" }} />
+                      </div>
+                      <div className="h-8 w-24 rounded-lg bg-[var(--theme-surface-accent)]" />
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      {Array.from({ length: 3 }).map((_, index) => (
+                        <div key={`preview-card-${index + 1}`} className="rounded-xl border border-[var(--theme-panel-border)] bg-[var(--theme-panel-bg)] p-4">
+                          <div className="h-3 w-12 rounded bg-white/10" />
+                          <div className="mt-4 h-8 w-full rounded bg-white/6" />
                         </div>
                       ))}
-                    {selectedTheme.tokens.filter(
-                      (token) => token.category === "radius" || token.category === "shadow" || token.category === "spacing"
-                    ).length === 0 ? <p className="text-xs text-slate-500">No shape tokens detected.</p> : null}
+                    </div>
+
+                    <div className="flex h-40 items-center justify-center rounded-xl border border-[var(--theme-panel-border)] bg-[var(--theme-panel-bg)]">
+                      <span className="material-symbols-outlined text-4xl text-[var(--theme-surface-muted)]">analytics</span>
+                    </div>
                   </div>
                 </div>
-              ) : null}
-            </StudioDetailContainer>
-
-            <StudioActionMenu
-              title="Theme Actions"
-              description="Activation, preview-only swatch, and archive actions are governed here."
-              items={browseActions}
-            />
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        </section>
+
+        <section className="overflow-y-auto border-l border-white/[0.08] bg-[#071226] px-5 py-6">
+          <div>
+            <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.24em] text-slate-500">Color Tokens</h2>
+            <div className="space-y-3">
+              {colorTokens.map((token) => (
+                <div key={token.key} className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg border border-white/10" style={{ backgroundColor: token.value }} />
+                    <div>
+                      <p className="text-xs font-bold text-white">{token.key}</p>
+                      <p className="text-[10px] text-slate-500">{token.label}</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-slate-500">{token.value}</span>
+                </div>
+              ))}
+              {colorTokens.length === 0 ? <p className="text-xs text-slate-500">No color tokens available.</p> : null}
+            </div>
+          </div>
+
+          <div className="mt-8">
+            <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.24em] text-slate-500">Typography Tokens</h2>
+            <div className="space-y-3">
+              {typographyTokens.map((token) => (
+                <div key={token.key} className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">{token.label}</p>
+                    <span className="text-[10px] font-bold text-blue-300">{token.value}</span>
+                  </div>
+                  <p className="text-lg font-bold text-white">Headline Text</p>
+                  <p className="mt-1 text-[10px] text-slate-500">The quick brown fox jumps over the lazy dog.</p>
+                </div>
+              ))}
+              {typographyTokens.length === 0 ? <p className="text-xs text-slate-500">No typography tokens available.</p> : null}
+            </div>
+          </div>
+
+          <div className="mt-8">
+            <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.24em] text-slate-500">Shape Tokens</h2>
+            <div className="grid grid-cols-2 gap-3">
+              {shapeTokens.map((token) => (
+                <div key={token.key} className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3 text-center">
+                  <div className="mx-auto mb-2 h-6 w-6 bg-[var(--theme-surface-accent)]" style={{ borderRadius: token.category === "radius" ? token.value : "6px" }} />
+                  <p className="text-[10px] font-bold text-white">{token.label}</p>
+                  <p className="text-[10px] text-slate-500">{token.value}</p>
+                </div>
+              ))}
+              {shapeTokens.length === 0 ? <p className="col-span-2 text-xs text-slate-500">No shape tokens available.</p> : null}
+            </div>
+          </div>
+
+          <div className="mt-8 border-t border-white/[0.08] pt-6">
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.24em] text-rose-400">Theme Debt</p>
+            <div className="rounded-xl border border-rose-500/20 bg-rose-500/[0.08] p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-white">Hardcoded Styles</p>
+                <span className="rounded-full bg-rose-500/20 px-2 py-1 text-[10px] font-bold text-rose-200">
+                  {pendingTheme?.themeDebt?.trim() ? "Review" : "0"}
+                </span>
+              </div>
+              <p className="mt-2 text-[11px] leading-relaxed text-rose-200/90">
+                {pendingTheme?.themeDebt?.trim() || "No theme debt reported for the selected preset."}
+              </p>
+              {pendingTheme?.themeDebt?.trim() ? (
+                <button
+                  type="button"
+                  data-testid="theme-debt-review-toggle"
+                  onClick={() => setThemeDebtReviewOpen((current) => !current)}
+                  className="mt-3 rounded-md border border-rose-500/30 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-rose-200"
+                >
+                  {themeDebtReviewOpen ? "Hide Review" : "Review Debt"}
+                </button>
+              ) : null}
+              {themeDebtReviewOpen && pendingTheme?.themeDebt?.trim() ? (
+                <div className="mt-3 rounded-lg border border-rose-500/20 bg-black/20 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-rose-200">Debt Review Queue</p>
+                  <ul className="mt-2 space-y-1 text-[11px] text-rose-100/90">
+                    {pendingTheme.themeDebt
+                      .split(/\n|,/)
+                      .map((entry) => entry.trim())
+                      .filter((entry) => entry.length > 0)
+                      .map((entry) => (
+                        <li key={entry} className="rounded border border-rose-500/10 bg-rose-500/[0.05] px-2 py-1">
+                          {entry}
+                        </li>
+                      ))}
+                  </ul>
+                  <p className="mt-2 text-[10px] text-rose-200/80">Theme debt review is actionable in the UI in this pass, but debt-resolution persistence is not yet modeled canonically.</p>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

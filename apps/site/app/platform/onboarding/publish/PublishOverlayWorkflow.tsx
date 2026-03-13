@@ -54,7 +54,7 @@ export type PublishOverlayResult = {
   persistence?: {
     source: "fallback" | "strapi";
     mutated: boolean;
-    themeId: string | null;
+    pageId: string | null;
   };
 };
 
@@ -81,7 +81,7 @@ export function PublishOverlayWorkflow(props: PublishOverlayWorkflowProps): Reac
         id: "overlay-source",
         title: "Persistence Source",
         subtitle: publishResult?.source ?? "pending",
-        meta: publishResult?.persistence?.mutated ? `mutated theme ${publishResult.persistence.themeId ?? "n/a"}` : "no mutation yet"
+        meta: publishResult?.persistence?.mutated ? `published page ${publishResult.persistence.pageId ?? "n/a"}` : "no mutation yet"
       },
       {
         id: "overlay-mode",
@@ -114,7 +114,7 @@ export function PublishOverlayWorkflow(props: PublishOverlayWorkflowProps): Reac
         <header className="mb-4 border-b border-white/[0.08] pb-3">
           <h2 className="text-sm font-semibold text-slate-100">Final Publish Review</h2>
           <p className="mt-1 text-[11px] text-slate-500">
-            Commit pipeline serializes backend active theme only and evaluates fidelity before write.
+            Canonical publish evaluates fidelity, validates governance, and publishes the selected studio-page.
           </p>
         </header>
 

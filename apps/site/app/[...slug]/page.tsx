@@ -6,13 +6,26 @@ import { getPageBySlug, PageNotFoundError, StrapiUnreachableError } from "@lmnas
 import { LayoutRegistry } from "@lmnas/layouts";
 import { PageRenderer } from "@lmnas/renderer";
 import { buildSeo } from "@lmnas/seo-engine";
-import { resolveCmsSlug } from "../../lib/slug";
+import { resolveCmsRoute } from "../../lib/slug";
+import { loadStudioPageForRoute } from "../../lib/studio-page-runtime";
 import { buildShellRenderModel } from "../../lib/shell";
 
 export default async function SlugPage({ params }: { params: Promise<{ slug?: string[] }> }) {
   const { isEnabled: isPreview } = await draftMode();
   const { slug: slugParts } = await params;
-  const slug = resolveCmsSlug(slugParts);
+  const route = resolveCmsRoute(slugParts);
+  const studioPage = await loadStudioPageForRoute({
+    slug: route.slug,
+    locale: route.locale,
+    preview: isPreview
+  });
+
+  if (studioPage) {
+    track("page_view", { slug: studioPage.slug, pageType: "simple" });
+    return <div data-testid="studio-runtime-page" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: studioPage.bodyHtml }} />;
+  }
+
+  const slug = route.slug;
   let page;
   try {
     page = await getPageBySlug(slug, { preview: isPreview });

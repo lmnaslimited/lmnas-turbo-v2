@@ -15,7 +15,18 @@ type StrapiCollectionResponse = {
 };
 
 const CANONICAL_BLOCK_COLLECTION = "/api/studio-blocks";
-const LEGACY_BLOCK_COLLECTION = "/api/block-templates";
+const CANONICAL_IMPORT_MASTER_COLLECTION = "/api/studio-import-masters";
+
+function unwrapStrapiEntity(value: Record<string, unknown>): Record<string, unknown> {
+  if (value.attributes && typeof value.attributes === "object" && !Array.isArray(value.attributes)) {
+    return {
+      ...(value.attributes as Record<string, unknown>),
+      id: value.id,
+      documentId: value.documentId
+    };
+  }
+  return value;
+}
 
 function extractActionTarget(action: Record<string, unknown>): string {
   const targets = [action.targetUrl, action.targetSectionId, action.widgetId, action.exitId];
@@ -52,6 +63,18 @@ function resolveEntityMutationId(value: Record<string, unknown>): string | null 
   return null;
 }
 
+async function updateImportMasterStatus(importMasterId: string | undefined, status: "imported_blocks" | "imported_page"): Promise<void> {
+  if (!importMasterId || importMasterId.trim().length === 0) {
+    return;
+  }
+  await requestStrapi(`${CANONICAL_IMPORT_MASTER_COLLECTION}/${encodeURIComponent(importMasterId)}`, {
+    method: "PUT",
+    body: {
+      status
+    }
+  });
+}
+
 async function upsertBlockInCollection(
   collectionPath: string,
   keyField: "blockKey" | "templateKey",
@@ -67,6 +90,10 @@ async function upsertBlockInCollection(
     editableFields: string[];
     actions: Array<{ id: string; label: string; type: StudioActionType; target: string }>;
     previewHtml: string;
+    sourcePreviewHtml?: string;
+    targetPreviewHtml?: string;
+    importMasterId?: string;
+    importProposalId?: string;
     inUseCount: number;
   }
 ): Promise<void> {
@@ -74,29 +101,64 @@ async function upsertBlockInCollection(
     `${collectionPath}?filters[${encodeURIComponent(keyField)}][$eq]=${encodeURIComponent(template.key)}&pagination[pageSize]=1`
   );
   const existing = Array.isArray(lookup.data) ? lookup.data[0] : undefined;
+  const existingEntity = existing ? unwrapStrapiEntity(existing) : undefined;
   const existingId = existing ? resolveEntityMutationId(existing) : null;
   const usageCount = template.inUseCount;
-  const payload: Record<string, unknown> = {
-    blockKey: template.key,
-    templateKey: template.key,
-    name: template.name,
-    family: template.family,
-    status: template.status,
-    lifecycle: "draft",
-    scope: "global",
-    schemaStatus: "valid",
-    themeKey: template.themeKey,
-    sourceType: template.sourceType,
-    sourceRef: template.sourceRef,
-    confidence: template.confidence,
-    editableFields: template.editableFields,
-    actions: template.actions,
-    previewHtml: template.previewHtml,
-    usageCount
-  };
-  if (collectionPath === LEGACY_BLOCK_COLLECTION) {
-    payload.inUseCount = usageCount;
-  }
+  const payload: Record<string, unknown> =
+    keyField === "blockKey"
+      ? {
+          blockKey: template.key,
+          name: template.name,
+          family: template.family,
+          status: template.status,
+          lifecycle: "draft",
+          scope: "global",
+          schemaStatus: "valid",
+          themeKey: template.themeKey,
+          sourceType: template.sourceType,
+          sourceRef: template.sourceRef,
+          confidence: template.confidence,
+          editableFields: template.editableFields,
+          actions: template.actions,
+          sourcePreviewHtml: template.sourcePreviewHtml ?? (typeof existingEntity?.sourcePreviewHtml === "string" ? existingEntity.sourcePreviewHtml : undefined),
+          targetPreviewHtml:
+            template.targetPreviewHtml ??
+            (typeof existingEntity?.targetPreviewHtml === "string" ? existingEntity.targetPreviewHtml : undefined),
+          previewHtml:
+            template.targetPreviewHtml ??
+            template.previewHtml ??
+            (typeof existingEntity?.previewHtml === "string" ? existingEntity.previewHtml : "<section></section>"),
+          importMaster:
+            template.importMasterId ??
+            (existingEntity &&
+            existingEntity.importMaster &&
+            typeof existingEntity.importMaster === "object" &&
+            !Array.isArray(existingEntity.importMaster)
+              ? String(
+                  (existingEntity.importMaster as Record<string, unknown>).documentId ??
+                    (existingEntity.importMaster as Record<string, unknown>).id ??
+                    ""
+                )
+              : undefined),
+          importProposalId:
+            template.importProposalId ??
+            (typeof existingEntity?.importProposalId === "string" ? existingEntity.importProposalId : undefined),
+          usageCount
+        }
+      : {
+          templateKey: template.key,
+          name: template.name,
+          family: template.family,
+          status: template.status,
+          themeKey: template.themeKey,
+          sourceType: template.sourceType,
+          sourceRef: template.sourceRef,
+          confidence: template.confidence,
+          editableFields: template.editableFields,
+          actions: template.actions,
+          previewHtml: template.previewHtml,
+          inUseCount: usageCount
+        };
 
   if (existingId !== null) {
     await requestStrapi(`${collectionPath}/${encodeURIComponent(existingId)}`, {
@@ -124,13 +186,13 @@ async function upsertBlockTemplateInStrapi(template: {
   editableFields: string[];
   actions: Array<{ id: string; label: string; type: StudioActionType; target: string }>;
   previewHtml: string;
+  sourcePreviewHtml?: string;
+  targetPreviewHtml?: string;
+  importMasterId?: string;
+  importProposalId?: string;
   inUseCount: number;
 }): Promise<void> {
-  try {
-    await upsertBlockInCollection(CANONICAL_BLOCK_COLLECTION, "blockKey", template);
-  } catch {
-    await upsertBlockInCollection(LEGACY_BLOCK_COLLECTION, "templateKey", template);
-  }
+  await upsertBlockInCollection(CANONICAL_BLOCK_COLLECTION, "blockKey", template);
 }
 
 function upsertBlockTemplateInFallback(template: {
@@ -200,7 +262,8 @@ function withUpdatedPublishResult(base: OnboardingPublishResult, params: { appli
 export async function POST(request: Request): Promise<Response> {
   try {
     loadProjectEnv();
-    const rawPayload = (await request.json()) as unknown;
+    const rawPayload = (await request.json()) as Record<string, unknown>;
+    const importMasterId = typeof rawPayload.importMasterId === "string" ? rawPayload.importMasterId : undefined;
     const parsed = parseOnboardingPublishRequest(rawPayload);
 
     const dryRunResult = await publishOnboardingDraft({
@@ -219,14 +282,22 @@ export async function POST(request: Request): Promise<Response> {
     const warnings = [...dryRunResult.warnings];
     let applied = false;
     const selectedBlocksFromPublish = dryRunResult.strapiPayload.blockInstances;
-    const blockOverrideEntries = parsed.analysis.blockProposals.map((block) => [
-      block.id,
-      parsed.overrides.itemImportState[block.id] !== false
-    ] as const);
-    const hasBlockOverrides = blockOverrideEntries.some(([id]) =>
-      Object.prototype.hasOwnProperty.call(parsed.overrides.itemImportState, id)
+    const blockOverrideEntries = parsed.analysis.blockProposals.map((block) => {
+      const mappedKey = normalizeTemplateKey(parsed.overrides.mapToExisting[block.id], block.id);
+      return {
+        proposalId: block.id,
+        mappedKey,
+        include: parsed.overrides.itemImportState[block.id] !== false
+      };
+    });
+    const hasBlockOverrides = blockOverrideEntries.some((entry) =>
+      Object.prototype.hasOwnProperty.call(parsed.overrides.itemImportState, entry.proposalId)
     );
-    const selectedBlockIds = new Set(blockOverrideEntries.filter(([, include]) => include).map(([id]) => id));
+    const selectedBlockIds = new Set(
+      blockOverrideEntries
+        .filter((entry) => entry.include)
+        .flatMap((entry) => [entry.proposalId, entry.mappedKey].filter((value): value is string => value.length > 0))
+    );
     const selectedBlocks = hasBlockOverrides
       ? selectedBlocksFromPublish.filter((block) => selectedBlockIds.has(block.id))
       : selectedBlocksFromPublish;
@@ -285,9 +356,14 @@ export async function POST(request: Request): Promise<Response> {
             editableFields: block.editableFields,
             actions: blockActions,
             previewHtml: block.previewHtml ?? block.rawHtmlSnippet ?? "<section></section>",
+            sourcePreviewHtml: undefined,
+            targetPreviewHtml: undefined,
+            importMasterId,
+            importProposalId: block.id,
             inUseCount: 0
           });
         }
+        await updateImportMasterStatus(importMasterId, "imported_blocks");
         applied = true;
       } else {
         for (const block of selectedBlocks) {

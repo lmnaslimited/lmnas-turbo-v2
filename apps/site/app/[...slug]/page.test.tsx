@@ -1,8 +1,10 @@
+import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getPageBySlugMock, draftModeMock } = vi.hoisted(() => {
+const { getPageBySlugMock, draftModeMock, loadStudioPageForRouteMock } = vi.hoisted(() => {
   return {
     draftModeMock: vi.fn(async () => ({ isEnabled: false })),
+    loadStudioPageForRouteMock: vi.fn(async (): Promise<any> => null),
     getPageBySlugMock: vi.fn(async (slug: string) => ({
       slug,
       pageType: "product",
@@ -38,6 +40,10 @@ vi.mock("@lmnas/integrations", () => ({
   getPageBySlug: getPageBySlugMock,
   PageNotFoundError: class PageNotFoundError extends Error {},
   StrapiUnreachableError: class StrapiUnreachableError extends Error {}
+}));
+
+vi.mock("../../lib/studio-page-runtime", () => ({
+  loadStudioPageForRoute: loadStudioPageForRouteMock
 }));
 
 vi.mock("@lmnas/layouts", () => ({
@@ -79,5 +85,28 @@ describe("site slug route", () => {
 
     expect(getPageBySlugMock).toHaveBeenCalledWith("products/cpq", { preview: true });
     expect(buildShellRenderModelMock).toHaveBeenCalled();
+  });
+
+  it("renders canonical studio-page html when a published studio route exists", async () => {
+    loadStudioPageForRouteMock.mockResolvedValue({
+      id: "studio-page-1",
+      slug: "home",
+      locale: "en",
+      status: "published",
+      seoMetadata: {
+        metaTitle: "Home",
+        metaDescription: "Home"
+      },
+      html: "<!doctype html><html><body><section>Canonical Studio Page</section></body></html>",
+      bodyHtml: "<section>Canonical Studio Page</section>"
+    });
+
+    const result = await SlugPage({ params: Promise.resolve({ slug: ["en", "home"] }) });
+
+    expect(getPageBySlugMock).not.toHaveBeenCalled();
+    expect(React.isValidElement(result)).toBe(true);
+    expect((result as React.ReactElement<{ dangerouslySetInnerHTML?: { __html?: string } }>).props.dangerouslySetInnerHTML?.__html).toContain(
+      "Canonical Studio Page"
+    );
   });
 });

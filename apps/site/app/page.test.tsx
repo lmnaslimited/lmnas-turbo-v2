@@ -1,10 +1,12 @@
+import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-const { getPageBySlugMock, draftModeMock } = vi.hoisted(() => {
+const { getPageBySlugMock, draftModeMock, loadStudioPageForRouteMock } = vi.hoisted(() => {
   return {
     draftModeMock: vi.fn(async () => ({ isEnabled: false })),
+    loadStudioPageForRouteMock: vi.fn(async (): Promise<any> => null),
     getPageBySlugMock: vi.fn(async () => ({
       slug: "home",
       pageType: "home",
@@ -40,6 +42,10 @@ vi.mock("@lmnas/integrations", () => ({
   getPageBySlug: getPageBySlugMock,
   PageNotFoundError: class PageNotFoundError extends Error {},
   StrapiUnreachableError: class StrapiUnreachableError extends Error {}
+}));
+
+vi.mock("../lib/studio-page-runtime", () => ({
+  loadStudioPageForRoute: loadStudioPageForRouteMock
 }));
 
 vi.mock("@lmnas/layouts", () => ({
@@ -81,6 +87,29 @@ describe("site home route", () => {
 
     expect(getPageBySlugMock).toHaveBeenCalledWith("home", { preview: true });
     expect(buildShellRenderModelMock).toHaveBeenCalled();
+  });
+
+  it("renders canonical studio home page html before legacy loader", async () => {
+    loadStudioPageForRouteMock.mockResolvedValue({
+      id: "studio-home",
+      slug: "home",
+      locale: "en",
+      status: "published",
+      seoMetadata: {
+        metaTitle: "Home",
+        metaDescription: "Home"
+      },
+      html: "<!doctype html><html><body><section>Canonical Home</section></body></html>",
+      bodyHtml: "<section>Canonical Home</section>"
+    });
+
+    const result = await HomePage();
+
+    expect(getPageBySlugMock).not.toHaveBeenCalled();
+    expect(React.isValidElement(result)).toBe(true);
+    expect((result as React.ReactElement<{ dangerouslySetInnerHTML?: { __html?: string } }>).props.dangerouslySetInnerHTML?.__html).toContain(
+      "Canonical Home"
+    );
   });
 
   it("does not import page mock fixtures in site page routes", () => {

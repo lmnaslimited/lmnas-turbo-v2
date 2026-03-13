@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveCmsSlug } from "./slug";
+import { resolveCmsRoute, resolveCmsSlug } from "./slug";
 
 describe("resolveCmsSlug", () => {
   it("returns home for empty values", () => {
@@ -15,5 +15,16 @@ describe("resolveCmsSlug", () => {
   it("treats locale prefixes as route scope and defaults /<locale> to home", () => {
     expect(resolveCmsSlug(["en"])).toBe("home");
     expect(resolveCmsSlug(["en", "products", "cpq"])).toBe("products/cpq");
+  });
+
+  it("returns locale-aware route metadata", () => {
+    expect(resolveCmsRoute(["en", "home"])).toEqual({
+      locale: "en",
+      slug: "home"
+    });
+    expect(resolveCmsRoute(["products", "cpq"])).toEqual({
+      locale: "en",
+      slug: "products/cpq"
+    });
   });
 });
