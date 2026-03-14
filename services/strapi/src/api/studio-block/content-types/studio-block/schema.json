@@ -19,6 +19,11 @@
       "type": "string",
       "required": true
     },
+    "blockType": {
+      "type": "string",
+      "required": true,
+      "default": "imported_dom_snapshot"
+    },
     "family": {
       "type": "string",
       "required": true
@@ -58,11 +63,28 @@
     "sourceRef": {
       "type": "string"
     },
+    "domJson": {
+      "type": "json"
+    },
+    "classMap": {
+      "type": "json"
+    },
+    "stylesheetRef": {
+      "type": "string"
+    },
+    "themeMapping": {
+      "type": "json"
+    },
+    "fidelityMetadata": {
+      "type": "json"
+    },
     "sourcePreviewHtml": {
-      "type": "text"
+      "type": "text",
+      "description": "Disposable comparison preview cache. Never canonical block content."
     },
     "targetPreviewHtml": {
-      "type": "text"
+      "type": "text",
+      "description": "Disposable target preview cache. Regenerated from canonical block snapshot plus theme."
     },
     "sourceAssetContext": {
       "type": "json"
@@ -85,7 +107,8 @@
       "type": "json"
     },
     "previewHtml": {
-      "type": "text"
+      "type": "text",
+      "description": "Disposable preview cache. Canonical rendering comes from domJson/classMap/stylesheetRef."
     },
     "usageCount": {
       "type": "integer",

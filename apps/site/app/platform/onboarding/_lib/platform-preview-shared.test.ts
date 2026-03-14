@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createCanonicalBlockSnapshot } from "../../../../lib/studio-canonical";
 import type { StudioBlockTemplate, StudioPageDocument, StudioShell, StudioTheme } from "./studio-types";
 import {
   buildPlatformBlockPreviewDocument,
@@ -59,10 +60,17 @@ function buildTheme(overrides: Partial<StudioTheme> = {}): StudioTheme {
 }
 
 function buildBlock(overrides: Partial<StudioBlockTemplate> = {}): StudioBlockTemplate {
+  const snapshot = createCanonicalBlockSnapshot({
+    html: "<section class=\"bg-background-light text-primary\"><h1>Target Hero</h1></section>",
+    sourceUrl: "https://source.example/landing",
+    themeScopeClass: "theme-sunrise",
+    stylesheetRef: "/studio-runtime.css"
+  });
   return {
     id: "block-doc-1",
     key: "import-source-stable-01",
     name: "Imported Hero",
+    blockType: snapshot.blockType,
     family: "hero",
     status: "active",
     lifecycle: "draft",
@@ -71,11 +79,14 @@ function buildBlock(overrides: Partial<StudioBlockTemplate> = {}): StudioBlockTe
     themeKey: "sunrise",
     sourceType: "test",
     sourceRef: "docs/testing-artifacts/code.html",
+    domJson: snapshot.domJson,
+    classMap: snapshot.classMap,
+    stylesheetRef: snapshot.stylesheetRef,
     confidence: 0.9,
     editableFields: [],
     actions: [],
-    previewHtml: "<section><h1>Preview Hero</h1></section>",
-    targetPreviewHtml: "<section class=\"bg-background-light text-primary\"><h1>Target Hero</h1></section>",
+    previewHtml: "",
+    targetPreviewHtml: "",
     inUseCount: 0,
     usageCount: 0,
     createdAt: "2026-03-14",
@@ -186,5 +197,84 @@ describe("platform preview shared helpers", () => {
     expect(html).toContain("No blocks composed yet.");
     expect(html).not.toContain("Old Snapshot");
     expect(html.match(/Main Shell/g) ?? []).toHaveLength(1);
+  });
+
+  it("regenerates page previews from canonical snapshots after disposable preview cache removal", () => {
+    const html = buildPlatformPagePreviewDocument({
+      page: buildPage({
+        previewHtml: "",
+        publishedPreviewHtml: undefined
+      }),
+      blocks: [
+        buildBlock({
+          previewHtml: "",
+          sourcePreviewHtml: "",
+          targetPreviewHtml: ""
+        })
+      ],
+      shells,
+      themes: [buildTheme()],
+      hostAssets: createStaticPlatformPreviewAssets("https://preview.example")
+    });
+
+    expect(html).toContain("Target Hero");
+    expect(html).toContain("https://preview.example/studio-runtime.css");
+    expect(html).not.toContain("No preview available");
+  });
+
+  it("changes derived preview styling when canonical theme tokens change", () => {
+    const warmHtml = buildPlatformBlockPreviewDocument({
+      proposalHtml: "<section class=\"bg-background-light text-primary font-display\"><h1>Hero</h1></section>",
+      theme: buildTheme(),
+      hostAssets: createStaticPlatformPreviewAssets("https://preview.example")
+    });
+    const coolHtml = buildPlatformBlockPreviewDocument({
+      proposalHtml: "<section class=\"bg-background-light text-primary font-display\"><h1>Hero</h1></section>",
+      theme: buildTheme({
+        id: "theme-cool",
+        themeKey: "cool",
+        themeScopeClass: "theme-cool",
+        tokens: [
+          { key: "primary", label: "Primary", category: "color", value: "#0057ff", cssVariable: "--color-primary", mapped: true },
+          {
+            key: "background-light",
+            label: "Background Light",
+            category: "color",
+            value: "#ecf5ff",
+            cssVariable: "--background-light",
+            mapped: true
+          },
+          {
+            key: "background-dark",
+            label: "Background Dark",
+            category: "color",
+            value: "#07162f",
+            cssVariable: "--background-dark",
+            mapped: true
+          },
+          {
+            key: "foreground",
+            label: "Foreground",
+            category: "color",
+            value: "#04204d",
+            cssVariable: "--foreground",
+            mapped: true
+          },
+          {
+            key: "font-display",
+            label: "Display Font",
+            category: "typography",
+            value: "IBM Plex Sans, sans-serif",
+            cssVariable: "--font-display",
+            mapped: true
+          }
+        ]
+      }),
+      hostAssets: createStaticPlatformPreviewAssets("https://preview.example")
+    });
+
+    expect(warmHtml).toContain("#ff4f00");
+    expect(coolHtml).toContain("#0057ff");
+    expect(warmHtml).not.toEqual(coolHtml);
   });
 });

@@ -22,43 +22,36 @@ function buildRequest(payload: Record<string, unknown>): Request {
   });
 }
 
-function mockThemeResponse(themeDebt: string) {
-  return {
-    data: [
-      {
-        id: "theme-1",
-        themeKey: "default",
-        name: "Default",
-        status: "active",
-        sourceRef: "seed",
-        tokenCoverage: 0.9,
-        themeDebt,
-        darkMode: true,
-        tokens: []
-      }
-    ]
-  };
-}
-
 describe("studio settings route canonical schema", () => {
   beforeEach(() => {
     requestStrapiMock.mockReset();
-    requestStrapiMock.mockImplementation((path: string, options?: { method?: string }) => {
-      if (path.includes("?filters[themeKey][$eq]=")) {
-        return Promise.resolve(mockThemeResponse(""));
+    requestStrapiMock.mockImplementation((path: string, options?: { method?: string; body?: Record<string, unknown> }) => {
+      if (path === "/api/studio-setting" && !options?.method) {
+        return Promise.resolve({
+          data: {
+            fidelityMode: "allow-below-threshold",
+            fidelityThreshold: 0.25
+          }
+        });
       }
-      if (options?.method === "PUT") {
-        return Promise.resolve({ data: { id: "theme-1" } });
+
+      if (path === "/api/studio-setting" && options?.method === "PUT") {
+        return Promise.resolve({
+          data: {
+            id: "studio-setting",
+            ...options.body
+          }
+        });
       }
-      return Promise.resolve(mockThemeResponse("[studio:fidelity-settings] {\"mode\":\"allow-below-threshold\",\"threshold\":0.25}"));
+
+      return Promise.resolve({ data: null });
     });
   });
 
-  it("reads settings from canonical studio-themes collection", async () => {
+  it("reads settings from canonical studio-setting single type", async () => {
     const response = await GET();
     expect(response.status).toBe(200);
-    const firstCall = requestStrapiMock.mock.calls[0]?.[0] as string;
-    expect(firstCall.startsWith("/api/studio-themes")).toBe(true);
+    expect(requestStrapiMock).toHaveBeenCalledWith("/api/studio-setting");
 
     const payload = (await response.json()) as {
       ok: boolean;
@@ -68,9 +61,10 @@ describe("studio settings route canonical schema", () => {
     expect(payload.ok).toBe(true);
     expect(payload.source).toBe("strapi");
     expect(payload.data.fidelity.mode).toBe("allow-below-threshold");
+    expect(payload.data.fidelity.threshold).toBe(0.25);
   });
 
-  it("persists settings through canonical studio-themes mutation", async () => {
+  it("persists settings through canonical studio-setting mutation only", async () => {
     const response = await POST(
       buildRequest({
         fidelity: {
@@ -81,11 +75,12 @@ describe("studio settings route canonical schema", () => {
     );
     expect(response.status).toBe(200);
 
-    const lookupCall = requestStrapiMock.mock.calls.find((call) => typeof call[0] === "string" && String(call[0]).includes("?filters[themeKey]"));
-    const putCall = requestStrapiMock.mock.calls.find((call) => call[1]?.method === "PUT");
-
-    expect(String(lookupCall?.[0]).startsWith("/api/studio-themes")).toBe(true);
-    expect(String(putCall?.[0]).startsWith("/api/studio-themes/")).toBe(true);
+    const putCall = requestStrapiMock.mock.calls.find((call) => call[0] === "/api/studio-setting" && call[1]?.method === "PUT");
+    expect(putCall).toBeTruthy();
+    expect(putCall?.[1]?.body).toEqual({
+      fidelityMode: "disallow-below-threshold",
+      fidelityThreshold: 0.33
+    });
   });
 
   it("hard fails when canonical settings cannot be read", async () => {
@@ -105,9 +100,7 @@ describe("studio settings route canonical schema", () => {
   });
 
   it("hard fails when canonical settings cannot be persisted", async () => {
-    requestStrapiMock.mockImplementationOnce(() => Promise.resolve(mockThemeResponse("")));
-    requestStrapiMock.mockImplementationOnce(() => Promise.resolve(mockThemeResponse("")));
-    requestStrapiMock.mockImplementationOnce(() => Promise.reject(new Error("strapi_503: write failed")));
+    requestStrapiMock.mockRejectedValueOnce(new Error("strapi_503: write failed"));
 
     const response = await POST(
       buildRequest({

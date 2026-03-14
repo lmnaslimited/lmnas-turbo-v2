@@ -1,5 +1,7 @@
 import type { StudioActionType, StudioBlockTemplate, StudioPageDocument } from "../../../../platform/onboarding/_lib/studio-types";
 import { isStudioActionType } from "../../../../platform/onboarding/_lib/studio-types";
+import { buildPlatformBlockPreviewDocument, createStaticPlatformPreviewAssets } from "../../../../platform/onboarding/_lib/platform-preview-shared";
+import { createCanonicalBlockSnapshot, renderCanonicalBlockMarkup } from "../../../../../lib/studio-canonical";
 import { isStrapiConfigured, requestStrapi, StudioApiError, unwrapStrapiEntity } from "../_lib/strapi";
 
 type StrapiCollectionResponse = {
@@ -9,6 +11,8 @@ type StrapiCollectionResponse = {
 type BlockWhereUsedEntry = Pick<StudioPageDocument, "id" | "slug" | "locale">;
 
 const CANONICAL_BLOCK_COLLECTION = "/api/studio-blocks";
+const CANONICAL_THEME_COLLECTION = "/api/studio-themes";
+const PREVIEW_ASSETS = createStaticPlatformPreviewAssets();
 
 function normalizeActionType(value: unknown): StudioActionType {
   if (isStudioActionType(value)) {
@@ -66,6 +70,24 @@ function normalizeTemplate(value: unknown): StudioBlockTemplate {
     themeKey: typeof row.themeKey === "string" && row.themeKey.length > 0 ? row.themeKey : "default",
     sourceType: typeof row.sourceType === "string" && row.sourceType.length > 0 ? row.sourceType : "unknown",
     sourceRef: typeof row.sourceRef === "string" && row.sourceRef.length > 0 ? row.sourceRef : "unknown",
+    blockType: row.blockType === "imported_dom_snapshot" ? row.blockType : "imported_dom_snapshot",
+    domJson:
+      row.domJson && typeof row.domJson === "object" && !Array.isArray(row.domJson)
+        ? (row.domJson as StudioBlockTemplate["domJson"])
+        : undefined,
+    classMap:
+      row.classMap && typeof row.classMap === "object" && !Array.isArray(row.classMap)
+        ? (row.classMap as Record<string, string>)
+        : undefined,
+    stylesheetRef: typeof row.stylesheetRef === "string" ? row.stylesheetRef : undefined,
+    themeMapping:
+      row.themeMapping && typeof row.themeMapping === "object" && !Array.isArray(row.themeMapping)
+        ? (row.themeMapping as StudioBlockTemplate["themeMapping"])
+        : undefined,
+    fidelityMetadata:
+      row.fidelityMetadata && typeof row.fidelityMetadata === "object" && !Array.isArray(row.fidelityMetadata)
+        ? (row.fidelityMetadata as StudioBlockTemplate["fidelityMetadata"])
+        : undefined,
     sourcePreviewHtml: typeof row.sourcePreviewHtml === "string" ? row.sourcePreviewHtml : undefined,
     targetPreviewHtml: typeof row.targetPreviewHtml === "string" ? row.targetPreviewHtml : undefined,
     sourceAssetContext:
@@ -106,6 +128,119 @@ function normalizeTemplate(value: unknown): StudioBlockTemplate {
     usageCount,
     createdAt: typeof row.createdAt === "string" ? row.createdAt.slice(0, 10) : new Date().toISOString().slice(0, 10),
     updatedAt: typeof row.updatedAt === "string" ? row.updatedAt.slice(0, 10) : new Date().toISOString().slice(0, 10)
+  };
+}
+
+function normalizeTheme(row: Record<string, unknown>): StudioBlockTemplate["themeMapping"] & {
+  themeMode?: "light" | "dark" | "system";
+  darkMode: boolean;
+  tokens: Array<{ key: string; value: string; label: string; category: "color" | "typography" | "spacing" | "radius" | "shadow"; cssVariable: string; mapped: boolean }>;
+} {
+  const rawTokens = Array.isArray(row.tokens) ? row.tokens : [];
+  const themeMode = row.themeMode === "light" || row.themeMode === "dark" || row.themeMode === "system" ? row.themeMode : undefined;
+  return {
+    themeKey: typeof row.themeKey === "string" && row.themeKey.length > 0 ? row.themeKey : "default",
+    themeScopeClass:
+      typeof row.themeScopeClass === "string" && row.themeScopeClass.trim().length > 0 ? row.themeScopeClass.trim() : "theme-default",
+    tokenCoverage: typeof row.tokenCoverage === "number" ? row.tokenCoverage : Number(row.tokenCoverage ?? 0) || 0,
+    themeMode,
+    darkMode: Boolean(row.darkMode),
+    tokens: rawTokens
+      .map((entry) => {
+        if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+          return null;
+        }
+        const token = entry as Record<string, unknown>;
+        if (typeof token.key !== "string" || typeof token.value !== "string") {
+          return null;
+        }
+        const category = token.category;
+        return {
+          key: token.key,
+          value: token.value,
+          label: typeof token.label === "string" ? token.label : token.key,
+          category:
+            category === "color" || category === "typography" || category === "spacing" || category === "radius" || category === "shadow"
+              ? category
+              : "color",
+          cssVariable: typeof token.cssVariable === "string" ? token.cssVariable : token.key,
+          mapped: Boolean(token.mapped)
+        };
+      })
+      .filter((entry): entry is NonNullable<ReturnType<typeof normalizeTheme>["tokens"][number]> => entry !== null)
+  };
+}
+
+async function listThemesFromStrapi(): Promise<Array<ReturnType<typeof normalizeTheme>>> {
+  const response = await requestStrapi<StrapiCollectionResponse>(`${CANONICAL_THEME_COLLECTION}?pagination[pageSize]=200&sort=updatedAt:desc`);
+  const rows = Array.isArray(response.data) ? response.data : [];
+  return rows.map((row) => normalizeTheme(unwrapStrapiEntity(row)));
+}
+
+function ensureCanonicalSnapshot(template: StudioBlockTemplate): StudioBlockTemplate {
+  if (template.domJson && template.stylesheetRef) {
+    return template;
+  }
+
+  const sourceMarkup =
+    template.targetPreviewHtml?.trim() ||
+    template.previewHtml.trim() ||
+    template.sourcePreviewHtml?.trim() ||
+    "<section></section>";
+  const snapshot = createCanonicalBlockSnapshot({
+    html: sourceMarkup,
+    sourceUrl: template.sourceRef,
+    themeScopeClass: template.themeMapping?.themeScopeClass,
+    stylesheetRef: template.stylesheetRef
+  });
+
+  return {
+    ...template,
+    ...snapshot
+  };
+}
+
+function hydrateBlockPreview(
+  template: StudioBlockTemplate,
+  themes: Array<ReturnType<typeof normalizeTheme>>
+): StudioBlockTemplate {
+  const canonical = ensureCanonicalSnapshot(template);
+  const renderModel = renderCanonicalBlockMarkup({
+    blockType: canonical.blockType,
+    domJson: canonical.domJson,
+    classMap: canonical.classMap,
+    stylesheetRef: canonical.stylesheetRef
+  });
+  const themeRecord = themes.find((theme) => theme.themeKey === canonical.themeKey) ?? null;
+  const theme = themeRecord
+    ? {
+        id: themeRecord.themeKey,
+        themeKey: themeRecord.themeKey,
+        name: themeRecord.themeKey,
+        status: "active" as const,
+        sourceRef: "canonical-theme",
+        themeScopeClass: themeRecord.themeScopeClass,
+        themeMode: themeRecord.themeMode ?? "system",
+        createdAt: "",
+        updatedAt: "",
+        tokenCoverage: themeRecord.tokenCoverage,
+        themeDebt: "",
+        darkMode: themeRecord.darkMode,
+        tokens: themeRecord.tokens
+      }
+    : null;
+  const previewHtml = buildPlatformBlockPreviewDocument({
+    proposalHtml: renderModel.bodyHtml,
+    theme,
+    hostAssets: PREVIEW_ASSETS,
+    additionalStylesheetHrefs: renderModel.stylesheetRefs
+  });
+
+  return {
+    ...canonical,
+    previewHtml,
+    sourcePreviewHtml: previewHtml,
+    targetPreviewHtml: previewHtml
   };
 }
 
@@ -177,6 +312,7 @@ async function upsertInCollection(
       ? {
           blockKey: template.key,
           name: template.name,
+          blockType: template.blockType ?? "imported_dom_snapshot",
           family: template.family,
           status: template.status,
           lifecycle: template.lifecycle ?? "draft",
@@ -185,15 +321,20 @@ async function upsertInCollection(
           themeKey: template.themeKey,
           sourceType: template.sourceType,
           sourceRef: template.sourceRef,
-          sourcePreviewHtml: template.sourcePreviewHtml,
-          targetPreviewHtml: template.targetPreviewHtml,
+          domJson: template.domJson,
+          classMap: template.classMap,
+          stylesheetRef: template.stylesheetRef,
+          themeMapping: template.themeMapping,
+          fidelityMetadata: template.fidelityMetadata,
+          sourcePreviewHtml: "",
+          targetPreviewHtml: "",
           sourceAssetContext: template.sourceAssetContext,
           importProposalId: template.importProposalId,
           importMaster: template.importMasterId,
           confidence: template.confidence,
           editableFields: template.editableFields,
           actions: template.actions,
-          previewHtml: template.targetPreviewHtml ?? template.previewHtml,
+          previewHtml: "",
           usageCount
         }
       : {
@@ -294,9 +435,10 @@ export async function GET(request: Request): Promise<Response> {
 
   try {
     const { templates, schemaSource } = await listFromStrapi();
+    const themes = await listThemesFromStrapi();
     return Response.json({
       ok: true,
-      data: applyFilters(templates, requestUrl),
+      data: applyFilters(templates, requestUrl).map((template) => hydrateBlockPreview(template, themes)),
       source: "strapi",
       schemaSource
     });
@@ -328,11 +470,11 @@ export async function POST(request: Request): Promise<Response> {
     const block = normalizeTemplate(payload.block);
 
     if (isStrapiConfigured()) {
-      await upsertInCollection(CANONICAL_BLOCK_COLLECTION, "blockKey", block, false);
-      const templates = await listFromCollection(CANONICAL_BLOCK_COLLECTION);
+      await upsertInCollection(CANONICAL_BLOCK_COLLECTION, "blockKey", ensureCanonicalSnapshot(block), false);
+      const [templates, themes] = await Promise.all([listFromCollection(CANONICAL_BLOCK_COLLECTION), listThemesFromStrapi()]);
       return Response.json({
         ok: true,
-        data: templates,
+        data: templates.map((template) => hydrateBlockPreview(template, themes)),
         source: "strapi",
         schemaSource: "canonical"
       });
@@ -419,10 +561,10 @@ export async function DELETE(request: Request): Promise<Response> {
     }
 
     await deleteInCollection(CANONICAL_BLOCK_COLLECTION, "blockKey", target.key);
-    const nextTemplates = await listFromCollection(CANONICAL_BLOCK_COLLECTION);
+    const [nextTemplates, themes] = await Promise.all([listFromCollection(CANONICAL_BLOCK_COLLECTION), listThemesFromStrapi()]);
     return Response.json({
       ok: true,
-      data: applyFilters(nextTemplates, requestUrl),
+      data: applyFilters(nextTemplates, requestUrl).map((template) => hydrateBlockPreview(template, themes)),
       source: "strapi",
       schemaSource: "canonical"
     });

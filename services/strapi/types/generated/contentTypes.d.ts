@@ -698,12 +698,18 @@ export interface ApiStudioBlockStudioBlock extends Struct.CollectionTypeSchema {
     blockKey: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.Unique;
+    blockType: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'imported_dom_snapshot'>;
+    classMap: Schema.Attribute.JSON;
     confidence: Schema.Attribute.Decimal;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    domJson: Schema.Attribute.JSON;
     editableFields: Schema.Attribute.JSON;
     family: Schema.Attribute.String & Schema.Attribute.Required;
+    fidelityMetadata: Schema.Attribute.JSON;
     importMaster: Schema.Attribute.Relation<
       'manyToOne',
       'api::studio-import-master.studio-import-master'
@@ -740,10 +746,12 @@ export interface ApiStudioBlockStudioBlock extends Struct.CollectionTypeSchema {
     status: Schema.Attribute.Enumeration<['active', 'inactive', 'draft']> &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'active'>;
+    stylesheetRef: Schema.Attribute.String;
     targetPreviewHtml: Schema.Attribute.Text;
     themeKey: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'default'>;
+    themeMapping: Schema.Attribute.JSON;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -895,6 +903,41 @@ export interface ApiStudioPageStudioPage extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiStudioSettingStudioSetting extends Struct.SingleTypeSchema {
+  collectionName: 'studio_settings';
+  info: {
+    displayName: 'Studio Setting';
+    pluralName: 'studio-settings';
+    singularName: 'studio-setting';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    fidelityMode: Schema.Attribute.Enumeration<
+      ['allow-below-threshold', 'disallow-below-threshold']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'allow-below-threshold'>;
+    fidelityThreshold: Schema.Attribute.Decimal &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0.25>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::studio-setting.studio-setting'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiStudioShellStudioShell extends Struct.CollectionTypeSchema {
   collectionName: 'studio_shells';
   info: {
@@ -968,6 +1011,12 @@ export interface ApiStudioThemeStudioTheme extends Struct.CollectionTypeSchema {
     themeKey: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.Unique;
+    themeMode: Schema.Attribute.Enumeration<['light', 'dark', 'system']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'system'>;
+    themeScopeClass: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'theme-default'>;
     tokenCoverage: Schema.Attribute.Decimal;
     tokens: Schema.Attribute.JSON;
     updatedAt: Schema.Attribute.DateTime;
@@ -1605,6 +1654,7 @@ declare module '@strapi/strapi' {
       'api::studio-block.studio-block': ApiStudioBlockStudioBlock;
       'api::studio-import-master.studio-import-master': ApiStudioImportMasterStudioImportMaster;
       'api::studio-page.studio-page': ApiStudioPageStudioPage;
+      'api::studio-setting.studio-setting': ApiStudioSettingStudioSetting;
       'api::studio-shell.studio-shell': ApiStudioShellStudioShell;
       'api::studio-theme.studio-theme': ApiStudioThemeStudioTheme;
       'api::studio-widget.studio-widget': ApiStudioWidgetStudioWidget;

@@ -1,0 +1,25 @@
+{
+  "kind": "singleType",
+  "collectionName": "studio_settings",
+  "info": {
+    "singularName": "studio-setting",
+    "pluralName": "studio-settings",
+    "displayName": "Studio Setting"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "fidelityMode": {
+      "type": "enumeration",
+      "enum": ["allow-below-threshold", "disallow-below-threshold"],
+      "required": true,
+      "default": "allow-below-threshold"
+    },
+    "fidelityThreshold": {
+      "type": "decimal",
+      "required": true,
+      "default": 0.25
+    }
+  }
+}

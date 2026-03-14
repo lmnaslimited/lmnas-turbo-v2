@@ -6,8 +6,10 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { invalidatePageValidationOnEdit } from "../../../../platform/onboarding/_lib/page-validation";
 import { evaluatePagePreviewAcceptance } from "../../../../platform/onboarding/_lib/page-validation";
-import type { StudioActionType, StudioBlockTemplate, StudioPageDocument } from "../../../../platform/onboarding/_lib/studio-types";
+import { buildPlatformPagePreviewDocument, createStaticPlatformPreviewAssets } from "../../../../platform/onboarding/_lib/platform-preview-shared";
+import type { StudioActionType, StudioBlockTemplate, StudioPageDocument, StudioShell, StudioTheme } from "../../../../platform/onboarding/_lib/studio-types";
 import { isStudioActionType } from "../../../../platform/onboarding/_lib/studio-types";
+import { buildCanonicalPageComposition, createCanonicalBlockSnapshot } from "../../../../../lib/studio-canonical";
 import { loadProjectEnv } from "../../../../lib/env";
 import { getStudioStore, replaceStore } from "../_lib/store";
 import { isStrapiConfigured, requestStrapi, StudioApiError, unwrapStrapiEntity } from "../_lib/strapi";
@@ -72,6 +74,27 @@ type ImportNormalization = {
 };
 
 const CANONICAL_IMPORT_MASTER_COLLECTION = "/api/studio-import-masters";
+const PREVIEW_ASSETS = createStaticPlatformPreviewAssets();
+
+function toIsoDate(input?: unknown): string {
+  if (typeof input !== "string" || input.length < 10) {
+    return new Date().toISOString().slice(0, 10);
+  }
+  return input.slice(0, 10);
+}
+
+function normalizeTokenCoverage(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return 0;
+}
 
 function normalizePage(input: Partial<StudioPageDocument>): StudioPageDocument {
   const slug = typeof input.slug === "string" && input.slug.trim().length > 0 ? input.slug.trim() : "new-page";
@@ -312,6 +335,186 @@ function mapStrapiPageToStudio(value: unknown): StudioPageDocument {
     previewHtml: coerceString(row.previewHtml),
     publishedPreviewHtml: coerceString(row.publishedPreviewHtml),
     updatedAt: coerceString(row.updatedAt, new Date().toISOString())
+  });
+}
+
+function normalizeThemeToken(value: unknown): StudioTheme["tokens"][number] | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  const row = value as Record<string, unknown>;
+  if (typeof row.key !== "string" || typeof row.value !== "string") {
+    return null;
+  }
+  const category = row.category;
+  return {
+    key: row.key,
+    label: typeof row.label === "string" ? row.label : row.key,
+    category:
+      category === "color" || category === "typography" || category === "spacing" || category === "radius" || category === "shadow"
+        ? category
+        : "color",
+    value: row.value,
+    cssVariable: typeof row.cssVariable === "string" ? row.cssVariable : row.key,
+    mapped: Boolean(row.mapped)
+  };
+}
+
+function normalizeThemeForPreview(value: unknown): StudioTheme {
+  const row = (value ?? {}) as Record<string, unknown>;
+  const idCandidate = row.documentId ?? row.id;
+  const id = typeof idCandidate === "string" || typeof idCandidate === "number" ? String(idCandidate) : `theme-${Date.now()}`;
+  const themeKey = typeof row.themeKey === "string" && row.themeKey.trim().length > 0 ? row.themeKey.trim() : id;
+  const darkMode = Boolean(row.darkMode);
+  const themeMode = row.themeMode === "light" || row.themeMode === "dark" || row.themeMode === "system" ? row.themeMode : darkMode ? "dark" : "system";
+  return {
+    id,
+    themeKey,
+    name: typeof row.name === "string" && row.name.trim().length > 0 ? row.name.trim() : themeKey,
+    status: row.status === "active" || row.status === "draft" ? row.status : "inactive",
+    sourceRef: typeof row.sourceRef === "string" ? row.sourceRef : "unknown",
+    themeScopeClass:
+      typeof row.themeScopeClass === "string" && row.themeScopeClass.trim().length > 0 ? row.themeScopeClass.trim() : `theme-${themeKey}`,
+    themeMode,
+    createdAt: toIsoDate(row.createdAt),
+    updatedAt: toIsoDate(row.updatedAt),
+    tokenCoverage: normalizeTokenCoverage(row.tokenCoverage),
+    themeDebt: typeof row.themeDebt === "string" ? row.themeDebt : "",
+    darkMode: themeMode === "dark" || (themeMode === "system" && darkMode),
+    tokens: Array.isArray(row.tokens)
+      ? row.tokens.map((entry) => normalizeThemeToken(entry)).filter((entry): entry is NonNullable<ReturnType<typeof normalizeThemeToken>> => entry !== null)
+      : []
+  };
+}
+
+function normalizeShellForPreview(value: unknown): StudioShell {
+  const row = (value ?? {}) as Record<string, unknown>;
+  const idCandidate = row.documentId ?? row.id;
+  const id = typeof idCandidate === "string" || typeof idCandidate === "number" ? String(idCandidate) : `shell-${Date.now()}`;
+  return {
+    id,
+    key: typeof row.shellKey === "string" && row.shellKey.trim().length > 0 ? row.shellKey.trim() : id,
+    name: typeof row.name === "string" && row.name.trim().length > 0 ? row.name.trim() : "Shell",
+    role: row.role === "navbar" || row.role === "footer" ? row.role : "full",
+    status: row.status === "inactive" ? "inactive" : "active",
+    updatedAt: toIsoDate(row.updatedAt),
+    menuItems: [],
+    actions: [],
+    navbarBlocks: [],
+    footerBlocks: [],
+    previewHtml: typeof row.previewHtml === "string" ? row.previewHtml : ""
+  };
+}
+
+function normalizeBlockForPreview(value: unknown): StudioBlockTemplate {
+  const row = (value ?? {}) as Record<string, unknown>;
+  const idCandidate = row.documentId ?? row.id;
+  const id = typeof idCandidate === "string" || typeof idCandidate === "number" ? String(idCandidate) : `block-${Date.now()}`;
+  const previewHtml = typeof row.previewHtml === "string" ? row.previewHtml : "";
+  const targetPreviewHtml = typeof row.targetPreviewHtml === "string" ? row.targetPreviewHtml : previewHtml;
+  const snapshot =
+    row.domJson && typeof row.domJson === "object" && !Array.isArray(row.domJson)
+      ? {
+          blockType: row.blockType === "imported_dom_snapshot" ? row.blockType : "imported_dom_snapshot",
+          domJson: row.domJson as StudioBlockTemplate["domJson"],
+          classMap:
+            row.classMap && typeof row.classMap === "object" && !Array.isArray(row.classMap)
+              ? (row.classMap as Record<string, string>)
+              : {},
+          stylesheetRef: typeof row.stylesheetRef === "string" && row.stylesheetRef.trim().length > 0 ? row.stylesheetRef.trim() : "/studio-runtime.css"
+        }
+      : createCanonicalBlockSnapshot({
+          html: targetPreviewHtml || previewHtml || "<section></section>",
+          sourceUrl: typeof row.sourceRef === "string" ? row.sourceRef : "studio-preview",
+          themeScopeClass:
+            row.themeMapping && typeof row.themeMapping === "object" && !Array.isArray(row.themeMapping)
+              ? typeof (row.themeMapping as Record<string, unknown>).themeScopeClass === "string"
+                ? String((row.themeMapping as Record<string, unknown>).themeScopeClass)
+                : undefined
+              : undefined
+        });
+
+  return {
+    id,
+    key: typeof row.blockKey === "string" && row.blockKey.trim().length > 0 ? row.blockKey.trim() : id,
+    name: typeof row.name === "string" && row.name.trim().length > 0 ? row.name.trim() : "Block",
+    blockType: "imported_dom_snapshot",
+    family: typeof row.family === "string" && row.family.trim().length > 0 ? row.family.trim() : "rich_text_section",
+    status: row.status === "inactive" || row.status === "draft" ? row.status : "active",
+    lifecycle: row.lifecycle === "published" || row.lifecycle === "archived" ? row.lifecycle : "draft",
+    scope: row.scope === "page-local" ? "page-local" : "global",
+    schemaStatus: row.schemaStatus === "invalid" || row.schemaStatus === "warning" ? row.schemaStatus : "valid",
+    themeKey: typeof row.themeKey === "string" && row.themeKey.trim().length > 0 ? row.themeKey.trim() : "default",
+    sourceType: typeof row.sourceType === "string" && row.sourceType.trim().length > 0 ? row.sourceType.trim() : "unknown",
+    sourceRef: typeof row.sourceRef === "string" && row.sourceRef.trim().length > 0 ? row.sourceRef.trim() : "unknown",
+    domJson: snapshot.domJson,
+    classMap: snapshot.classMap,
+    stylesheetRef: snapshot.stylesheetRef,
+    themeMapping:
+      row.themeMapping && typeof row.themeMapping === "object" && !Array.isArray(row.themeMapping)
+        ? (row.themeMapping as StudioBlockTemplate["themeMapping"])
+        : undefined,
+    fidelityMetadata:
+      row.fidelityMetadata && typeof row.fidelityMetadata === "object" && !Array.isArray(row.fidelityMetadata)
+        ? (row.fidelityMetadata as StudioBlockTemplate["fidelityMetadata"])
+        : undefined,
+    confidence: typeof row.confidence === "number" ? row.confidence : 0,
+    editableFields: Array.isArray(row.editableFields) ? row.editableFields.filter((entry): entry is string => typeof entry === "string") : [],
+    actions: [],
+    previewHtml,
+    sourcePreviewHtml: typeof row.sourcePreviewHtml === "string" ? row.sourcePreviewHtml : undefined,
+    targetPreviewHtml: typeof row.targetPreviewHtml === "string" ? row.targetPreviewHtml : undefined,
+    inUseCount: typeof row.usageCount === "number" ? row.usageCount : 0,
+    usageCount: typeof row.usageCount === "number" ? row.usageCount : 0,
+    createdAt: toIsoDate(row.createdAt),
+    updatedAt: toIsoDate(row.updatedAt)
+  };
+}
+
+async function listPreviewBlocksFromStrapi(): Promise<StudioBlockTemplate[]> {
+  const response = await requestStrapi<StrapiCollectionResponse>("/api/studio-blocks?pagination[pageSize]=200&sort=updatedAt:desc");
+  const rows = Array.isArray(response.data) ? response.data : [];
+  return rows.map((row) => normalizeBlockForPreview(unwrapStrapiEntity(row)));
+}
+
+async function listPreviewThemesFromStrapi(): Promise<StudioTheme[]> {
+  const response = await requestStrapi<StrapiCollectionResponse>("/api/studio-themes?pagination[pageSize]=200&sort=updatedAt:desc");
+  const rows = Array.isArray(response.data) ? response.data : [];
+  return rows.map((row) => normalizeThemeForPreview(unwrapStrapiEntity(row)));
+}
+
+async function listPreviewShellsFromStrapi(): Promise<StudioShell[]> {
+  const response = await requestStrapi<StrapiCollectionResponse>("/api/studio-shells?pagination[pageSize]=200&sort=updatedAt:desc");
+  const rows = Array.isArray(response.data) ? response.data : [];
+  return rows.map((row) => normalizeShellForPreview(unwrapStrapiEntity(row)));
+}
+
+async function hydratePagesForPreview(params: {
+  pages: StudioPageDocument[];
+  source: "strapi" | "fallback";
+}): Promise<StudioPageDocument[]> {
+  if (params.pages.length === 0) {
+    return params.pages;
+  }
+
+  const [blocks, themes, shells] =
+    params.source === "strapi"
+      ? await Promise.all([listPreviewBlocksFromStrapi(), listPreviewThemesFromStrapi(), listPreviewShellsFromStrapi()])
+      : [getStudioStore().blocks, getStudioStore().themes, getStudioStore().shells];
+
+  return params.pages.map((page) => {
+    const previewHtml = buildPlatformPagePreviewDocument({
+      page,
+      blocks,
+      shells,
+      themes,
+      hostAssets: PREVIEW_ASSETS
+    });
+    return {
+      ...page,
+      previewHtml,
+      publishedPreviewHtml: previewHtml
+    };
   });
 }
 
@@ -580,8 +783,8 @@ async function upsertStudioPageInStrapi(page: StudioPageDocument): Promise<void>
     seoJsonLdValid: persistedPage.seoJsonLdValid,
     blockSchemaValid: persistedPage.blockSchemaValid,
     previewValid: persistedPage.previewValid,
-    previewHtml: persistedPage.previewHtml,
-    publishedPreviewHtml: persistedPage.publishedPreviewHtml ?? ""
+    previewHtml: "",
+    publishedPreviewHtml: ""
   };
 
   if (existingId) {
@@ -638,7 +841,16 @@ async function applyPageToStrapi(page: StudioPageDocument): Promise<PageApplyRes
   const tempDir = await mkdtemp(path.join(os.tmpdir(), "lmnas-studio-page-"));
   const htmlPath = path.join(tempDir, `${page.slug}.${page.locale}.html`);
   try {
-    const html = page.previewHtml.trim().length > 0 ? page.previewHtml : "<section><h1>Untitled Page</h1></section>";
+    const [blocks, shells] = await Promise.all([listPreviewBlocksFromStrapi(), listPreviewShellsFromStrapi()]);
+    const composition = buildCanonicalPageComposition({
+      page,
+      blocks,
+      shells,
+      sourceUrl: `https://lmnas.com/${page.locale}/${page.slug}`
+    });
+    const html = [composition.headerHtml, composition.bodyHtml, composition.footerHtml]
+      .filter((entry) => entry.trim().length > 0)
+      .join("\n");
     await writeFile(htmlPath, html, "utf8");
     const plan = await contentImporter.createImportPlan({
       slug: page.slug,
@@ -699,8 +911,8 @@ async function publishStudioPageDocument(pageId: string): Promise<void> {
         seoJsonLdValid: draftPage.seoJsonLdValid,
         blockSchemaValid: draftPage.blockSchemaValid,
         previewValid: draftPage.previewValid,
-        previewHtml: draftPage.previewHtml,
-        publishedPreviewHtml: draftPage.previewHtml,
+        previewHtml: "",
+        publishedPreviewHtml: "",
         publishedAt
       }
     : null;
@@ -774,9 +986,15 @@ async function upsertBlockTemplateInStrapi(template: BlockTemplateUpsert): Promi
         ? String(canonicalExisting.id)
         : undefined;
 
+  const snapshot = createCanonicalBlockSnapshot({
+    html: template.previewHtml,
+    sourceUrl: template.sourceRef,
+    stylesheetRef: "/studio-runtime.css"
+  });
   const payload = {
     blockKey: template.key,
     name: template.name,
+    blockType: snapshot.blockType,
     family: template.family,
     status: template.status,
     lifecycle: "draft",
@@ -785,12 +1003,15 @@ async function upsertBlockTemplateInStrapi(template: BlockTemplateUpsert): Promi
     themeKey: template.themeKey,
     sourceType: template.sourceType,
     sourceRef: template.sourceRef,
-    sourcePreviewHtml: template.previewHtml,
-    targetPreviewHtml: template.previewHtml,
+    domJson: snapshot.domJson,
+    classMap: snapshot.classMap,
+    stylesheetRef: snapshot.stylesheetRef,
+    sourcePreviewHtml: "",
+    targetPreviewHtml: "",
     confidence: template.confidence,
     editableFields: template.editableFields,
     actions: template.actions,
-    previewHtml: template.previewHtml,
+    previewHtml: "",
     usageCount: template.inUseCount
   };
   const matchResult: ImportedBlockMatch = {
@@ -840,10 +1061,16 @@ function upsertBlockTemplateInFallback(template: BlockTemplateUpsert): ImportedB
   const existing = index >= 0 ? blocks[index] : null;
   const now = new Date().toISOString().slice(0, 10);
 
+  const snapshot = createCanonicalBlockSnapshot({
+    html: template.previewHtml,
+    sourceUrl: template.sourceRef,
+    stylesheetRef: "/studio-runtime.css"
+  });
   const next: StudioBlockTemplate = {
     id: index >= 0 ? blocks[index].id : template.key,
     key: template.key,
     name: template.name,
+    blockType: snapshot.blockType,
     family: template.family,
     status: template.status,
     lifecycle: "draft",
@@ -852,10 +1079,13 @@ function upsertBlockTemplateInFallback(template: BlockTemplateUpsert): ImportedB
     themeKey: template.themeKey,
     sourceType: template.sourceType,
     sourceRef: template.sourceRef,
+    domJson: snapshot.domJson,
+    classMap: snapshot.classMap,
+    stylesheetRef: snapshot.stylesheetRef,
     confidence: template.confidence,
     editableFields: template.editableFields,
     actions: template.actions,
-    previewHtml: template.previewHtml,
+    previewHtml: "",
     inUseCount: index >= 0 ? blocks[index].inUseCount : template.inUseCount,
     usageCount: index >= 0 ? (blocks[index].usageCount ?? blocks[index].inUseCount) : template.inUseCount,
     createdAt: index >= 0 ? blocks[index].createdAt : now,
@@ -1143,6 +1373,8 @@ export async function GET(request: Request): Promise<Response> {
     pages = getStudioStore().pages;
   }
 
+  pages = await hydratePagesForPreview({ pages, source });
+
   if (slug || id) {
     const page = pages.find((entry) => (id ? entry.id === id : false) || (slug ? entry.slug === slug : false));
     return Response.json({
@@ -1228,10 +1460,14 @@ export async function POST(request: Request): Promise<Response> {
 
       try {
         const accepted = await acceptStudioPagePreviewInStrapi(requestedPageId);
+        const [hydratedPage] = await hydratePagesForPreview({
+          pages: [accepted.page],
+          source: "strapi"
+        });
         return Response.json({
           ok: true,
           data: {
-            page: accepted.page,
+            page: hydratedPage ?? accepted.page,
             evaluation: accepted.evaluation
           },
           source: "strapi"
@@ -1270,11 +1506,15 @@ export async function POST(request: Request): Promise<Response> {
     const previewRoute = page.slug === "home" ? `/${page.locale}` : `/${page.locale}/${page.slug}`;
     const warnings: string[] = [];
     if (!isStrapiConfigured()) {
-      const persistedPage = normalizePage(savePageInFallback(page).find((candidate) => candidate.id === page.id) ?? page);
+      const persistedPage = normalizePage(savePageInFallback({ ...page, previewHtml: "", publishedPreviewHtml: "" }).find((candidate) => candidate.id === page.id) ?? page);
+      const [hydratedPage] = await hydratePagesForPreview({
+        pages: [persistedPage],
+        source: "fallback"
+      });
       return Response.json({
         ok: true,
         data: {
-          page: persistedPage,
+          page: hydratedPage ?? persistedPage,
           applied: false,
           warnings,
           previewRoute
@@ -1283,7 +1523,11 @@ export async function POST(request: Request): Promise<Response> {
       });
     }
 
-    let persistedPage = page;
+    let persistedPage: StudioPageDocument = normalizePage({
+      ...page,
+      previewHtml: "",
+      publishedPreviewHtml: ""
+    });
     try {
       await upsertStudioPageInStrapi(page);
       const resolvedPage = await findStudioPageInStrapi({
@@ -1311,10 +1555,14 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     if (payload.mode === "preview") {
+      const [hydratedPage] = await hydratePagesForPreview({
+        pages: [persistedPage],
+        source: "strapi"
+      });
       return Response.json({
         ok: true,
         data: {
-          page: persistedPage,
+          page: hydratedPage ?? persistedPage,
           applied: false,
           warnings,
           previewRoute: buildStudioPreviewRoute(persistedPage)
@@ -1324,10 +1572,14 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     if (payload.mode !== "apply") {
+      const [hydratedPage] = await hydratePagesForPreview({
+        pages: [persistedPage],
+        source: "strapi"
+      });
       return Response.json({
         ok: true,
         data: {
-          page: persistedPage,
+          page: hydratedPage ?? persistedPage,
           applied: false,
           warnings,
           previewRoute
@@ -1349,10 +1601,14 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     const applied = await applyPageToStrapi(page);
+    const [hydratedPage] = await hydratePagesForPreview({
+      pages: [persistedPage],
+      source: "strapi"
+    });
     return Response.json({
       ok: true,
       data: {
-        page: persistedPage,
+        page: hydratedPage ?? persistedPage,
         applied: applied.applied,
         warnings: [...warnings, ...applied.warnings],
         previewRoute

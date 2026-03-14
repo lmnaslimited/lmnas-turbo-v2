@@ -1,6 +1,10 @@
+import type { SanitizedDomRoot } from "../../../../lib/studio-html-sanitizer";
+
 export type StudioThemeTokenCategory = "color" | "typography" | "spacing" | "radius" | "shadow";
 
 export type StudioThemeStatus = "active" | "inactive" | "draft";
+export type StudioThemeMode = "light" | "dark" | "system";
+export type StudioBlockType = "imported_dom_snapshot";
 
 export type StudioShellRole = "navbar" | "footer" | "full";
 
@@ -71,6 +75,8 @@ export interface StudioTheme {
   name: string;
   status: StudioThemeStatus;
   sourceRef: string;
+  themeScopeClass?: string;
+  themeMode?: StudioThemeMode;
   createdAt: string;
   updatedAt: string;
   tokenCoverage: number;
@@ -118,6 +124,7 @@ export interface StudioBlockTemplate {
   id: string;
   key: string;
   name: string;
+  blockType?: StudioBlockType;
   family: string;
   status: "active" | "inactive" | "draft";
   lifecycle?: StudioEntityLifecycle;
@@ -126,6 +133,19 @@ export interface StudioBlockTemplate {
   themeKey: string;
   sourceType: string;
   sourceRef: string;
+  domJson?: SanitizedDomRoot;
+  classMap?: Record<string, string>;
+  stylesheetRef?: string;
+  themeMapping?: {
+    themeKey: string;
+    themeScopeClass: string;
+    tokenCoverage: number;
+  };
+  fidelityMetadata?: {
+    themeDebtSummary?: string;
+    tokenFirstMatchRatio?: number;
+    warnings?: string[];
+  };
   confidence: number;
   editableFields: string[];
   actions: StudioBlockTemplateAction[];

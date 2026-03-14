@@ -26,8 +26,7 @@ function normalizeForFingerprint(page: StudioPageDocument) {
     conversionConfig: page.conversionConfig,
     campaignUtmStrategy: page.campaignUtmStrategy,
     taxonomyState: page.taxonomyState,
-    seoMetadata: page.seoMetadata,
-    previewHtml: page.previewHtml
+    seoMetadata: page.seoMetadata
   };
 }
 
@@ -53,9 +52,6 @@ export function evaluatePagePreviewAcceptance(page: StudioPageDocument): PagePre
 
   if (page.blockOrder.length === 0) {
     previewIssues.push("Add at least one block to the page before accepting preview.");
-  }
-  if (page.previewHtml.trim().length === 0) {
-    previewIssues.push("Generate the latest draft preview before accepting it.");
   }
 
   if (page.seoMetadata.metaTitle.trim().length === 0) {

@@ -1,4 +1,4 @@
-import type { StudioTheme, StudioThemeStatus, StudioThemeToken } from "../../../../platform/onboarding/_lib/studio-types";
+import type { StudioTheme, StudioThemeMode, StudioThemeStatus, StudioThemeToken } from "../../../../platform/onboarding/_lib/studio-types";
 import { ALLOWED_THEME_SOURCES, isStudioThemeSourceType } from "../../../../platform/onboarding/theme/theme-input";
 import { getStudioStore, replaceStore } from "../_lib/store";
 import { isStrapiConfigured, requestStrapi, StudioApiError, unwrapStrapiEntity } from "../_lib/strapi";
@@ -65,6 +65,13 @@ function normalizeTokens(value: unknown): StudioThemeToken[] {
     .filter((token): token is StudioThemeToken => token !== null);
 }
 
+function normalizeThemeMode(value: unknown, darkMode: boolean): StudioThemeMode {
+  if (value === "light" || value === "dark" || value === "system") {
+    return value;
+  }
+  return darkMode ? "dark" : "system";
+}
+
 function normalizeTheme(value: unknown): StudioTheme {
   const row = (value ?? {}) as Record<string, unknown>;
   const idCandidate = row.documentId ?? row.id;
@@ -74,17 +81,23 @@ function normalizeTheme(value: unknown): StudioTheme {
   const themeKey =
     typeof themeKeyCandidate === "string" && themeKeyCandidate.trim().length > 0 ? themeKeyCandidate.trim() : id;
 
+  const darkMode = Boolean(row.darkMode);
+  const themeMode = normalizeThemeMode(row.themeMode, darkMode);
+
   return {
     id,
     themeKey,
     name: typeof row.name === "string" && row.name.trim().length > 0 ? row.name.trim() : themeKey,
     status: row.status === "active" || row.status === "draft" ? row.status : "inactive",
     sourceRef: typeof row.sourceRef === "string" ? row.sourceRef : "unknown",
+    themeScopeClass:
+      typeof row.themeScopeClass === "string" && row.themeScopeClass.trim().length > 0 ? row.themeScopeClass.trim() : `theme-${themeKey}`,
+    themeMode,
     createdAt: toIsoDate(row.createdAt),
     updatedAt: toIsoDate(row.updatedAt),
     tokenCoverage: typeof row.tokenCoverage === "number" ? row.tokenCoverage : 0,
     themeDebt: typeof row.themeDebt === "string" ? row.themeDebt : "",
-    darkMode: Boolean(row.darkMode),
+    darkMode: themeMode === "dark" || (themeMode === "system" && darkMode),
     tokens: normalizeTokens(row.tokens)
   };
 }
@@ -162,9 +175,11 @@ async function upsertThemeInCollection(collectionPath: string, keyField: string,
     name: theme.name,
     status: theme.status,
     sourceRef: theme.sourceRef,
+    themeScopeClass: theme.themeScopeClass,
+    themeMode: theme.themeMode,
     tokenCoverage: theme.tokenCoverage,
     themeDebt: theme.themeDebt,
-    darkMode: theme.darkMode,
+    darkMode: theme.themeMode === "dark" || (theme.themeMode === "system" && theme.darkMode),
     tokens: theme.tokens
   };
 

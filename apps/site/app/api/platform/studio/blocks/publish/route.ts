@@ -6,6 +6,7 @@ import {
 import { publishOnboardingDraft } from "@lmnas/integrations";
 import type { StudioActionType } from "../../../../../platform/onboarding/_lib/studio-types";
 import { isStudioActionType } from "../../../../../platform/onboarding/_lib/studio-types";
+import { createCanonicalBlockSnapshot } from "../../../../../../lib/studio-canonical";
 import { loadProjectEnv } from "../../../../../lib/env";
 import { getStudioStore, replaceStore } from "../../_lib/store";
 import { isStrapiConfigured, requestStrapi, StudioApiError } from "../../_lib/strapi";
@@ -118,11 +119,18 @@ async function upsertBlockInCollection(
   const existingEntity = existing ? unwrapStrapiEntity(existing) : undefined;
   const existingId = existing ? resolveEntityMutationId(existing) : null;
   const usageCount = template.inUseCount;
+  const snapshot = createCanonicalBlockSnapshot({
+    html: template.targetPreviewHtml ?? template.previewHtml,
+    sourceUrl: template.sourceRef,
+    themeScopeClass: `theme-${template.themeKey}`,
+    stylesheetRef: "/studio-runtime.css"
+  });
   const payload: Record<string, unknown> =
     keyField === "blockKey"
       ? {
           blockKey: template.key,
           name: template.name,
+          blockType: snapshot.blockType,
           family: template.family,
           status: template.status,
           lifecycle: "draft",
@@ -131,17 +139,21 @@ async function upsertBlockInCollection(
           themeKey: template.themeKey,
           sourceType: template.sourceType,
           sourceRef: template.sourceRef,
+          domJson: snapshot.domJson,
+          classMap: snapshot.classMap,
+          stylesheetRef: snapshot.stylesheetRef,
+          themeMapping: {
+            themeKey: template.themeKey,
+            themeScopeClass: `theme-${template.themeKey}`,
+            tokenCoverage: 1
+          },
+          fidelityMetadata: {},
           confidence: template.confidence,
           editableFields: template.editableFields,
           actions: template.actions,
-          sourcePreviewHtml: template.sourcePreviewHtml ?? (typeof existingEntity?.sourcePreviewHtml === "string" ? existingEntity.sourcePreviewHtml : undefined),
-          targetPreviewHtml:
-            template.targetPreviewHtml ??
-            (typeof existingEntity?.targetPreviewHtml === "string" ? existingEntity.targetPreviewHtml : undefined),
-          previewHtml:
-            template.targetPreviewHtml ??
-            template.previewHtml ??
-            (typeof existingEntity?.previewHtml === "string" ? existingEntity.previewHtml : "<section></section>"),
+          sourcePreviewHtml: "",
+          targetPreviewHtml: "",
+          previewHtml: "",
           importMaster:
             template.importMasterId ??
             (existingEntity &&
@@ -266,6 +278,7 @@ function upsertBlockTemplateInFallback(template: {
     id: index >= 0 ? blocks[index].id : template.key,
     key: template.key,
     name: template.name,
+    blockType: "imported_dom_snapshot" as const,
     family: template.family,
     status: "active" as const,
     lifecycle: "draft" as const,
@@ -274,10 +287,16 @@ function upsertBlockTemplateInFallback(template: {
     themeKey: template.themeKey,
     sourceType: template.sourceType,
     sourceRef: template.sourceRef,
+    ...createCanonicalBlockSnapshot({
+      html: template.previewHtml,
+      sourceUrl: template.sourceRef,
+      themeScopeClass: `theme-${template.themeKey}`,
+      stylesheetRef: "/studio-runtime.css"
+    }),
     confidence: template.confidence,
     editableFields: template.editableFields,
     actions: template.actions,
-    previewHtml: template.previewHtml,
+    previewHtml: "",
     inUseCount: index >= 0 ? blocks[index].inUseCount : 0,
     usageCount: index >= 0 ? (blocks[index].usageCount ?? blocks[index].inUseCount) : 0,
     createdAt: index >= 0 ? blocks[index].createdAt : now,

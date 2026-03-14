@@ -80,4 +80,99 @@ describe("studio themes route canonical mode", () => {
     expect(payload.error).toContain("Canonical studio-theme persistence failed");
     expect(getStudioStore().themes.map((theme) => theme.id)).toEqual(initialThemeIds);
   });
+
+  it("persists tokenized canonical theme data without preview artifacts", async () => {
+    requestStrapiMock.mockImplementation((path: string, init?: { method?: string; body?: Record<string, unknown> }) => {
+      if (path.startsWith("/api/studio-themes?")) {
+        return Promise.resolve({ data: [] });
+      }
+      if (path === "/api/studio-themes" && init?.method === "POST") {
+        return Promise.resolve({ data: { documentId: "theme-canonical-1" } });
+      }
+      return Promise.resolve({
+        data: [
+          {
+            documentId: "theme-canonical-1",
+            themeKey: "aurora",
+            name: "Aurora",
+            status: "active",
+            sourceRef: "figma://aurora",
+            themeScopeClass: "theme-aurora",
+            themeMode: "dark",
+            tokenCoverage: 0.94,
+            themeDebt: "2 unmapped semantic aliases",
+            darkMode: true,
+            tokens: [
+              {
+                key: "primary",
+                value: "#1a73e8",
+                label: "Primary",
+                category: "color",
+                cssVariable: "--color-primary",
+                mapped: true
+              }
+            ]
+          }
+        ]
+      });
+    });
+
+    const response = await POST(
+      buildRequest({
+        mode: "create",
+        sourceType: "html_upload",
+        theme: {
+          id: "theme-canonical-1",
+          themeKey: "aurora",
+          name: "Aurora",
+          status: "active",
+          sourceRef: "figma://aurora",
+          themeScopeClass: "theme-aurora",
+          themeMode: "dark",
+          tokenCoverage: 0.94,
+          themeDebt: "2 unmapped semantic aliases",
+          darkMode: true,
+          tokens: [
+            {
+              key: "primary",
+              value: "#1a73e8",
+              label: "Primary",
+              category: "color",
+              cssVariable: "--color-primary",
+              mapped: true
+            }
+          ]
+        }
+      })
+    );
+
+    expect(response.status).toBe(200);
+    const createCall = requestStrapiMock.mock.calls.find((call) => call[0] === "/api/studio-themes" && call[1]?.method === "POST");
+    expect(createCall?.[1]?.body).toEqual({
+      themeKey: "aurora",
+      name: "Aurora",
+      status: "active",
+      sourceRef: "figma://aurora",
+      themeScopeClass: "theme-aurora",
+      themeMode: "dark",
+      tokenCoverage: 0.94,
+      themeDebt: "2 unmapped semantic aliases",
+      darkMode: true,
+      tokens: [
+        {
+          key: "primary",
+          value: "#1a73e8",
+          label: "Primary",
+          category: "color",
+          cssVariable: "--color-primary",
+          mapped: true
+        }
+      ]
+    });
+
+    const serialized = JSON.stringify(createCall?.[1]?.body ?? {});
+    expect(serialized).not.toContain("localhost");
+    expect(serialized).not.toContain("_next/static");
+    expect(serialized).not.toContain("<script");
+  });
 });

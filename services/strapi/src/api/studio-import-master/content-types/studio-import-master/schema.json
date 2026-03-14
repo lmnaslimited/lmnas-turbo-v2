@@ -54,10 +54,12 @@
       "type": "json"
     },
     "referencePreviewHtml": {
-      "type": "text"
+      "type": "text",
+      "description": "Disposable source comparison artifact for studio import review."
     },
     "targetPreviewHtml": {
-      "type": "text"
+      "type": "text",
+      "description": "Disposable target comparison artifact. Never canonical page or block content."
     },
     "selectedThemeKey": {
       "type": "string"

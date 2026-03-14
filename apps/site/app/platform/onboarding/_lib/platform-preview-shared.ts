@@ -1,4 +1,5 @@
 import { sanitizeHtmlToSafeMarkup } from "../../../../lib/studio-html-sanitizer";
+import { buildCanonicalPageComposition } from "../../../../lib/studio-canonical";
 import type { StudioBlockTemplate, StudioPageDocument, StudioShell, StudioTheme } from "./studio-types";
 
 export type PlatformPreviewAssets = {
@@ -263,6 +264,7 @@ export function buildPlatformTargetDocument(params: {
   hostAssets: PlatformPreviewAssets;
   beforeBodyHtml?: string;
   afterBodyHtml?: string;
+  additionalStylesheetHrefs?: string[];
 }): string {
   const htmlClass = params.theme?.darkMode ? "dark" : "";
   const cssVars = buildThemeCssVars(params.theme);
@@ -274,12 +276,22 @@ export function buildPlatformTargetDocument(params: {
   const cleanedBodyHtml = stripPreviewRuntime(params.bodyHtml);
   const cleanedBeforeBodyHtml = params.beforeBodyHtml ? toPreviewBodyHtml(params.beforeBodyHtml) : "";
   const cleanedAfterBodyHtml = params.afterBodyHtml ? toPreviewBodyHtml(params.afterBodyHtml) : "";
+  const additionalStylesheets = Array.from(
+    new Set(
+      (params.additionalStylesheetHrefs ?? [])
+        .filter((href): href is string => typeof href === "string" && href.trim().length > 0)
+        .map((href) => href.trim())
+    )
+  )
+    .map((href) => `<link rel="stylesheet" href="${href}">`)
+    .join("");
 
   return [
     `<!doctype html><html class="${htmlClass}" lang="en"><head>`,
     "<meta charset=\"utf-8\"/>",
     "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>",
     params.hostAssets.headMarkup,
+    additionalStylesheets,
     "<style>",
     `:root{${cssVars}}`,
     "html,body{margin:0;padding:0;min-height:100%}",
@@ -303,12 +315,14 @@ export function buildPlatformBlockPreviewDocument(params: {
   proposalHtml: string;
   theme: StudioTheme | null;
   hostAssets: PlatformPreviewAssets;
+  additionalStylesheetHrefs?: string[];
 }): string {
   const proposalBody = toPreviewBodyHtml(params.proposalHtml);
   return buildPlatformTargetDocument({
     bodyHtml: proposalBody.length > 0 ? `<main class="lmnas-target-main">${proposalBody}</main>` : "<main></main>",
     theme: params.theme,
-    hostAssets: params.hostAssets
+    hostAssets: params.hostAssets,
+    additionalStylesheetHrefs: params.additionalStylesheetHrefs
   });
 }
 
@@ -328,25 +342,22 @@ export function buildPlatformPagePreviewDocument(params: {
     return buildPreviewPlaceholderDocument(params.emptyTitle ?? "No preview available", params.emptyDescription);
   }
 
-  const canonicalOrder = canonicalizeBlockOrder(params.page.blockOrder, params.blocks);
-  const sectionHtml = canonicalOrder
-    .map((reference) => {
-      const block = findBlockByReference(params.blocks, reference);
-      if (!block) {
-        return "";
-      }
-      return toPreviewBodyHtml(block.targetPreviewHtml ?? block.previewHtml ?? block.sourcePreviewHtml ?? "");
-    })
-    .filter((html) => html.trim().length > 0)
-    .join("\n");
-
+  const composition = buildCanonicalPageComposition({
+    page: {
+      ...params.page,
+      blockOrder: canonicalizeBlockOrder(params.page.blockOrder, params.blocks)
+    },
+    blocks: params.blocks,
+    shells: params.shells,
+    sourceUrl: "studio-preview"
+  });
   const fallbackBody = params.fallbackHtml ? toPreviewBodyHtml(params.fallbackHtml) : "";
   const bodyHtml =
-    sectionHtml.length > 0
-      ? sectionHtml
+    composition.bodyHtml.trim().length > 0 && !composition.bodyHtml.includes("No blocks composed yet.")
+      ? composition.bodyHtml
       : fallbackBody.length > 0
         ? fallbackBody
-        : "<section style='padding:48px;font-family:system-ui'><h2>No blocks composed yet.</h2><p>Add reusable blocks before previewing this page.</p></section>";
+        : composition.bodyHtml;
   const theme = resolvePlatformPreviewTheme({
     themes: params.themes,
     previewThemeId: params.previewThemeId,
@@ -362,7 +373,8 @@ export function buildPlatformPagePreviewDocument(params: {
     bodyHtml,
     theme,
     hostAssets: params.hostAssets,
-    beforeBodyHtml: shell.headerHtml,
-    afterBodyHtml: shell.footerHtml
+    beforeBodyHtml: composition.headerHtml || shell.headerHtml,
+    afterBodyHtml: composition.footerHtml || shell.footerHtml,
+    additionalStylesheetHrefs: composition.stylesheetRefs
   });
 }

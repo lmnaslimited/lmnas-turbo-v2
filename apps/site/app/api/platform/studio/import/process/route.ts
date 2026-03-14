@@ -7,6 +7,7 @@ import {
   createStaticPlatformPreviewAssets
 } from "../../../../../platform/onboarding/_lib/platform-preview-shared";
 import type { StudioTheme } from "../../../../../platform/onboarding/_lib/studio-types";
+import { createCanonicalBlockSnapshot } from "../../../../../../lib/studio-canonical";
 import { loadProjectEnv } from "../../../../../lib/env";
 import { getStudioStore, replaceStore } from "../../_lib/store";
 import { isStrapiConfigured, requestStrapi } from "../../_lib/strapi";
@@ -700,9 +701,16 @@ async function upsertCanonicalBlockInStrapi(block: {
   const existing = Array.isArray(lookup.data) ? lookup.data[0] : undefined;
   const existingId = existing ? resolveEntityMutationId(existing) : null;
 
+  const snapshot = createCanonicalBlockSnapshot({
+    html: block.targetPreviewHtml,
+    sourceUrl: block.sourceRef,
+    themeScopeClass: block.themeKey ? `theme-${block.themeKey}` : undefined,
+    stylesheetRef: "/studio-runtime.css"
+  });
   const payload: Record<string, unknown> = {
     blockKey: block.blockKey,
     name: block.name,
+    blockType: snapshot.blockType,
     family: block.family,
     status: "draft",
     lifecycle: "draft",
@@ -711,15 +719,24 @@ async function upsertCanonicalBlockInStrapi(block: {
     themeKey: block.themeKey,
     sourceType: block.sourceType,
     sourceRef: block.sourceRef,
-    sourcePreviewHtml: block.sourcePreviewHtml,
-    targetPreviewHtml: block.targetPreviewHtml,
+    domJson: snapshot.domJson,
+    classMap: snapshot.classMap,
+    stylesheetRef: snapshot.stylesheetRef,
+    themeMapping: {
+      themeKey: block.themeKey,
+      themeScopeClass: `theme-${block.themeKey}`,
+      tokenCoverage: 1
+    },
+    fidelityMetadata: {},
+    sourcePreviewHtml: "",
+    targetPreviewHtml: "",
     sourceAssetContext: block.sourceAssetContext,
     importProposalId: block.importProposalId,
     importMaster: block.importMasterId,
     confidence: block.confidence,
     editableFields: block.editableFields,
     actions: block.actions,
-    previewHtml: block.targetPreviewHtml,
+    previewHtml: "",
     usageCount: 0
   };
 
@@ -840,6 +857,7 @@ function persistDraftProposalsInFallback(analysis: OnboardingAnalysis): Persiste
       id: existingIndex >= 0 ? blocks[existingIndex].id : blockKey,
       key: blockKey,
       name,
+      blockType: "imported_dom_snapshot" as const,
       family: block.family,
       status: "draft" as const,
       lifecycle: "draft" as const,
@@ -848,12 +866,18 @@ function persistDraftProposalsInFallback(analysis: OnboardingAnalysis): Persiste
       themeKey: analysis.intake.themeKey,
       sourceType: analysis.intake.sourceType,
       sourceRef: analysis.source.sourceRef,
+      ...createCanonicalBlockSnapshot({
+        html: targetPreviewHtml,
+        sourceUrl: analysis.source.sourceRef,
+        themeScopeClass: `theme-${analysis.intake.themeKey}`,
+        stylesheetRef: "/studio-runtime.css"
+      }),
       confidence: block.confidence,
       editableFields: block.editableFields,
       actions: [],
-      previewHtml: block.previewHtml ?? block.rawHtmlSnippet ?? "<section></section>",
-      sourcePreviewHtml,
-      targetPreviewHtml,
+      previewHtml: "",
+      sourcePreviewHtml: "",
+      targetPreviewHtml: "",
       inUseCount: 0,
       usageCount: 0,
       createdAt: existingIndex >= 0 ? blocks[existingIndex].createdAt : now,

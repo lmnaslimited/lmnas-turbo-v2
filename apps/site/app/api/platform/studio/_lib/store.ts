@@ -48,6 +48,8 @@ export function createSeedStore(): StudioStore {
         name: "LMNAs Default",
         status: "active",
         sourceRef: "globals.css",
+        themeScopeClass: "theme-default",
+        themeMode: "dark",
         createdAt: "2026-02-15",
         updatedAt: now,
         tokenCoverage: 0.92,

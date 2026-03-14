@@ -28,6 +28,17 @@
     "sourceRef": {
       "type": "string"
     },
+    "themeScopeClass": {
+      "type": "string",
+      "required": true,
+      "default": "theme-default"
+    },
+    "themeMode": {
+      "type": "enumeration",
+      "enum": ["light", "dark", "system"],
+      "required": true,
+      "default": "system"
+    },
     "tokenCoverage": {
       "type": "decimal"
     },

@@ -1,3 +1,4 @@
+import { importedDomSnapshotBlockSchema } from "../../../packages/blocks/ImportedDomSnapshot/schema";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../app/lib/env", () => ({
@@ -5,6 +6,15 @@ vi.mock("../app/lib/env", () => ({
 }));
 
 import { loadStudioPageForRoute } from "./studio-page-runtime";
+
+function jsonResponse(data: Array<Record<string, unknown>>) {
+  return {
+    ok: true,
+    json: async () => ({
+      data
+    })
+  };
+}
 
 describe("loadStudioPageForRoute", () => {
   const fetchMock = vi.fn();
@@ -22,11 +32,10 @@ describe("loadStudioPageForRoute", () => {
     vi.unstubAllGlobals();
   });
 
-  it("builds a governed imported-dom render model for published studio pages", async () => {
-    fetchMock.mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        data: [
+  it("builds a governed imported-dom render model from canonical Strapi data", async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes("/api/studio-pages?")) {
+        return jsonResponse([
           {
             documentId: "page-1",
             name: "Governed Home",
@@ -49,12 +58,95 @@ describe("loadStudioPageForRoute", () => {
               metaTitle: "Governed Home",
               metaDescription: "Governed Home Description"
             },
-            previewHtml: "<main><section>Draft</section></main>",
-            publishedPreviewHtml:
-              "<main><section onclick=\"alert(1)\"><a href=\"javascript:alert(1)\">Unsafe</a><iframe src=\"https://evil.example\"></iframe><img src=\"/hero.png#fragment\"/></section><script>alert(1)</script></main>"
+            blockOrder: ["block-hero"],
+            shellKey: "shell-main",
+            themeKey: "sunrise"
           }
-        ]
-      })
+        ]);
+      }
+
+      if (url.includes("/api/studio-blocks?")) {
+        return jsonResponse([
+          {
+            documentId: "block-hero",
+            blockKey: "block-hero",
+            name: "Hero",
+            family: "hero",
+            status: "active",
+            sourceType: "import",
+            sourceRef: "https://source.example/landing",
+            domJson: {
+              kind: "root",
+              children: [
+                {
+                  kind: "element",
+                  tag: "section",
+                  attributes: {
+                    class: "bg-background-light text-primary"
+                  },
+                  children: [
+                    {
+                      kind: "text",
+                      text: "Canonical Runtime Hero"
+                    }
+                  ]
+                }
+              ]
+            },
+            classMap: {
+              "0": "theme-sunrise"
+            },
+            stylesheetRef: "/studio-runtime.css",
+            previewHtml: "",
+            targetPreviewHtml: ""
+          }
+        ]);
+      }
+
+      if (url.includes("/api/studio-themes?")) {
+        return jsonResponse([
+          {
+            documentId: "theme-1",
+            themeKey: "sunrise",
+            name: "Sunrise",
+            status: "active",
+            sourceRef: "figma://sunrise",
+            themeScopeClass: "theme-sunrise",
+            themeMode: "light",
+            tokenCoverage: 0.95,
+            themeDebt: "1 alias pending",
+            darkMode: false,
+            tokens: [
+              {
+                key: "primary",
+                value: "#ff4f00",
+                label: "Primary",
+                category: "color",
+                cssVariable: "--color-primary",
+                mapped: true
+              }
+            ]
+          }
+        ]);
+      }
+
+      if (url.includes("/api/studio-shells?")) {
+        return jsonResponse([
+          {
+            documentId: "shell-main",
+            shellKey: "shell-main",
+            name: "Main Shell",
+            role: "full",
+            status: "active",
+            previewHtml: "<header><nav>Canonical Shell</nav></header>"
+          }
+        ]);
+      }
+
+      return {
+        ok: false,
+        json: async () => ({ data: [] })
+      };
     });
 
     const result = await loadStudioPageForRoute({
@@ -63,58 +155,145 @@ describe("loadStudioPageForRoute", () => {
       preview: false
     });
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining("/api/studio-pages?filters[slug][$eq]=home"),
-      expect.objectContaining({
-        method: "GET"
-      })
-    );
     expect(fetchMock.mock.calls[0]?.[0]).toContain("status=published");
     expect(result.state).toBe("ready");
-
     if (result.state !== "ready") {
       throw new Error("Expected governed runtime page");
     }
 
     expect(result.page.canonicalPath).toBe("/en");
     expect(result.page.canonicalUrl).toBe("https://lmnas.com/en");
-    expect(result.page.renderBlocks).toHaveLength(1);
-    expect(result.page.renderBlocks[0]?.type).toBe("imported_dom_snapshot");
-
-    const serialized = JSON.stringify(result.page.renderBlocks[0]?.domJson);
-    expect(serialized).not.toContain("onclick");
-    expect(serialized).not.toContain("javascript:");
-    expect(serialized).not.toContain("script");
-    expect(serialized).not.toContain("iframe");
-    expect(serialized).toContain("https://lmnas.com/hero.png");
+    expect(result.page.theme.themeScopeClass).toBe("theme-sunrise");
+    expect(result.page.theme.cssVars).toMatchObject({
+      "--theme-primary": "#ff4f00"
+    });
+    expect(result.page.renderBlocks).toHaveLength(2);
+    result.page.renderBlocks.forEach((block) => {
+      expect(() => importedDomSnapshotBlockSchema.parse(block)).not.toThrow();
+    });
+    expect(JSON.stringify(result.page.renderBlocks)).toContain("Canonical Runtime Hero");
+    expect(JSON.stringify(result.page.renderBlocks)).not.toContain("localhost");
     expect(result.page.jsonLd).toHaveLength(1);
   });
 
-  it("uses draft status for preview loads", async () => {
-    fetchMock.mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        data: []
-      })
+  it("regenerates runtime render blocks from canonical snapshots after preview cache deletion", async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes("/api/studio-pages?")) {
+        return jsonResponse([
+          {
+            documentId: "page-2",
+            name: "Preview Cache Deleted",
+            slug: "preview-cache-deleted",
+            locale: "en",
+            status: "draft",
+            previewValid: true,
+            blockSchemaValid: true,
+            seoJsonLdValid: true,
+            productMapping: "lmnas-platform",
+            industryMapping: ["enterprise"],
+            primaryCta: {
+              text: "Book Demo",
+              url: "/contact"
+            },
+            conversionConfig: {
+              strategy: "Track Conversions"
+            },
+            seoMetadata: {
+              metaTitle: "Preview Cache Deleted",
+              metaDescription: "Preview Cache Deleted"
+            },
+            blockOrder: ["block-hero"],
+            themeKey: "sunrise",
+            previewHtml: "",
+            publishedPreviewHtml: ""
+          }
+        ]);
+      }
+
+      if (url.includes("/api/studio-blocks?")) {
+        return jsonResponse([
+          {
+            documentId: "block-hero",
+            blockKey: "block-hero",
+            name: "Hero",
+            family: "hero",
+            status: "active",
+            sourceType: "import",
+            sourceRef: "https://source.example/landing",
+            domJson: {
+              kind: "root",
+              children: [
+                {
+                  kind: "element",
+                  tag: "section",
+                  attributes: {},
+                  children: [
+                    {
+                      kind: "text",
+                      text: "Recovered from canonical data"
+                    }
+                  ]
+                }
+              ]
+            },
+            classMap: {},
+            stylesheetRef: "/studio-runtime.css",
+            previewHtml: "",
+            targetPreviewHtml: ""
+          }
+        ]);
+      }
+
+      if (url.includes("/api/studio-themes?")) {
+        return jsonResponse([
+          {
+            documentId: "theme-1",
+            themeKey: "sunrise",
+            name: "Sunrise",
+            status: "active",
+            sourceRef: "figma://sunrise",
+            themeScopeClass: "theme-sunrise",
+            themeMode: "dark",
+            tokenCoverage: 0.95,
+            themeDebt: "",
+            darkMode: true,
+            tokens: []
+          }
+        ]);
+      }
+
+      if (url.includes("/api/studio-shells?")) {
+        return jsonResponse([]);
+      }
+
+      return {
+        ok: false,
+        json: async () => ({ data: [] })
+      };
     });
 
     const result = await loadStudioPageForRoute({
-      slug: "preview-page",
+      slug: "preview-cache-deleted",
       locale: "en",
       preview: true
     });
 
     expect(fetchMock.mock.calls[0]?.[0]).toContain("status=draft");
-    expect(result.state).toBe("missing");
+    expect(result.state).toBe("ready");
+    if (result.state !== "ready") {
+      throw new Error("Expected preview runtime page");
+    }
+
+    expect(result.page.renderBlocks).toHaveLength(1);
+    expect(JSON.stringify(result.page.renderBlocks[0]?.domJson)).toContain("Recovered from canonical data");
   });
 
-  it("blocks published runtime records that fail governance checks", async () => {
-    fetchMock.mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        data: [
+  it("blocks published runtime records that fail governance even when legacy preview cache is present", async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes("/api/studio-pages?")) {
+        return jsonResponse([
           {
-            documentId: "page-2",
+            documentId: "page-3",
             name: "Broken Page",
             slug: "broken-page",
             locale: "en",
@@ -135,11 +314,53 @@ describe("loadStudioPageForRoute", () => {
               metaTitle: "",
               metaDescription: ""
             },
-            previewHtml: "<main><section>Draft</section></main>",
-            publishedPreviewHtml: "<main><section>Broken</section></main>"
+            blockOrder: ["block-hero"],
+            previewHtml: "<main><section>Legacy snapshot should not govern runtime</section></main>",
+            publishedPreviewHtml: "<main><section>Legacy snapshot should not govern runtime</section></main>"
           }
-        ]
-      })
+        ]);
+      }
+
+      if (url.includes("/api/studio-blocks?")) {
+        return jsonResponse([
+          {
+            documentId: "block-hero",
+            blockKey: "block-hero",
+            name: "Hero",
+            family: "hero",
+            status: "active",
+            sourceType: "import",
+            sourceRef: "https://source.example/landing",
+            domJson: {
+              kind: "root",
+              children: [
+                {
+                  kind: "element",
+                  tag: "section",
+                  attributes: {},
+                  children: [
+                    {
+                      kind: "text",
+                      text: "Still blocked"
+                    }
+                  ]
+                }
+              ]
+            },
+            classMap: {},
+            stylesheetRef: "/studio-runtime.css"
+          }
+        ]);
+      }
+
+      if (url.includes("/api/studio-themes?") || url.includes("/api/studio-shells?")) {
+        return jsonResponse([]);
+      }
+
+      return {
+        ok: false,
+        json: async () => ({ data: [] })
+      };
     });
 
     const result = await loadStudioPageForRoute({
@@ -157,81 +378,5 @@ describe("loadStudioPageForRoute", () => {
     expect(result.issues).toContain("Product mapping is required.");
     expect(result.issues).toContain("Primary CTA is required.");
     expect(result.issues).toContain("SEO JSON-LD validation is incomplete.");
-  });
-
-  it("prefers the published record when Strapi returns a newer draft version in the same collection response", async () => {
-    fetchMock.mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        data: [
-          {
-            documentId: "page-3",
-            name: "Mixed Version Page",
-            slug: "mixed-version-page",
-            locale: "en",
-            status: "draft",
-            previewValid: false,
-            blockSchemaValid: true,
-            seoJsonLdValid: false,
-            productMapping: "lmnas-platform",
-            industryMapping: ["enterprise"],
-            primaryCta: {
-              text: "Book Demo",
-              url: "/contact"
-            },
-            conversionConfig: {
-              strategy: "Track Conversions"
-            },
-            seoMetadata: {
-              metaTitle: "Mixed Version Page",
-              metaDescription: "Draft edit should not leak onto the live route."
-            },
-            previewHtml: "<main><section>Draft Edit After Publish</section></main>",
-            publishedPreviewHtml: "<main><section>Draft Edit After Publish</section></main>"
-          },
-          {
-            documentId: "page-3",
-            name: "Mixed Version Page",
-            slug: "mixed-version-page",
-            locale: "en",
-            status: "published",
-            previewValid: true,
-            blockSchemaValid: true,
-            seoJsonLdValid: true,
-            productMapping: "lmnas-platform",
-            industryMapping: ["enterprise"],
-            primaryCta: {
-              text: "Book Demo",
-              url: "/contact"
-            },
-            conversionConfig: {
-              strategy: "Track Conversions"
-            },
-            seoMetadata: {
-              metaTitle: "Mixed Version Page",
-              metaDescription: "Published content should remain live."
-            },
-            previewHtml: "<main><section>Draft Edit After Publish</section></main>",
-            publishedPreviewHtml: "<main><section>Published Studio Snapshot</section></main>"
-          }
-        ]
-      })
-    });
-
-    const result = await loadStudioPageForRoute({
-      slug: "mixed-version-page",
-      locale: "en",
-      preview: false
-    });
-
-    expect(result.state).toBe("ready");
-    if (result.state !== "ready") {
-      throw new Error("Expected live runtime to resolve the published version");
-    }
-
-    const serialized = JSON.stringify(result.page.renderBlocks[0]?.domJson);
-    expect(serialized).toContain("Published Studio Snapshot");
-    expect(serialized).not.toContain("Draft Edit After Publish");
-    expect(result.page.jsonLd).toHaveLength(1);
   });
 });

@@ -2,6 +2,7 @@ import type { StudioFidelityMode, StudioSettings, StudioTheme } from "../../../.
 import { evaluateStudioFidelity, type StudioFigmaValidationToken } from "../_lib/fidelity";
 import { createSeedStore, getStudioStore, replaceStore } from "../_lib/store";
 import { isStrapiConfigured, requestStrapi, unwrapStrapiEntity } from "../_lib/strapi";
+import { readStudioSettingsFromStrapi } from "../_lib/canonical-settings";
 
 type StrapiCollectionResponse = {
   data?: Array<Record<string, unknown>>;
@@ -67,7 +68,6 @@ type GovernanceReport = {
 
 const CANONICAL_THEME_COLLECTION = "/api/studio-themes";
 const CANONICAL_PAGE_COLLECTION = "/api/studio-pages";
-const SETTINGS_MARKER_PREFIX = "[studio:fidelity-settings]";
 
 function statusMatches(value: unknown, expected: "draft" | "published" | undefined): boolean {
   if (!expected) {
@@ -96,23 +96,6 @@ function normalizeTokenCoverage(value: unknown): number {
   return 0;
 }
 
-function normalizeFidelityMode(value: unknown, fallback: StudioFidelityMode): StudioFidelityMode {
-  return value === "disallow-below-threshold" || value === "allow-below-threshold" ? value : fallback;
-}
-
-function normalizeFidelityThreshold(value: unknown, fallback: number): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return fallback;
-  }
-  if (value < 0) {
-    return 0;
-  }
-  if (value > 1) {
-    return 1;
-  }
-  return Number(value.toFixed(4));
-}
-
 function asString(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
@@ -134,17 +117,22 @@ function asObject(value: unknown): Record<string, unknown> {
 function normalizeTheme(value: unknown): StudioTheme {
   const row = (value ?? {}) as Record<string, unknown>;
   const id = typeof row.id === "string" && row.id.length > 0 ? row.id : `theme-${Date.now()}`;
+  const darkMode = Boolean(row.darkMode);
+  const themeMode = row.themeMode === "light" || row.themeMode === "dark" || row.themeMode === "system" ? row.themeMode : darkMode ? "dark" : "system";
   return {
     id,
     themeKey: typeof row.themeKey === "string" && row.themeKey.length > 0 ? row.themeKey : id,
     name: typeof row.name === "string" && row.name.length > 0 ? row.name : "Theme",
     status: row.status === "active" || row.status === "draft" ? row.status : "inactive",
     sourceRef: typeof row.sourceRef === "string" ? row.sourceRef : "unknown",
+    themeScopeClass:
+      typeof row.themeScopeClass === "string" && row.themeScopeClass.trim().length > 0 ? row.themeScopeClass.trim() : `theme-${typeof row.themeKey === "string" && row.themeKey.length > 0 ? row.themeKey : id}`,
+    themeMode,
     createdAt: toIsoDate(row.createdAt),
     updatedAt: toIsoDate(row.updatedAt),
     tokenCoverage: normalizeTokenCoverage(row.tokenCoverage),
     themeDebt: typeof row.themeDebt === "string" ? row.themeDebt : "",
-    darkMode: Boolean(row.darkMode),
+    darkMode: themeMode === "dark" || (themeMode === "system" && darkMode),
     tokens: Array.isArray(row.tokens) ? (row.tokens as StudioTheme["tokens"]) : []
   };
 }
@@ -188,36 +176,6 @@ function normalizeGovernancePage(value: unknown): GovernancePage {
     },
     seoJsonLdValid: Boolean(row.seoJsonLdValid)
   };
-}
-
-function parseSettingsFromThemeDebt(themeDebt: string, fallback: StudioSettings): StudioSettings | null {
-  const markerLine = themeDebt
-    .split("\n")
-    .map((line) => line.trim())
-    .find((line) => line.startsWith(SETTINGS_MARKER_PREFIX));
-  if (!markerLine) {
-    return null;
-  }
-
-  const encoded = markerLine.slice(SETTINGS_MARKER_PREFIX.length).trim();
-  if (encoded.length === 0) {
-    return null;
-  }
-
-  try {
-    const parsed = JSON.parse(encoded) as {
-      mode?: unknown;
-      threshold?: unknown;
-    };
-    return {
-      fidelity: {
-        mode: normalizeFidelityMode(parsed.mode, fallback.fidelity.mode),
-        threshold: normalizeFidelityThreshold(parsed.threshold, fallback.fidelity.threshold)
-      }
-    };
-  } catch {
-    return null;
-  }
 }
 
 async function listThemesFromStrapi(): Promise<StudioTheme[]> {
@@ -267,8 +225,8 @@ async function readDraftPagePublishFields(pageId: string): Promise<Record<string
     seoJsonLdValid: row.seoJsonLdValid,
     blockSchemaValid: row.blockSchemaValid,
     previewValid: row.previewValid,
-    previewHtml: row.previewHtml,
-    publishedPreviewHtml: row.previewHtml
+    previewHtml: "",
+    publishedPreviewHtml: ""
   };
 }
 
@@ -277,7 +235,8 @@ function buildDraftRestoreFields(draftFields: Record<string, unknown>, published
     ...draftFields,
     status: "draft",
     lifecycle: "draft",
-    publishedPreviewHtml: draftFields.previewHtml,
+    previewHtml: "",
+    publishedPreviewHtml: "",
     publishedAt
   };
 }
@@ -287,7 +246,8 @@ function buildPublishedFields(draftFields: Record<string, unknown>, publishedAt:
     ...draftFields,
     status: "published",
     lifecycle: "published",
-    publishedPreviewHtml: draftFields.previewHtml,
+    previewHtml: "",
+    publishedPreviewHtml: "",
     publishedAt
   };
 }
@@ -540,14 +500,9 @@ async function resolveActiveTheme(): Promise<{ theme: StudioTheme | null; source
   };
 }
 
-function resolveActiveSettings(params: { activeTheme: StudioTheme | null; source: "strapi" | "fallback" }): StudioSettings | null {
-  if (params.source === "strapi") {
-    if (!params.activeTheme) {
-      return null;
-    }
-
-    const defaultSettings = createSeedStore().settings;
-    return parseSettingsFromThemeDebt(params.activeTheme.themeDebt, defaultSettings) ?? defaultSettings;
+async function resolveActiveSettings(source: "strapi" | "fallback"): Promise<StudioSettings | null> {
+  if (source === "strapi") {
+    return readStudioSettingsFromStrapi(createSeedStore().settings);
   }
 
   return getStudioStore().settings;
@@ -610,7 +565,7 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
-    const settings = resolveActiveSettings({ activeTheme, source: themeSource });
+    const settings = await resolveActiveSettings(themeSource);
     if (!settings) {
       return Response.json(
         {

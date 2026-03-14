@@ -107,10 +107,12 @@
       "default": false
     },
     "previewHtml": {
-      "type": "text"
+      "type": "text",
+      "description": "Disposable derived preview cache. Never canonical content."
     },
     "publishedPreviewHtml": {
-      "type": "text"
+      "type": "text",
+      "description": "Disposable derived publish cache. Fully regenerable from canonical page and block state."
     }
   }
 }

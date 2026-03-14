@@ -4,7 +4,12 @@ import type { StudioRuntimePage } from "./studio-page-runtime";
 
 export function StudioRuntimePageView({ page, preview }: { page: StudioRuntimePage; preview: boolean }) {
   return (
-    <div data-testid="studio-runtime-page" data-studio-runtime="governed">
+    <div
+      data-testid="studio-runtime-page"
+      data-studio-runtime="governed"
+      className={`${page.theme.themeScopeClass}${page.theme.darkMode ? " dark" : ""}`}
+      style={page.theme.cssVars}
+    >
       <PageRenderer blocks={page.renderBlocks} preview={preview} />
       {page.jsonLd.map((entry, index) => (
         <script key={`studio-runtime-jsonld-${index + 1}`} type="application/ld+json">

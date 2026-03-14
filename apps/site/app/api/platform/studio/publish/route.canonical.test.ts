@@ -123,7 +123,8 @@ describe("studio publish route canonical mode", () => {
         body: expect.objectContaining({
           status: "draft",
           lifecycle: "draft",
-          publishedPreviewHtml: "<main><section>Published Studio Snapshot</section></main>"
+          previewHtml: "",
+          publishedPreviewHtml: ""
         })
       })
     );
@@ -134,10 +135,22 @@ describe("studio publish route canonical mode", () => {
         body: expect.objectContaining({
           status: "published",
           lifecycle: "published",
-          publishedPreviewHtml: "<main><section>Published Studio Snapshot</section></main>"
+          previewHtml: "",
+          publishedPreviewHtml: ""
         })
       })
     );
+
+    const draftPayload = requestStrapiMock.mock.calls.find((call) => call[0] === "/api/studio-pages/page-1?status=draft" && call[1]?.method === "PUT")?.[1]
+      ?.body;
+    const publishedPayload = requestStrapiMock.mock.calls.find((call) => call[0] === "/api/studio-pages/page-1?status=published" && call[1]?.method === "PUT")
+      ?.[1]?.body;
+    expect(JSON.stringify(draftPayload ?? {})).not.toContain("localhost");
+    expect(JSON.stringify(draftPayload ?? {})).not.toContain("_next/static");
+    expect(JSON.stringify(draftPayload ?? {})).not.toContain("<script");
+    expect(JSON.stringify(publishedPayload ?? {})).not.toContain("localhost");
+    expect(JSON.stringify(publishedPayload ?? {})).not.toContain("_next/static");
+    expect(JSON.stringify(publishedPayload ?? {})).not.toContain("<script");
   });
 
   it("hard fails when canonical governance pages cannot be read", async () => {

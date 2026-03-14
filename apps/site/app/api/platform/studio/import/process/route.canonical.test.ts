@@ -149,5 +149,29 @@ describe("studio import process route canonical persistence", () => {
     expect(calls.some((path: string) => typeof path === "string" && path.startsWith("/api/studio-import-masters"))).toBe(true);
     expect(calls.some((path: string) => typeof path === "string" && path.startsWith("/api/studio-blocks?"))).toBe(true);
     expect(calls.some((path: string) => path === "/api/studio-blocks")).toBe(true);
+
+    const createCall = requestStrapiMock.mock.calls.find((entry) => entry[0] === "/api/studio-blocks" && entry[1]?.method === "POST");
+    expect(createCall?.[1]?.body).toEqual(
+      expect.objectContaining({
+        blockKey: expect.any(String),
+        blockType: "imported_dom_snapshot",
+        domJson: expect.objectContaining({
+          kind: "root"
+        }),
+        classMap: expect.any(Object),
+        stylesheetRef: "/studio-runtime.css",
+        themeMapping: expect.objectContaining({
+          themeKey: "default"
+        }),
+        previewHtml: "",
+        sourcePreviewHtml: "",
+        targetPreviewHtml: ""
+      })
+    );
+
+    const serializedPayload = JSON.stringify(createCall?.[1]?.body ?? {});
+    expect(serializedPayload).not.toContain("localhost");
+    expect(serializedPayload).not.toContain("_next/static");
+    expect(serializedPayload).not.toContain("<script");
   });
 });
