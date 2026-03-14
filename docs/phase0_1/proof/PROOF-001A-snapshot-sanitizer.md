@@ -12,8 +12,8 @@
 
 ## Evidence
 
-- UI screenshots (if applicable):
-  - N/A (validated through schema, render, and unit tests).
+- Screenshot evidence:
+  - Not used for acceptance. This proof closes through schema, render, and unit test execution only.
 - Test output summary:
   - `pnpm contracts:gen` ✅
   - `pnpm contracts:check` ✅

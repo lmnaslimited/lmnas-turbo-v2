@@ -1,5 +1,5 @@
 import type { StudioFidelityMode, StudioSettings, StudioTheme } from "../../../../platform/onboarding/_lib/studio-types";
-import { getStudioStore, replaceStore } from "../_lib/store";
+import { createSeedStore, getStudioStore, replaceStore } from "../_lib/store";
 import { isStrapiConfigured, requestStrapi, unwrapStrapiEntity } from "../_lib/strapi";
 
 type SettingsPayload = {
@@ -217,26 +217,41 @@ async function readSettingsFromStrapi(defaultSettings: StudioSettings): Promise<
 }
 
 export async function GET(): Promise<Response> {
-  const fallbackSettings = getStudioStore().settings;
   if (isStrapiConfigured()) {
     try {
-      const result = await readSettingsFromStrapi(fallbackSettings);
-      if (result.settings) {
-        syncSettingsToFallback(result.settings);
-        return Response.json({
-          ok: true,
-          data: result.settings,
-          source: "strapi",
-          persistence: {
-            themeId: result.themeId
-          }
-        });
+      const defaultSettings = createSeedStore().settings;
+      const result = await readSettingsFromStrapi(defaultSettings);
+      if (!result.settings || !result.themeId) {
+        return Response.json(
+          {
+            ok: false,
+            error: "Canonical studio settings require an active studio-theme in Strapi."
+          },
+          { status: 409 }
+        );
       }
-    } catch {
-      // fallback below
+
+      return Response.json({
+        ok: true,
+        data: result.settings,
+        source: "strapi",
+        persistence: {
+          themeId: result.themeId
+        }
+      });
+    } catch (error) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Canonical studio settings could not be read from Strapi.",
+          developerError: error instanceof Error ? error.message : String(error)
+        },
+        { status: 502 }
+      );
     }
   }
 
+  const fallbackSettings = getStudioStore().settings;
   return Response.json({
     ok: true,
     data: fallbackSettings,
@@ -247,13 +262,23 @@ export async function GET(): Promise<Response> {
 export async function POST(request: Request): Promise<Response> {
   try {
     const payload = (await request.json()) as SettingsPayload;
-    const store = getStudioStore();
-    const settings = buildSettings(payload, store.settings);
 
     if (isStrapiConfigured()) {
       try {
+        const defaultSettings = createSeedStore().settings;
+        const current = await readSettingsFromStrapi(defaultSettings);
+        if (!current.themeId) {
+          return Response.json(
+            {
+              ok: false,
+              error: "Canonical studio settings require an active studio-theme in Strapi."
+            },
+            { status: 409 }
+          );
+        }
+
+        const settings = buildSettings(payload, current.settings ?? defaultSettings);
         const persisted = await persistSettingsToStrapi(settings);
-        syncSettingsToFallback(settings);
         return Response.json({
           ok: true,
           data: settings,
@@ -264,17 +289,19 @@ export async function POST(request: Request): Promise<Response> {
           }
         });
       } catch (error) {
-        syncSettingsToFallback(settings);
-        return Response.json({
-          ok: true,
-          data: settings,
-          source: "fallback",
-          warning: "Strapi settings persistence failed. Fallback settings were updated for this session.",
-          developerError: error instanceof Error ? error.message : String(error)
-        });
+        return Response.json(
+          {
+            ok: false,
+            error: "Canonical studio settings could not be persisted to Strapi.",
+            developerError: error instanceof Error ? error.message : String(error)
+          },
+          { status: 502 }
+        );
       }
     }
 
+    const store = getStudioStore();
+    const settings = buildSettings(payload, store.settings);
     syncSettingsToFallback(settings);
     return Response.json({
       ok: true,

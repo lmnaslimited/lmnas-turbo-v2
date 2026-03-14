@@ -1,24 +1,30 @@
 # Phase 0.1 Workstream Control Panel
 
-Keep this file open while running RR-flow work.
-
 ## Active items
 
-| ID | Title | Owner | Status | Links |
+| ID | Title | Owner | Status | Notes |
 | --- | --- | --- | --- | --- |
-| 001A | snapshot-sanitizer |  | Tasks | `INT-001` `SPEC-001A` `TASK-001A` `PROOF-001A` |
-| 001B | css-system |  | Tasks | `INT-001` `SPEC-001B` `TASK-001B` `PROOF-001B` |
-| 001C | import-mode-fidelity |  | Tasks | `INT-001` `SPEC-001C` `TASK-001C` `PROOF-001C` |
-| 001D | theme-system |  | Tasks | `INT-001` `SPEC-001D` `TASK-001D` `PROOF-001D` |
-| 001E | docs |  | Tasks | `INT-001` `SPEC-001E` `TASK-001E` `PROOF-001E` |
-| 002 | shell-block-exit-platform-revamp |  | Proof | `INT-002` `SPEC-002` `TASK-002` `PROOF-002` `ADR-002` |
+| 001A | snapshot-sanitizer | Codex | Closed | Sanitizer contract and tests exist; see `PROOF-001A`. |
+| 003 | rr-governance-enforcement | Gemini / ChatGPT | Closed | Authority freeze corrected to Constitution v2.1; see `PROOF-003`. |
+| 004 | studio-workflow-tightening | Codex / Arun / Gemini | Partial | Gates 0-5, 8, 9 updated in proof; Gate 6 open, Gate 7 partial. |
 
-## Next 3 actions
+## Current merge-gate status
 
-- [ ] Run `pnpm phase0:guard -- --id 001` and keep it passing as artifacts evolve.
-- [ ] Assign owners for 001A-001E and begin implementation strictly from each subsystem `TASK-001X` document.
-- [ ] Update each subsystem `PROOF-001X` with evidence after implementation.
+| Gate | Status | Source of truth |
+| --- | --- | --- |
+| 0 | Closed | `PROOF-003`, `README.md`, Constitution headers |
+| 1 | Closed | `PROOF-004`, canonical route tests |
+| 2 | Closed | `PROOF-004`, governed runtime code/tests |
+| 3 | Closed | `PROOF-004`, runtime guardrails + tests |
+| 4 | Closed | `PROOF-004`, metadata + live/preview separation evidence |
+| 5 | Closed | `PROOF-001A`, `PROOF-004`, sanitizer tests |
+| 6 | Open | first-class canonical settings not implemented yet |
+| 7 | Partial | page workflow parity improved; cross-workflow parity coverage incomplete |
+| 8 | Closed | executable commands/results recorded in `PROOF-004` |
+| 9 | Closed | RR / proof / workstream / addendum updated to match implementation state |
 
-## Decision log
+## Next actions
 
-- RR-001 split into 5 subsystem RR units (001A-001E) for parallel execution while preserving traceability to `INT-001` and `ADR-001`.
+- Implement first-class canonical studio settings so fidelity mode/threshold no longer persist through `themeDebt`.
+- Add real-stack parity coverage for theme / shell / widget action menus and reopen/edit flows.
+- Hand the updated proof set to ChatGPT for architecture review and Arun for functional/UX review before Gemini validation.

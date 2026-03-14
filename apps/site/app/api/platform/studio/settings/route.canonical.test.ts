@@ -87,4 +87,45 @@ describe("studio settings route canonical schema", () => {
     expect(String(lookupCall?.[0]).startsWith("/api/studio-themes")).toBe(true);
     expect(String(putCall?.[0]).startsWith("/api/studio-themes/")).toBe(true);
   });
+
+  it("hard fails when canonical settings cannot be read", async () => {
+    requestStrapiMock.mockRejectedValueOnce(new Error("strapi_503: unavailable"));
+
+    const response = await GET();
+    const payload = (await response.json()) as {
+      ok: boolean;
+      error: string;
+      developerError: string;
+    };
+
+    expect(response.status).toBe(502);
+    expect(payload.ok).toBe(false);
+    expect(payload.error).toContain("Canonical studio settings could not be read");
+    expect(payload.developerError).toContain("unavailable");
+  });
+
+  it("hard fails when canonical settings cannot be persisted", async () => {
+    requestStrapiMock.mockImplementationOnce(() => Promise.resolve(mockThemeResponse("")));
+    requestStrapiMock.mockImplementationOnce(() => Promise.resolve(mockThemeResponse("")));
+    requestStrapiMock.mockImplementationOnce(() => Promise.reject(new Error("strapi_503: write failed")));
+
+    const response = await POST(
+      buildRequest({
+        fidelity: {
+          mode: "disallow-below-threshold",
+          threshold: 0.33
+        }
+      })
+    );
+    const payload = (await response.json()) as {
+      ok: boolean;
+      error: string;
+      developerError: string;
+    };
+
+    expect(response.status).toBe(502);
+    expect(payload.ok).toBe(false);
+    expect(payload.error).toContain("Canonical studio settings could not be persisted");
+    expect(payload.developerError).toContain("write failed");
+  });
 });

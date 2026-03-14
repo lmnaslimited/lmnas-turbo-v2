@@ -19,8 +19,9 @@ Rigid alignment of implementation against 4 isolated workflows. Predictable test
 
 ## Constraints (Phase 0 rules)
 - Must follow 7-Gate Phase Model.
-- Must inherit Constitution v2.2 and architecture boundary constraints.
-- Implementers write Unit/local E2E, Validator writes gap reports.
+- Must inherit Constitution v2.1 and architecture boundary constraints.
+- Constitution v2.2 may be referenced only as a draft artifact.
+- Codex owns implementation and executable evidence; Gemini writes gap reports; ChatGPT reviews architecture; Arun reviews functional/UX behavior.
 
 ## Acceptance Criteria (observable bullets)
 - [ ] Theme: Duplicate themes prevented, configurable fidelity established, swatches act as preview-only.

@@ -1,6 +1,6 @@
-import type { StudioFidelityMode, StudioTheme } from "../../../../platform/onboarding/_lib/studio-types";
+import type { StudioFidelityMode, StudioSettings, StudioTheme } from "../../../../platform/onboarding/_lib/studio-types";
 import { evaluateStudioFidelity, type StudioFigmaValidationToken } from "../_lib/fidelity";
-import { getStudioStore, replaceStore } from "../_lib/store";
+import { createSeedStore, getStudioStore, replaceStore } from "../_lib/store";
 import { isStrapiConfigured, requestStrapi, unwrapStrapiEntity } from "../_lib/strapi";
 
 type StrapiCollectionResponse = {
@@ -67,6 +67,14 @@ type GovernanceReport = {
 
 const CANONICAL_THEME_COLLECTION = "/api/studio-themes";
 const CANONICAL_PAGE_COLLECTION = "/api/studio-pages";
+const SETTINGS_MARKER_PREFIX = "[studio:fidelity-settings]";
+
+function statusMatches(value: unknown, expected: "draft" | "published" | undefined): boolean {
+  if (!expected) {
+    return true;
+  }
+  return (value === "published" ? "published" : "draft") === expected;
+}
 
 function toIsoDate(input?: unknown): string {
   if (typeof input !== "string" || input.length < 10) {
@@ -86,6 +94,23 @@ function normalizeTokenCoverage(value: unknown): number {
     }
   }
   return 0;
+}
+
+function normalizeFidelityMode(value: unknown, fallback: StudioFidelityMode): StudioFidelityMode {
+  return value === "disallow-below-threshold" || value === "allow-below-threshold" ? value : fallback;
+}
+
+function normalizeFidelityThreshold(value: unknown, fallback: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return fallback;
+  }
+  if (value < 0) {
+    return 0;
+  }
+  if (value > 1) {
+    return 1;
+  }
+  return Number(value.toFixed(4));
 }
 
 function asString(value: unknown): string {
@@ -165,6 +190,36 @@ function normalizeGovernancePage(value: unknown): GovernancePage {
   };
 }
 
+function parseSettingsFromThemeDebt(themeDebt: string, fallback: StudioSettings): StudioSettings | null {
+  const markerLine = themeDebt
+    .split("\n")
+    .map((line) => line.trim())
+    .find((line) => line.startsWith(SETTINGS_MARKER_PREFIX));
+  if (!markerLine) {
+    return null;
+  }
+
+  const encoded = markerLine.slice(SETTINGS_MARKER_PREFIX.length).trim();
+  if (encoded.length === 0) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(encoded) as {
+      mode?: unknown;
+      threshold?: unknown;
+    };
+    return {
+      fidelity: {
+        mode: normalizeFidelityMode(parsed.mode, fallback.fidelity.mode),
+        threshold: normalizeFidelityThreshold(parsed.threshold, fallback.fidelity.threshold)
+      }
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function listThemesFromStrapi(): Promise<StudioTheme[]> {
   const response = await requestStrapi<StrapiCollectionResponse>(
     `${CANONICAL_THEME_COLLECTION}?pagination[pageSize]=200&sort=updatedAt:desc`
@@ -179,7 +234,8 @@ async function listGovernancePagesFromStrapi(status?: "draft" | "published"): Pr
     `${CANONICAL_PAGE_COLLECTION}?pagination[pageSize]=200&sort=updatedAt:desc${statusQuery}`
   );
   const rows = Array.isArray(response.data) ? response.data : [];
-  return rows.map((row) => normalizeGovernancePage(unwrapStrapiEntity(row)));
+  const filteredRows = rows.filter((row) => statusMatches(unwrapStrapiEntity(row).status, status));
+  return filteredRows.map((row) => normalizeGovernancePage(unwrapStrapiEntity(row)));
 }
 
 async function readDraftPagePublishFields(pageId: string): Promise<Record<string, unknown> | null> {
@@ -216,6 +272,26 @@ async function readDraftPagePublishFields(pageId: string): Promise<Record<string
   };
 }
 
+function buildDraftRestoreFields(draftFields: Record<string, unknown>, publishedAt: string): Record<string, unknown> {
+  return {
+    ...draftFields,
+    status: "draft",
+    lifecycle: "draft",
+    publishedPreviewHtml: draftFields.previewHtml,
+    publishedAt
+  };
+}
+
+function buildPublishedFields(draftFields: Record<string, unknown>, publishedAt: string): Record<string, unknown> {
+  return {
+    ...draftFields,
+    status: "published",
+    lifecycle: "published",
+    publishedPreviewHtml: draftFields.previewHtml,
+    publishedAt
+  };
+}
+
 async function publishPageInStrapi(pageId: string): Promise<{ pageId: string }> {
   const draftFields = await readDraftPagePublishFields(pageId).catch(() => null);
   const publishedAt = new Date().toISOString();
@@ -233,19 +309,11 @@ async function publishPageInStrapi(pageId: string): Promise<{ pageId: string }> 
       if (draftFields) {
         await requestStrapi(`${CANONICAL_PAGE_COLLECTION}/${encodeURIComponent(pageId)}?status=draft`, {
           method: "PUT",
-          body: {
-            publishedPreviewHtml: draftFields.previewHtml,
-            publishedAt
-          }
+          body: buildDraftRestoreFields(draftFields, publishedAt)
         });
         await requestStrapi(`${CANONICAL_PAGE_COLLECTION}/${encodeURIComponent(pageId)}?status=published`, {
           method: "PUT",
-          body: {
-            ...draftFields,
-            status: "published",
-            lifecycle: "published",
-            publishedAt
-          }
+          body: buildPublishedFields(draftFields, publishedAt)
         });
       }
       return { pageId };
@@ -256,14 +324,14 @@ async function publishPageInStrapi(pageId: string): Promise<{ pageId: string }> 
 
   await requestStrapi(`${CANONICAL_PAGE_COLLECTION}/${encodeURIComponent(pageId)}`, {
     method: "PUT",
-    body: {
-      ...(draftFields ?? {}),
-      publishedPreviewHtml: draftFields?.previewHtml,
-      status: "published",
-      lifecycle: "published",
-      publishedAt
-    }
+    body: buildPublishedFields(draftFields ?? {}, publishedAt)
   });
+  if (draftFields) {
+    await requestStrapi(`${CANONICAL_PAGE_COLLECTION}/${encodeURIComponent(pageId)}?status=draft`, {
+      method: "PUT",
+      body: buildDraftRestoreFields(draftFields, publishedAt)
+    });
+  }
   return { pageId };
 }
 
@@ -328,25 +396,21 @@ async function resolveGovernanceReport(payload: PublishRequestPayload): Promise<
     typeof payload.pageSlug === "string" && payload.pageSlug.trim().length > 0 ? payload.pageSlug.trim() : null;
 
   if (isStrapiConfigured()) {
-    try {
-      const strapiPages = await listGovernancePagesFromStrapi("draft");
-      const selected = resolveRequestedPage(strapiPages, requestedPageId, requestedPageSlug);
-      const checks = buildGovernanceChecks(selected);
-      return {
-        ready: checks.every((check) => check.pass),
-        page: selected
-          ? {
-              id: selected.id,
-              name: selected.name,
-              slug: selected.slug
-            }
-          : null,
-        checks,
-        source: "strapi"
-      };
-    } catch {
-      // fall through to fallback store
-    }
+    const strapiPages = await listGovernancePagesFromStrapi("draft");
+    const selected = resolveRequestedPage(strapiPages, requestedPageId, requestedPageSlug);
+    const checks = buildGovernanceChecks(selected);
+    return {
+      ready: checks.every((check) => check.pass),
+      page: selected
+        ? {
+            id: selected.id,
+            name: selected.name,
+            slug: selected.slug
+          }
+        : null,
+      checks,
+      source: "strapi"
+    };
   }
 
   const fallbackPages = getStudioStore().pages.map((page) => normalizeGovernancePage(page));
@@ -461,18 +525,12 @@ function markFallbackPagePublished(pageId: string): void {
 
 async function resolveActiveTheme(): Promise<{ theme: StudioTheme | null; source: "strapi" | "fallback" }> {
   if (isStrapiConfigured()) {
-    try {
-      const themes = await listThemesFromStrapi();
-      const activeTheme = themes.find((theme) => theme.status === "active") ?? themes[0] ?? null;
-      if (activeTheme) {
-        return {
-          theme: activeTheme,
-          source: "strapi"
-        };
-      }
-    } catch {
-      // fallback below
-    }
+    const themes = await listThemesFromStrapi();
+    const activeTheme = themes.find((theme) => theme.status === "active") ?? themes[0] ?? null;
+    return {
+      theme: activeTheme,
+      source: "strapi"
+    };
   }
 
   const fallbackThemes = getStudioStore().themes;
@@ -480,6 +538,19 @@ async function resolveActiveTheme(): Promise<{ theme: StudioTheme | null; source
     theme: fallbackThemes.find((theme) => theme.status === "active") ?? fallbackThemes[0] ?? null,
     source: "fallback"
   };
+}
+
+function resolveActiveSettings(params: { activeTheme: StudioTheme | null; source: "strapi" | "fallback" }): StudioSettings | null {
+  if (params.source === "strapi") {
+    if (!params.activeTheme) {
+      return null;
+    }
+
+    const defaultSettings = createSeedStore().settings;
+    return parseSettingsFromThemeDebt(params.activeTheme.themeDebt, defaultSettings) ?? defaultSettings;
+  }
+
+  return getStudioStore().settings;
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -491,8 +562,35 @@ export async function POST(request: Request): Promise<Response> {
       typeof payload.previewSwatchThemeId === "string" && payload.previewSwatchThemeId.trim().length > 0
         ? payload.previewSwatchThemeId.trim()
         : null;
-    const governance = await resolveGovernanceReport(payload);
-    const { theme: activeTheme, source: themeSource } = await resolveActiveTheme();
+    let governance: GovernanceReport;
+    try {
+      governance = await resolveGovernanceReport(payload);
+    } catch (error) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Canonical studio publish requires canonical studio-page governance from Strapi.",
+          developerError: error instanceof Error ? error.message : String(error)
+        },
+        { status: 502 }
+      );
+    }
+
+    let activeThemeResult: Awaited<ReturnType<typeof resolveActiveTheme>>;
+    try {
+      activeThemeResult = await resolveActiveTheme();
+    } catch (error) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Canonical studio publish requires canonical studio-theme resolution from Strapi.",
+          developerError: error instanceof Error ? error.message : String(error)
+        },
+        { status: 502 }
+      );
+    }
+
+    const { theme: activeTheme, source: themeSource } = activeThemeResult;
     if (isStrapiConfigured() && (governance.source !== "strapi" || themeSource !== "strapi")) {
       return Response.json(
         {
@@ -512,7 +610,17 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
-    const settings = getStudioStore().settings;
+    const settings = resolveActiveSettings({ activeTheme, source: themeSource });
+    if (!settings) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Canonical studio publish requires canonical studio fidelity settings."
+        },
+        { status: 409 }
+      );
+    }
+
     const fidelityReport = evaluateStudioFidelity({
       sourceHtml,
       activeTheme,

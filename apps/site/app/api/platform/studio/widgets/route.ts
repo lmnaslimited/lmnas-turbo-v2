@@ -195,11 +195,7 @@ async function hasStrapiPageReference(reference: string): Promise<boolean> {
     `/api/studio-pages?filters[documentId][$eq]=${encoded}&pagination[pageSize]=1`,
     `/api/studio-pages?filters[id][$eq]=${encoded}&pagination[pageSize]=1`,
     `/api/studio-pages?filters[slug][$eq]=${encoded}&pagination[pageSize]=1`,
-    `/api/studio-pages/${encoded}`,
-    `/api/pages?filters[documentId][$eq]=${encoded}&pagination[pageSize]=1`,
-    `/api/pages?filters[id][$eq]=${encoded}&pagination[pageSize]=1`,
-    `/api/pages?filters[slug][$eq]=${encoded}&pagination[pageSize]=1`,
-    `/api/pages/${encoded}`
+    `/api/studio-pages/${encoded}`
   ]);
 }
 
@@ -209,34 +205,27 @@ async function hasStrapiBlockReference(reference: string): Promise<boolean> {
     `/api/studio-blocks?filters[documentId][$eq]=${encoded}&pagination[pageSize]=1`,
     `/api/studio-blocks?filters[id][$eq]=${encoded}&pagination[pageSize]=1`,
     `/api/studio-blocks?filters[blockKey][$eq]=${encoded}&pagination[pageSize]=1`,
-    `/api/studio-blocks/${encoded}`,
-    `/api/block-templates?filters[documentId][$eq]=${encoded}&pagination[pageSize]=1`,
-    `/api/block-templates?filters[id][$eq]=${encoded}&pagination[pageSize]=1`,
-    `/api/block-templates?filters[templateKey][$eq]=${encoded}&pagination[pageSize]=1`,
-    `/api/block-templates/${encoded}`
+    `/api/studio-blocks/${encoded}`
   ]);
 }
 
 async function assertPlacementReferences(widget: StudioWidgetRecord): Promise<void> {
-  const store = getStudioStore();
   const pageId = widget.placement.pageId;
   const blockId = widget.placement.blockId;
 
   if (pageId) {
-    let pageExists = store.pages.some((page) => page.id === pageId || page.slug === pageId);
-    if (!pageExists && isStrapiConfigured()) {
-      pageExists = await hasStrapiPageReference(pageId);
-    }
+    const pageExists = isStrapiConfigured()
+      ? await hasStrapiPageReference(pageId)
+      : getStudioStore().pages.some((page) => page.id === pageId || page.slug === pageId);
     if (!pageExists) {
       throw new WidgetValidationError("widgets.page_not_found", `Page reference not found for id "${pageId}".`);
     }
   }
 
   if (blockId) {
-    let blockExists = store.blocks.some((block) => block.id === blockId || block.key === blockId);
-    if (!blockExists && isStrapiConfigured()) {
-      blockExists = await hasStrapiBlockReference(blockId);
-    }
+    const blockExists = isStrapiConfigured()
+      ? await hasStrapiBlockReference(blockId)
+      : getStudioStore().blocks.some((block) => block.id === blockId || block.key === blockId);
     if (!blockExists) {
       throw new WidgetValidationError("widgets.block_not_found", `Block reference not found for id "${blockId}".`);
     }
@@ -290,63 +279,55 @@ async function listWidgetsFromStrapi(): Promise<StudioWidgetRecord[]> {
   return rows.map((row) => mapStrapiWidgetToStudio(unwrapStrapiEntity(row)));
 }
 
-async function upsertWidgetInStrapi(widget: StudioWidgetRecord): Promise<boolean> {
-  try {
-    const lookup = await requestStrapi<StrapiCollectionResponse>(
-      `/api/studio-widgets?filters[widgetKey][$eq]=${encodeURIComponent(widget.key)}&pagination[pageSize]=1`
-    );
-    const existing = Array.isArray(lookup.data) ? lookup.data[0] : undefined;
-    const existingId =
-      existing && typeof existing.documentId === "string"
-        ? existing.documentId
-        : existing && (typeof existing.id === "number" || typeof existing.id === "string")
-          ? String(existing.id)
-          : undefined;
-    const payload = mapStudioWidgetToStrapi(widget);
+async function upsertWidgetInStrapi(widget: StudioWidgetRecord): Promise<void> {
+  const lookup = await requestStrapi<StrapiCollectionResponse>(
+    `/api/studio-widgets?filters[widgetKey][$eq]=${encodeURIComponent(widget.key)}&pagination[pageSize]=1`
+  );
+  const existing = Array.isArray(lookup.data) ? lookup.data[0] : undefined;
+  const existingId =
+    existing && typeof existing.documentId === "string"
+      ? existing.documentId
+      : existing && (typeof existing.id === "number" || typeof existing.id === "string")
+        ? String(existing.id)
+        : undefined;
+  const payload = mapStudioWidgetToStrapi(widget);
 
-    if (existingId) {
-      await requestStrapi(`/api/studio-widgets/${encodeURIComponent(existingId)}`, {
-        method: "PUT",
-        body: payload
-      });
-    } else {
-      await requestStrapi("/api/studio-widgets", {
-        method: "POST",
-        body: payload
-      });
-    }
-    return true;
-  } catch {
-    return false;
+  if (existingId) {
+    await requestStrapi(`/api/studio-widgets/${encodeURIComponent(existingId)}`, {
+      method: "PUT",
+      body: payload
+    });
+    return;
   }
+
+  await requestStrapi("/api/studio-widgets", {
+    method: "POST",
+    body: payload
+  });
 }
 
-async function deleteWidgetInStrapi(widgetIdOrKey: string): Promise<boolean> {
-  try {
-    const lookup = await requestStrapi<StrapiCollectionResponse>(
-      `/api/studio-widgets?filters[$or][0][documentId][$eq]=${encodeURIComponent(
-        widgetIdOrKey
-      )}&filters[$or][1][id][$eq]=${encodeURIComponent(widgetIdOrKey)}&filters[$or][2][widgetKey][$eq]=${encodeURIComponent(
-        widgetIdOrKey
-      )}&pagination[pageSize]=1`
-    );
-    const existing = Array.isArray(lookup.data) ? lookup.data[0] : undefined;
-    const existingId =
-      existing && typeof existing.documentId === "string"
-        ? existing.documentId
-        : existing && (typeof existing.id === "number" || typeof existing.id === "string")
-          ? String(existing.id)
-          : undefined;
-    if (!existingId) {
-      return true;
-    }
-    await requestStrapi(`/api/studio-widgets/${encodeURIComponent(existingId)}`, {
-      method: "DELETE"
-    });
-    return true;
-  } catch {
-    return false;
+async function deleteWidgetInStrapi(widgetIdOrKey: string): Promise<void> {
+  const lookup = await requestStrapi<StrapiCollectionResponse>(
+    `/api/studio-widgets?filters[$or][0][documentId][$eq]=${encodeURIComponent(
+      widgetIdOrKey
+    )}&filters[$or][1][id][$eq]=${encodeURIComponent(widgetIdOrKey)}&filters[$or][2][widgetKey][$eq]=${encodeURIComponent(
+      widgetIdOrKey
+    )}&pagination[pageSize]=1`
+  );
+  const existing = Array.isArray(lookup.data) ? lookup.data[0] : undefined;
+  const existingId =
+    existing && typeof existing.documentId === "string"
+      ? existing.documentId
+      : existing && (typeof existing.id === "number" || typeof existing.id === "string")
+        ? String(existing.id)
+        : undefined;
+  if (!existingId) {
+    return;
   }
+
+  await requestStrapi(`/api/studio-widgets/${encodeURIComponent(existingId)}`, {
+    method: "DELETE"
+  });
 }
 
 function upsertWidget(widget: StudioWidgetRecord): StudioWidgetRecord[] {
@@ -391,40 +372,46 @@ function unchangedCoreEntities(params: {
 
 export async function GET(): Promise<Response> {
   const strapiProbe = await collectWidgetStrapiProbeSnapshot();
-  let widgets = getStudioStore().widgets;
-  let source: "strapi" | "fallback" = "fallback";
-  const warnings: string[] = [];
 
   if (isStrapiConfigured()) {
     try {
-      const fromStrapi = await listWidgetsFromStrapi();
-      if (fromStrapi.length > 0) {
-        widgets = fromStrapi;
-        source = "strapi";
-        replaceStore({
-          ...getStudioStore(),
-          widgets: fromStrapi
-        });
-      } else {
-        warnings.push("No records found in canonical studio-widgets. Falling back to local store.");
-      }
+      const widgets = await listWidgetsFromStrapi();
+      return Response.json({
+        ok: true,
+        data: widgets,
+        catalog: listRepoWidgetAdapters().map((entry) => ({
+          repoPath: entry.repoPath,
+          displayName: entry.displayName,
+          widgetType: entry.widgetType,
+          surface: entry.surface
+        })),
+        source: "strapi",
+        strapiProbe
+      });
     } catch (error) {
-      warnings.push(`Unable to read canonical studio-widgets. Falling back to local store: ${error instanceof Error ? error.message : String(error)}`);
+      return Response.json(
+        {
+          ok: false,
+          error: "Canonical studio widgets could not be read from Strapi.",
+          developerError: error instanceof Error ? error.message : String(error),
+          strapiProbe
+        },
+        { status: 502 }
+      );
     }
   }
 
   return Response.json({
     ok: true,
-    data: widgets,
+    data: getStudioStore().widgets,
     catalog: listRepoWidgetAdapters().map((entry) => ({
       repoPath: entry.repoPath,
       displayName: entry.displayName,
       widgetType: entry.widgetType,
       surface: entry.surface
     })),
-    source,
-    strapiProbe,
-    ...(warnings.length > 0 ? { warnings } : {})
+    source: "fallback",
+    strapiProbe
   });
 }
 
@@ -436,55 +423,48 @@ export async function POST(request: Request): Promise<Response> {
     await assertPlacementReferences(widget);
 
     const beforeProbe = await collectWidgetStrapiProbeSnapshot();
-    const fallbackWidgets = upsertWidget(widget);
-    let widgets = fallbackWidgets;
-    let source: "strapi" | "fallback" = "fallback";
-    const warnings: string[] = [];
-    let persistedInStrapi = false;
 
     if (isStrapiConfigured()) {
-      persistedInStrapi = await upsertWidgetInStrapi(widget);
-      if (!persistedInStrapi) {
-        warnings.push("Widget mapping could not be written to canonical Strapi studio-widgets.");
-      } else {
-        try {
-          const fromStrapi = await listWidgetsFromStrapi();
-          if (fromStrapi.length > 0) {
-            widgets = fromStrapi;
-            source = "strapi";
-            replaceStore({
-              ...getStudioStore(),
-              widgets: fromStrapi
-            });
-          }
-        } catch (error) {
-          warnings.push(
-            `Widget mapping saved in Strapi but refresh from canonical studio-widgets failed: ${
-              error instanceof Error ? error.message : String(error)
-            }`
-          );
+      await upsertWidgetInStrapi(widget);
+      const widgets = await listWidgetsFromStrapi();
+      const afterProbe = await collectWidgetStrapiProbeSnapshot();
+
+      return Response.json({
+        ok: true,
+        data: widgets,
+        source: "strapi",
+        persistence: {
+          entity: "studio.widgets",
+          widgetId: widget.id,
+          canonicalCollection: "studio-widgets",
+          persistedInStrapi: true
+        },
+        strapiAudit: {
+          before: beforeProbe,
+          after: afterProbe,
+          unchangedCoreEntities: unchangedCoreEntities({ before: beforeProbe, after: afterProbe })
         }
-      }
+      });
     }
 
+    const widgets = upsertWidget(widget);
     const afterProbe = await collectWidgetStrapiProbeSnapshot();
 
     return Response.json({
       ok: true,
       data: widgets,
-      source,
+      source: "fallback",
       persistence: {
         entity: "studio.widgets",
         widgetId: widget.id,
         canonicalCollection: "studio-widgets",
-        persistedInStrapi
+        persistedInStrapi: false
       },
       strapiAudit: {
         before: beforeProbe,
         after: afterProbe,
         unchangedCoreEntities: unchangedCoreEntities({ before: beforeProbe, after: afterProbe })
-      },
-      ...(warnings.length > 0 ? { warnings } : {})
+      }
     });
   } catch (error) {
     if (error instanceof WidgetValidationError) {
@@ -495,6 +475,17 @@ export async function POST(request: Request): Promise<Response> {
           error: error.message
         },
         { status: error.status }
+      );
+    }
+
+    if (isStrapiConfigured()) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Canonical studio widgets could not be persisted to Strapi.",
+          developerError: error instanceof Error ? error.message : String(error)
+        },
+        { status: 502 }
       );
     }
 
@@ -523,50 +514,58 @@ export async function DELETE(request: Request): Promise<Response> {
   }
 
   const beforeProbe = await collectWidgetStrapiProbeSnapshot();
-  const fallbackWidgets = removeWidget(id);
-  let widgets = fallbackWidgets;
-  let source: "strapi" | "fallback" = "fallback";
-  let removedFromStrapi = false;
-  const warnings: string[] = [];
 
   if (isStrapiConfigured()) {
-    removedFromStrapi = await deleteWidgetInStrapi(id);
-    if (!removedFromStrapi) {
-      warnings.push("Widget removal could not be applied to canonical Strapi studio-widgets.");
-    } else {
-      try {
-        const fromStrapi = await listWidgetsFromStrapi();
-        widgets = fromStrapi;
-        source = "strapi";
-        replaceStore({
-          ...getStudioStore(),
-          widgets: fromStrapi
-        });
-      } catch (error) {
-        warnings.push(
-          `Widget removed in Strapi but canonical studio-widgets refresh failed: ${error instanceof Error ? error.message : String(error)}`
-        );
-      }
+    try {
+      await deleteWidgetInStrapi(id);
+      const widgets = await listWidgetsFromStrapi();
+      const afterProbe = await collectWidgetStrapiProbeSnapshot();
+
+      return Response.json({
+        ok: true,
+        data: widgets,
+        source: "strapi",
+        persistence: {
+          entity: "studio.widgets",
+          removedWidgetId: id,
+          canonicalCollection: "studio-widgets",
+          removedFromStrapi: true
+        },
+        strapiAudit: {
+          before: beforeProbe,
+          after: afterProbe,
+          unchangedCoreEntities: unchangedCoreEntities({ before: beforeProbe, after: afterProbe })
+        }
+      });
+    } catch (error) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Canonical studio widgets could not be deleted from Strapi.",
+          developerError: error instanceof Error ? error.message : String(error)
+        },
+        { status: 502 }
+      );
     }
   }
 
+  const widgets = removeWidget(id);
   const afterProbe = await collectWidgetStrapiProbeSnapshot();
 
   return Response.json({
     ok: true,
     data: widgets,
-    source,
+    source: "fallback",
     persistence: {
       entity: "studio.widgets",
       removedWidgetId: id,
       canonicalCollection: "studio-widgets",
-      removedFromStrapi
+      removedFromStrapi: false
     },
     strapiAudit: {
       before: beforeProbe,
       after: afterProbe,
       unchangedCoreEntities: unchangedCoreEntities({ before: beforeProbe, after: afterProbe })
-    },
-    ...(warnings.length > 0 ? { warnings } : {})
+    }
   });
 }

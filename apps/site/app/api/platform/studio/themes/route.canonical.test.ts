@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getStudioStore, resetStore } from "../_lib/store";
 
 const { requestStrapiMock } = vi.hoisted(() => ({
   requestStrapiMock: vi.fn()
@@ -15,43 +16,68 @@ vi.mock("../_lib/strapi", () => ({
   unwrapStrapiEntity: (value: unknown) => value
 }));
 
-import { GET } from "./route";
+import { GET, POST } from "./route";
 
-describe("studio themes route canonical schema", () => {
+function buildRequest(payload: Record<string, unknown>): Request {
+  return new Request("http://localhost/api/platform/studio/themes", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+describe("studio themes route canonical mode", () => {
   beforeEach(() => {
+    resetStore();
     requestStrapiMock.mockReset();
-    requestStrapiMock.mockResolvedValue({
-      data: [
-        {
-          id: "theme-1",
-          themeKey: "default",
-          name: "Default",
-          status: "active",
-          sourceRef: "seed",
-          tokenCoverage: 0.9,
-          darkMode: true,
-          tokens: []
-        }
-      ]
-    });
   });
 
-  it("queries canonical studio-themes collection first", async () => {
-    const response = await GET();
-    expect(response.status).toBe(200);
-    expect(requestStrapiMock).toHaveBeenCalled();
-    const firstCall = requestStrapiMock.mock.calls[0]?.[0] as string;
-    expect(firstCall.startsWith("/api/studio-themes")).toBe(true);
+  it("returns canonical empty themes without degrading to fallback", async () => {
+    requestStrapiMock.mockResolvedValue({ data: [] });
 
+    const response = await GET();
     const payload = (await response.json()) as {
       ok: boolean;
       source: string;
-      schemaSource: string;
-      data: Array<{ themeKey: string }>;
+      data: unknown[];
     };
+
+    expect(response.status).toBe(200);
     expect(payload.ok).toBe(true);
     expect(payload.source).toBe("strapi");
-    expect(payload.schemaSource).toBe("canonical");
-    expect(payload.data[0]?.themeKey).toBe("default");
+    expect(payload.data).toEqual([]);
+  });
+
+  it("hard fails instead of writing fallback themes when canonical persistence fails", async () => {
+    const initialThemeIds = getStudioStore().themes.map((theme) => theme.id);
+    requestStrapiMock.mockRejectedValueOnce(new Error("strapi_503: unavailable"));
+
+    const response = await POST(
+      buildRequest({
+        mode: "create",
+        sourceType: "html_upload",
+        theme: {
+          id: "theme-new",
+          themeKey: "theme-new",
+          name: "Theme New",
+          status: "draft",
+          sourceRef: "theme-import",
+          tokenCoverage: 0.8,
+          darkMode: true,
+          tokens: []
+        }
+      })
+    );
+    const payload = (await response.json()) as {
+      ok: boolean;
+      error: string;
+    };
+
+    expect(response.status).toBe(502);
+    expect(payload.ok).toBe(false);
+    expect(payload.error).toContain("Canonical studio-theme persistence failed");
+    expect(getStudioStore().themes.map((theme) => theme.id)).toEqual(initialThemeIds);
   });
 });

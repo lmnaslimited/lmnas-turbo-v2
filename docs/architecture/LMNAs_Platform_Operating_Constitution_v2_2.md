@@ -2,7 +2,7 @@
 
 *(Intent-Based | Router-Driven | CMS-Governed | n8n-Orchestrated | AI-Enriched)*
 
-> **Document Status:** Updated from v2.1 to enforce RR-first governance and strict workflow separation.
+> **Document Status:** Draft / non-binding reference. Constitution v2.1 remains the binding authority until Arun explicitly supersedes it.
 > **What Remains Unchanged:** Phase 0 Mandate (0), North Star (1), Inbound Flow Model (2), Content Governance (3), Strategic Router Model (4), Integration Architecture (5), Identity Resolution Model (6), and earlier Architectural Mandates (8).
 > **What is Newly Added:** RR Governance Enforcement (7), Workflow Separation Model (9), Preview and Fidelity Model (10), Validation and Closure Mandates (11).
 > **Refined:** Governance Enforcement -> now split into Content/Integration Governance and RR Governance.

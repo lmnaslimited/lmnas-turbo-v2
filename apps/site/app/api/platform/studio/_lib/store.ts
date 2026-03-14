@@ -8,7 +8,7 @@ import type {
   StudioWidgetRecord
 } from "../../../../platform/onboarding/_lib/studio-types";
 
-type StudioStore = {
+export type StudioStore = {
   themes: StudioTheme[];
   shells: StudioShell[];
   blocks: StudioBlockTemplate[];
@@ -38,7 +38,7 @@ function seedMenuItems(items: Array<{ id: string; label: string; href: string; c
   }));
 }
 
-function createSeedStore(): StudioStore {
+export function createSeedStore(): StudioStore {
   const now = nowDateIso();
   return {
     themes: [

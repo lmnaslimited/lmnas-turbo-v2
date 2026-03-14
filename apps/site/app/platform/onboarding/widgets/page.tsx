@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { StudioActionMenu, StudioDetailContainer, StudioListContainer } from "../_components/workflow";
 import { requestClientJson } from "../_lib/client-request";
+import { sanitizeTargetHtml } from "../_lib/platform-preview";
 import type { StudioBlockTemplate, StudioPageDocument, StudioWidgetRecord } from "../_lib/studio-types";
 
 type RepoWidgetCatalogItem = {
@@ -62,6 +63,10 @@ export default function WidgetWorkflowPage(): React.ReactElement {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const selectedWidget = widgets.find((widget) => widget.id === selectedId) ?? null;
+  const sanitizedVisualMockHtml = useMemo(
+    () => (selectedWidget?.visualMockHtml ? sanitizeTargetHtml(selectedWidget.visualMockHtml) : null),
+    [selectedWidget?.visualMockHtml]
+  );
 
   useEffect(() => {
     void (async () => {
@@ -566,12 +571,12 @@ export default function WidgetWorkflowPage(): React.ReactElement {
                   />
                 </label>
 
-                {selectedWidget.visualMockHtml ? (
+                {sanitizedVisualMockHtml ? (
                   <iframe
                     data-testid="widgets-visual-mock-preview"
                     className="w-full rounded-lg border border-white/[0.08] bg-white"
                     style={{ minHeight: "140px" }}
-                    srcDoc={`<!DOCTYPE html><html><body style="font-family:system-ui;padding:16px">${selectedWidget.visualMockHtml}</body></html>`}
+                    srcDoc={`<!DOCTYPE html><html><body style="font-family:system-ui;padding:16px">${sanitizedVisualMockHtml}</body></html>`}
                     sandbox="allow-same-origin"
                     title="Widget visual mock"
                   />

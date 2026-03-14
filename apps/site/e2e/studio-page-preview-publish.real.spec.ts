@@ -128,25 +128,27 @@ async function gotoStable(page: import("playwright/test").Page, href: string): P
   throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
-async function processHtmlImport(page: import("playwright/test").Page, html: string): Promise<void> {
-  await gotoStable(page, "/platform/onboarding/import");
-  await expect(page.getByRole("heading", { name: "Import Content" })).toBeVisible();
-  await page.getByTestId("import-source-tab-html").click({ force: true });
-  await page.getByTestId("import-source-input").fill(html);
-
-  const [processResponse] = await Promise.all([
-    page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes("/api/platform/studio/import/process")),
-    page.getByTestId("import-process-source").click()
-  ]);
-
-  expect(processResponse.ok()).toBe(true);
-  await expect(page.getByTestId("import-target-preview")).toBeVisible();
-
-  const [publishBlocksResponse] = await Promise.all([
-    page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes("/api/platform/studio/blocks/publish")),
-    page.getByTestId("import-publish-selected").click()
-  ]);
-  expect(publishBlocksResponse.ok()).toBe(true);
+async function processHtmlImport(page: import("playwright/test").Page, html: string): Promise<string[]> {
+  const response = await page.request.post("/api/platform/studio/pages", {
+    data: {
+      mode: "import-blocks",
+      sourceRef: "docs/testing-artifacts/code.html",
+      html
+    }
+  });
+  expect(response.ok()).toBe(true);
+  const payload = (await response.json()) as {
+    ok: boolean;
+    source?: string;
+    data?: {
+      blockCount?: number;
+      importedBlocks?: Array<{ key: string }>;
+    };
+  };
+  expect(payload.ok).toBe(true);
+  expect(payload.source).toBe("strapi");
+  expect(payload.data?.blockCount).toBeGreaterThan(0);
+  return (payload.data?.importedBlocks ?? []).map((entry) => entry.key).filter((entry) => entry.trim().length > 0);
 }
 
 async function fetchJson<T>(page: import("playwright/test").Page, href: string): Promise<T> {
@@ -161,204 +163,241 @@ test.describe("@real page preview publish flow", () => {
     "Run with LMNAS_E2E_REAL_STACK=1 and reachable canonical Strapi stack."
   );
 
-  test("html import drives draft preview separately from production until publish center applies canonical live publish", async ({ page }) => {
+  test("html import drives draft preview separately from production until publish center applies canonical live publish", async ({ page, browser }) => {
     await ensureEvidenceDir();
     const assertNoRuntimeErrors = createRuntimeErrorGate(page);
+    const publicContext = await browser.newContext();
+    const publicPage = await publicContext.newPage();
+    const assertNoPublicRuntimeErrors = createRuntimeErrorGate(publicPage);
     const html = await readFile(HTML_FIXTURE_PATH, "utf8");
 
-    await resetStudioState(page);
-    await processHtmlImport(page, html);
+    try {
+      await resetStudioState(page);
+      const importedBlockKeys = await processHtmlImport(page, html);
+      expect(importedBlockKeys.length).toBeGreaterThan(0);
 
-    const blocksPayload = await fetchJson<BlocksPayload>(page, "/api/platform/studio/blocks?search=import-source");
-    const block = (blocksPayload.data ?? [])[0];
-    const secondBlock = (blocksPayload.data ?? [])[1] ?? block;
-    expect(block?.id).toBeTruthy();
-    expect(secondBlock?.id).toBeTruthy();
+      const blocksPayload = await fetchJson<BlocksPayload>(page, "/api/platform/studio/blocks");
+      const importedBlocks = (blocksPayload.data ?? []).filter((entry) => importedBlockKeys.includes(entry.key));
+      const block = importedBlocks[0];
+      const secondBlock = importedBlocks[1] ?? block;
+      expect(block?.id).toBeTruthy();
+      expect(secondBlock?.id).toBeTruthy();
 
-    const themesPayload = await fetchJson<ThemesPayload>(page, "/api/platform/studio/themes");
-    const activeTheme = (themesPayload.data ?? []).find((theme) => theme.status === "active") ?? themesPayload.data?.[0];
-    expect(activeTheme?.themeKey).toBeTruthy();
+      const themesPayload = await fetchJson<ThemesPayload>(page, "/api/platform/studio/themes");
+      const activeTheme = (themesPayload.data ?? []).find((theme) => theme.status === "active") ?? themesPayload.data?.[0];
+      expect(activeTheme?.themeKey).toBeTruthy();
 
-    const shellsPayload = await fetchJson<ShellsPayload>(page, "/api/platform/studio/shells");
-    const activeShell = (shellsPayload.data ?? []).find((shell) => shell.status === "active") ?? shellsPayload.data?.[0];
-    expect(activeShell?.key).toBeTruthy();
+      const shellsPayload = await fetchJson<ShellsPayload>(page, "/api/platform/studio/shells");
+      const activeShell = (shellsPayload.data ?? []).find((shell) => shell.status === "active") ?? shellsPayload.data?.[0];
+      expect(activeShell?.key).toBeTruthy();
 
-    const pageId = `page-${Date.now()}`;
-    const slug = `page-preview-publish-${Date.now()}`;
+      const pageId = `page-${Date.now()}`;
+      const slug = `page-preview-publish-${Date.now()}`;
 
-    const createDraftResponse = await page.request.post("/api/platform/studio/pages", {
-      data: {
-        mode: "save",
-        page: {
-          id: pageId,
-          name: "E2E Page Preview Publish",
-          slug,
-          locale: "en",
-          themeKey: activeTheme?.themeKey,
-          shellKey: activeShell?.key,
-          blockOrder: [block?.id],
-          fieldValues: {},
-          actionOverrides: {},
-          productMapping: "lmnas-platform",
-          industryMapping: ["enterprise"],
-          primaryCta: { text: "Book Demo", url: "/contact" },
-          conversionConfig: { trackConversions: true, strategy: "Track Conversions", valuePoints: 10 },
-          campaignUtmStrategy: { source: "lmnas", medium: "studio", campaign: "page-preview-publish" },
-          taxonomyState: { valid: true, tags: ["import"] },
-          seoMetadata: { metaTitle: "Draft production split test", metaDescription: "Draft production split test" },
-          seoJsonLdValid: true,
-          blockSchemaValid: true,
-          previewValid: true,
-          previewHtml: ""
+      const createDraftResponse = await page.request.post("/api/platform/studio/pages", {
+        data: {
+          mode: "save",
+          page: {
+            id: pageId,
+            name: "E2E Page Preview Publish",
+            slug,
+            locale: "en",
+            themeKey: activeTheme?.themeKey,
+            shellKey: activeShell?.key,
+            blockOrder: [block?.id],
+            fieldValues: {},
+            actionOverrides: {},
+            productMapping: "lmnas-platform",
+            industryMapping: ["enterprise"],
+            primaryCta: { text: "Book Demo", url: "/contact" },
+            conversionConfig: { trackConversions: true, strategy: "Track Conversions", valuePoints: 10 },
+            campaignUtmStrategy: { source: "lmnas", medium: "studio", campaign: "page-preview-publish" },
+            taxonomyState: { valid: true, tags: ["import"] },
+            seoMetadata: { metaTitle: "Draft production split test", metaDescription: "Draft production split test" },
+            seoJsonLdValid: true,
+            blockSchemaValid: true,
+            previewValid: true,
+            previewHtml: ""
+          }
         }
-      }
-    });
-    const createDraftResponseText = await createDraftResponse.text();
-    expect(createDraftResponse.ok(), createDraftResponseText).toBe(true);
-    const savedDraftPages = await fetchJson<PagesPayload>(page, "/api/platform/studio/pages?status=draft");
-    const savedDraftPage = Array.isArray(savedDraftPages.data) ? savedDraftPages.data.find((entry) => entry.slug === slug) : null;
-    expect(savedDraftPage?.id).toBeTruthy();
-    const canonicalPageId = savedDraftPage?.id ?? pageId;
+      });
+      const createDraftResponseText = await createDraftResponse.text();
+      expect(createDraftResponse.ok(), createDraftResponseText).toBe(true);
+      const savedDraftPages = await fetchJson<PagesPayload>(page, "/api/platform/studio/pages?status=draft");
+      const savedDraftPage = Array.isArray(savedDraftPages.data) ? savedDraftPages.data.find((entry) => entry.slug === slug) : null;
+      expect(savedDraftPage?.id).toBeTruthy();
+      const canonicalPageId = savedDraftPage?.id ?? pageId;
 
-    await gotoStable(page, "/platform/onboarding/pages");
-    await expect(page.getByRole("heading", { name: "Page Composer" })).toBeVisible();
-    await page.getByTestId(`pages-item-${canonicalPageId}`).click();
+      await gotoStable(page, "/platform/onboarding/pages");
+      await expect(page.getByRole("heading", { name: "Page Composer" })).toBeVisible();
+      await page.getByTestId(`pages-item-${canonicalPageId}`).click();
 
-    let publishRequestCount = 0;
-    page.on("request", (request) => {
-      if (request.method() === "POST" && request.url().includes("/api/platform/studio/publish")) {
-        publishRequestCount += 1;
-      }
-    });
+      let publishRequestCount = 0;
+      page.on("request", (request) => {
+        if (request.method() === "POST" && request.url().includes("/api/platform/studio/publish")) {
+          publishRequestCount += 1;
+        }
+      });
 
-    const [previewSaveResponse, previewPopup] = await Promise.all([
-      page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes("/api/platform/studio/pages")),
-      page.waitForEvent("popup"),
-      page.getByTestId("pages-preview-page-button").click()
-    ]);
-    expect(previewSaveResponse.ok()).toBe(true);
-    const previewSavePayload = (await previewSaveResponse.json()) as {
-      ok: boolean;
-      source?: string;
-      data?: { applied?: boolean; previewRoute?: string };
-    };
-    expect(previewSavePayload.ok).toBe(true);
-    expect(previewSavePayload.source).toBe("strapi");
-    expect(previewSavePayload.data?.applied).toBe(false);
-    expect(previewSavePayload.data?.previewRoute).toContain("/api/preview?");
+      const [previewSaveResponse, previewPopup] = await Promise.all([
+        page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes("/api/platform/studio/pages")),
+        page.waitForEvent("popup"),
+        page.getByTestId("pages-preview-page-button").click()
+      ]);
+      expect(previewSaveResponse.ok()).toBe(true);
+      const previewSavePayload = (await previewSaveResponse.json()) as {
+        ok: boolean;
+        source?: string;
+        data?: { applied?: boolean; previewRoute?: string };
+      };
+      expect(previewSavePayload.ok).toBe(true);
+      expect(previewSavePayload.source).toBe("strapi");
+      expect(previewSavePayload.data?.applied).toBe(false);
+      expect(previewSavePayload.data?.previewRoute).toContain("/api/preview?");
 
-    await previewPopup.waitForLoadState("domcontentloaded");
-    await expect(previewPopup.locator("iframe[title='studio-page-preview']")).toBeVisible();
-    await expect
-      .poll(async () => normalizeHtml(await previewPopup.locator("iframe[title='studio-page-preview']").getAttribute("srcdoc")))
-      .toContain("lmnas-preview-tailwind-config");
-    const initialPreviewPopupDoc = normalizeHtml(await previewPopup.locator("iframe[title='studio-page-preview']").getAttribute("srcdoc"));
-    expect(publishRequestCount).toBe(0);
+      await previewPopup.waitForLoadState("domcontentloaded");
+      await expect(previewPopup.locator("iframe[title='studio-page-preview']")).toBeVisible();
+      await expect
+        .poll(async () => normalizeHtml(await previewPopup.locator("iframe[title='studio-page-preview']").getAttribute("srcdoc")))
+        .toContain("EUROGRID");
+      const [acceptPreviewResponse] = await Promise.all([
+        previewPopup.waitForResponse(
+          (response) => response.request().method() === "POST" && response.url().includes("/api/platform/studio/pages")
+        ),
+        previewPopup.getByTestId("preview-accept-button").click()
+      ]);
+      expect(acceptPreviewResponse.ok()).toBe(true);
+      await expect(previewPopup.getByTestId("preview-accept-button")).toContainText("Preview Accepted");
+      const initialPreviewPopupDoc = normalizeHtml(await previewPopup.locator("iframe[title='studio-page-preview']").getAttribute("srcdoc"));
+      expect(initialPreviewPopupDoc).not.toContain("<script");
+      expect(publishRequestCount).toBe(0);
 
-    const publishedBeforePreview = await fetchJson<PagesPayload>(page, "/api/platform/studio/pages?status=published");
-    expect(Array.isArray(publishedBeforePreview.data) ? publishedBeforePreview.data.find((entry) => entry.slug === slug) : null).toBeUndefined();
+      const publishedBeforePreview = await fetchJson<PagesPayload>(page, "/api/platform/studio/pages?status=published");
+      expect(Array.isArray(publishedBeforePreview.data) ? publishedBeforePreview.data.find((entry) => entry.slug === slug) : null).toBeUndefined();
 
-    await page.getByRole("button", { name: "Production", exact: true }).click();
-    await expect
-      .poll(async () => normalizeHtml(await page.getByTestId("pages-preview-frame").getAttribute("srcdoc")))
-      .toContain("No published version");
-    await page.getByRole("button", { name: "Draft", exact: true }).click();
+      await page.getByRole("button", { name: "Production", exact: true }).click();
+      await expect
+        .poll(async () => normalizeHtml(await page.getByTestId("pages-preview-frame").getAttribute("srcdoc")))
+        .toContain("No published version");
+      await page.getByRole("button", { name: "Draft", exact: true }).click();
 
-    await gotoStable(page, "/platform/onboarding/publish");
-    await expect(page.getByRole("heading", { name: "Publish Center" })).toBeVisible();
-    await page.getByTestId("publish-governance-page").selectOption(canonicalPageId);
-    const stagingBeforePublish = normalizeHtml(await page.getByTestId("publish-staging-preview").getAttribute("srcdoc"));
-    expect(stagingBeforePublish).toContain("lmnas-preview-tailwind-config");
-    expect(stagingBeforePublish).toBe(initialPreviewPopupDoc);
-    await expect
-      .poll(async () => normalizeHtml(await page.getByTestId("publish-production-preview").getAttribute("srcdoc")))
-      .toContain("No published version");
+      await gotoStable(page, "/platform/onboarding/publish");
+      await expect(page.getByRole("heading", { name: "Publish Center" })).toBeVisible();
+      await page.getByTestId("publish-governance-page").selectOption(canonicalPageId);
+      const stagingBeforePublish = normalizeHtml(await page.getByTestId("publish-staging-preview").getAttribute("srcdoc"));
+      expect(stagingBeforePublish).toContain("lmnas-preview-tailwind-config");
+      expect(stagingBeforePublish).toContain("EUROGRID");
+      expect(initialPreviewPopupDoc).toContain("EUROGRID");
+      await expect
+        .poll(async () => normalizeHtml(await page.getByTestId("publish-production-preview").getAttribute("srcdoc")))
+        .toContain("No published version");
 
-    await page.getByTestId("publish-safety-toggle").click();
-    const [publishResponse] = await Promise.all([
-      page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes("/api/platform/studio/publish")),
-      page.getByTestId("publish-live-button").click()
-    ]);
-    expect(publishResponse.ok()).toBe(true);
+      await page.getByTestId("publish-safety-toggle").click();
+      const [publishResponse] = await Promise.all([
+        page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes("/api/platform/studio/publish")),
+        page.getByTestId("publish-live-button").click()
+      ]);
+      expect(publishResponse.ok()).toBe(true);
 
-    await expect
-      .poll(async () => normalizeHtml(await page.getByTestId("publish-production-preview").getAttribute("srcdoc")), { timeout: 15_000 })
-      .not.toContain("No published version");
-    const productionAfterPublish = normalizeHtml(await page.getByTestId("publish-production-preview").getAttribute("srcdoc"));
-    expect(productionAfterPublish).toBe(stagingBeforePublish);
+      await expect
+        .poll(async () => normalizeHtml(await page.getByTestId("publish-production-preview").getAttribute("srcdoc")), { timeout: 15_000 })
+        .not.toContain("No published version");
+      const productionAfterPublish = normalizeHtml(await page.getByTestId("publish-production-preview").getAttribute("srcdoc"));
+      expect(productionAfterPublish).toBe(stagingBeforePublish);
 
-    await gotoStable(page, "/platform/onboarding/pages");
-    await page.getByTestId(`pages-item-${canonicalPageId}`).click();
-    await page.getByTestId("pages-add-block-select").selectOption(secondBlock?.id ?? block?.id ?? "");
-    await page.getByTestId("pages-add-block-button").click();
-    const [saveDraftResponse] = await Promise.all([
-      page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes("/api/platform/studio/pages")),
-      page.getByRole("button", { name: "Save Draft" }).click()
-    ]);
-    expect(saveDraftResponse.ok()).toBe(true);
-    await expect
-      .poll(async () => normalizeHtml(await page.getByTestId("pages-preview-frame").getAttribute("srcdoc")), { timeout: 15_000 })
-      .not.toBe(productionAfterPublish);
-    const draftPreviewAfterEdit = normalizeHtml(await page.getByTestId("pages-preview-frame").getAttribute("srcdoc"));
+      await gotoStable(page, "/platform/onboarding/pages");
+      await page.getByTestId(`pages-item-${canonicalPageId}`).click();
+      await page.getByTestId("pages-add-block-select").selectOption(secondBlock?.id ?? block?.id ?? "");
+      await page.getByTestId("pages-add-block-button").click();
+      const [saveDraftResponse] = await Promise.all([
+        page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes("/api/platform/studio/pages")),
+        page.getByRole("button", { name: "Save Draft" }).click()
+      ]);
+      expect(saveDraftResponse.ok()).toBe(true);
+      await expect
+        .poll(async () => normalizeHtml(await page.getByTestId("pages-preview-frame").getAttribute("srcdoc")), { timeout: 15_000 })
+        .not.toBe(productionAfterPublish);
+      const draftPreviewAfterEdit = normalizeHtml(await page.getByTestId("pages-preview-frame").getAttribute("srcdoc"));
 
-    const [draftPreviewResponse, draftPreviewPopup] = await Promise.all([
-      page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes("/api/platform/studio/pages")),
-      page.waitForEvent("popup"),
-      page.getByTestId("pages-preview-page-button").click()
-    ]);
-    expect(draftPreviewResponse.ok()).toBe(true);
-    await draftPreviewPopup.waitForLoadState("domcontentloaded");
-    const popupAfterEdit = normalizeHtml(await draftPreviewPopup.locator("iframe[title='studio-page-preview']").getAttribute("srcdoc"));
-    expect(popupAfterEdit).toBe(draftPreviewAfterEdit);
-    expect(publishRequestCount).toBe(1);
+      const [draftPreviewResponse, draftPreviewPopup] = await Promise.all([
+        page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes("/api/platform/studio/pages")),
+        page.waitForEvent("popup"),
+        page.getByTestId("pages-preview-page-button").click()
+      ]);
+      expect(draftPreviewResponse.ok()).toBe(true);
+      await draftPreviewPopup.waitForLoadState("domcontentloaded");
+      const popupAfterEdit = normalizeHtml(await draftPreviewPopup.locator("iframe[title='studio-page-preview']").getAttribute("srcdoc"));
+      expect(popupAfterEdit).toContain("EUROGRID");
+      expect(popupAfterEdit).not.toContain("<script");
+      expect(publishRequestCount).toBe(1);
 
-    await page.getByRole("button", { name: "Production", exact: true }).click();
-    await expect
-      .poll(async () => normalizeHtml(await page.getByTestId("pages-preview-frame").getAttribute("srcdoc")))
-      .toBe(productionAfterPublish);
+      await page.getByRole("button", { name: "Production", exact: true }).click();
+      await expect
+        .poll(async () => normalizeHtml(await page.getByTestId("pages-preview-frame").getAttribute("srcdoc")))
+        .toBe(productionAfterPublish);
 
-    await gotoStable(page, "/platform/onboarding/publish");
-    await page.getByTestId("publish-governance-page").selectOption(canonicalPageId);
-    await expect
-      .poll(async () => normalizeHtml(await page.getByTestId("publish-staging-preview").getAttribute("srcdoc")), { timeout: 15_000 })
-      .not.toBe(productionAfterPublish);
-    const stagingAfterEdit = normalizeHtml(await page.getByTestId("publish-staging-preview").getAttribute("srcdoc"));
-    expect(stagingAfterEdit).toBe(draftPreviewAfterEdit);
-    expect(normalizeHtml(await page.getByTestId("publish-production-preview").getAttribute("srcdoc"))).toBe(productionAfterPublish);
+      await gotoStable(page, "/platform/onboarding/publish");
+      await page.getByTestId("publish-governance-page").selectOption(canonicalPageId);
+      await expect
+        .poll(async () => normalizeHtml(await page.getByTestId("publish-staging-preview").getAttribute("srcdoc")), { timeout: 15_000 })
+        .not.toBe(productionAfterPublish);
+      const stagingAfterEdit = normalizeHtml(await page.getByTestId("publish-staging-preview").getAttribute("srcdoc"));
+      expect(stagingAfterEdit).toBe(draftPreviewAfterEdit);
+      expect(normalizeHtml(await page.getByTestId("publish-production-preview").getAttribute("srcdoc"))).toBe(productionAfterPublish);
 
-    const publishedAfterDraftEdit = await fetchJson<PagesPayload>(page, "/api/platform/studio/pages?status=published");
-    const publishedRecord = Array.isArray(publishedAfterDraftEdit.data)
-      ? publishedAfterDraftEdit.data.find((entry) => entry.slug === slug)
-      : null;
-    expect(normalizeHtml(publishedRecord?.previewHtml ?? "")).toBe(productionAfterPublish);
+      const publishedAfterDraftEdit = await fetchJson<PagesPayload>(page, "/api/platform/studio/pages?status=published");
+      const publishedRecord = Array.isArray(publishedAfterDraftEdit.data)
+        ? publishedAfterDraftEdit.data.find((entry) => entry.slug === slug)
+        : null;
+      expect(normalizeHtml(publishedRecord?.previewHtml ?? "")).toBe(productionAfterPublish);
 
-    await gotoStable(page, `/en/${slug}`);
-    await expect(page.getByText("Trusted by European transformer manufacturers")).toBeVisible();
-    await expect(page.getByTestId("studio-runtime-page")).toBeVisible();
+      await expect
+        .poll(
+          async () => {
+            const response = await publicPage.request.get(`/en/${slug}`);
+            return await response.text();
+          },
+          { timeout: 30_000 }
+        )
+        .toContain('data-studio-runtime="governed"');
+      await expect
+        .poll(
+          async () => {
+            const response = await publicPage.request.get(`/en/${slug}`);
+            return await response.text();
+          },
+          { timeout: 30_000 }
+        )
+        .not.toContain("Studio page is blocked");
 
-    await page.screenshot({
-      path: path.join(EVIDENCE_DIR, "tv-e2e-11-page-preview-publish.png"),
-      fullPage: true
-    });
+      await gotoStable(publicPage, `/en/${slug}`);
+      await expect(publicPage.getByTestId("studio-runtime-page")).toBeVisible();
+      await expect(publicPage.locator("[data-studio-runtime='governed']")).toBeVisible();
+      await expect(publicPage.getByTestId("studio-runtime-page")).toContainText("EUROGRID");
+      await expect(publicPage.getByTestId("studio-runtime-page")).not.toContainText("Trusted by European transformer manufacturers");
 
-    await writeFile(
-      path.join(EVIDENCE_DIR, "tv-e2e-11-page-preview-publish.json"),
-      JSON.stringify(
-        {
-          pageId,
-          canonicalPageId,
-          slug,
-          publishRequestCount,
-          stagingBeforePublish,
-          productionAfterPublish,
-          draftPreviewAfterEdit
-        },
-        null,
-        2
-      ),
-      "utf8"
-    );
+      await writeFile(
+        path.join(EVIDENCE_DIR, "tv-e2e-11-page-preview-publish.json"),
+        JSON.stringify(
+          {
+            pageId,
+            canonicalPageId,
+            slug,
+            publishRequestCount,
+            stagingBeforePublish,
+            productionAfterPublish,
+            draftPreviewAfterEdit
+          },
+          null,
+          2
+        ),
+        "utf8"
+      );
 
-    assertNoRuntimeErrors();
+      assertNoRuntimeErrors();
+      assertNoPublicRuntimeErrors();
+    } finally {
+      await publicContext.close();
+    }
   });
 });

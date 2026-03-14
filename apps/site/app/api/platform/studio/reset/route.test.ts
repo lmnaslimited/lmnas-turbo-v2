@@ -131,7 +131,7 @@ describe("studio reset route", () => {
     expect(wipeLegacyStudioEntriesMock).toHaveBeenCalledTimes(1);
   });
 
-  it("falls back to local reset when Strapi canonical reset throws", async () => {
+  it("hard fails when canonical reset throws in configured mode", async () => {
     isStrapiConfiguredMock.mockReturnValue(true);
     isLegacyWipeEnabledMock.mockReturnValue(true);
     resetCanonicalStudioSchemaMock.mockRejectedValue(new Error("strapi_503: connection refused"));
@@ -140,16 +140,15 @@ describe("studio reset route", () => {
     const payload = (await response.json()) as {
       ok: boolean;
       source: string;
-      warning?: string;
+      error?: string;
       developerError?: string;
-      data: { themes: number };
     };
 
-    expect(payload.ok).toBe(true);
-    expect(payload.source).toBe("fallback");
-    expect(payload.warning).toContain("Strapi canonical isolation failed");
+    expect(response.status).toBe(502);
+    expect(payload.ok).toBe(false);
+    expect(payload.source).toBe("strapi");
+    expect(payload.error).toContain("Canonical studio reset failed");
     expect(payload.developerError).toContain("connection refused");
-    expect(payload.data.themes).toBeGreaterThan(0);
     expect(resetCanonicalStudioSchemaMock).toHaveBeenCalledTimes(1);
   });
 });

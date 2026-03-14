@@ -3,7 +3,7 @@
 ## Linked Intake: INT-003
 
 ## Scope
-Documentation-only update to platform requirement processes, ensuring strict agent boundaries and a formalized 4-workflow model. This spec defines the processes, rules, and boundaries to be adhered to during platform generation and validation.
+Documentation update to platform requirement processes, ensuring strict agent boundaries, a formalized 4-workflow model, and a constitutional authority freeze to v2.1 until explicitly superseded.
 
 ## Non-goals
 - Generating boilerplate frontend code.
@@ -48,7 +48,8 @@ The Validator *will not* automatically fix code. It solely issues a Gap Report a
 ## Files to Create/Modify
 | Path | Change Type | Reason |
 | --- | --- | --- |
-| `docs/architecture/LMNAs_Platform_Operating_Constitution_v2_2.md` | CREATE | Baseline constitution upgrade for RR rules. |
+| `docs/architecture/LMNAs_Platform_Operating_Constitution_v2_1.md` | AUTHORITATIVE | Binding constitution for Phase 0.1. |
+| `docs/architecture/LMNAs_Platform_Operating_Constitution_v2_2.md` | DRAFT ONLY | Non-binding reference until explicitly approved. |
 | `docs/phase0_1/templates/proof.template.md` | MODIFY | Ensure evidence-led closure. |
 | `docs/phase0_1/specs/VALIDATION-MATRIX-003.md` | CREATE | Matrix guiding Validator agent actions. |
 
@@ -56,7 +57,7 @@ The Validator *will not* automatically fix code. It solely issues a Gap Report a
 Validation to be exclusively handled by the external Validator persona comparing the resulting repository artifacts to this Spec.
 
 ## Rollout / Risk notes
-Must freeze current implementation behaviors. Master Architecture agent should parse the new Constitution before directing further Phase 0 work.
+Must freeze current implementation behaviors. Architecture review must continue against Constitution v2.1 unless Arun explicitly replaces it.
 
 ## Links (Tasks/Proof placeholders)
 - Tasks: TASK-003

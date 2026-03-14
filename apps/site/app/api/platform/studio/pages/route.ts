@@ -301,13 +301,21 @@ function mapStrapiPageToStudio(value: unknown): StudioPageDocument {
 
 type PageVersionStatus = "draft" | "published";
 
+function statusMatches(value: unknown, expected: PageVersionStatus | undefined): boolean {
+  if (!expected) {
+    return true;
+  }
+  return (value === "published" ? "published" : "draft") === expected;
+}
+
 async function listPagesFromStrapi(status?: PageVersionStatus): Promise<StudioPageDocument[]> {
   const suffix = status ? `&status=${encodeURIComponent(status)}` : "";
   const response = await requestStrapi<StrapiCollectionResponse>(
     `/api/studio-pages?pagination[pageSize]=200&sort=updatedAt:desc${suffix}&populate[theme][fields][0]=themeKey&populate[shell][fields][0]=shellKey&populate[importMaster][fields][0]=importKey`
   );
   const rows = Array.isArray(response.data) ? response.data : [];
-  return rows.map((row) => mapStrapiPageToStudio(unwrapStrapiEntity(row)));
+  const filteredRows = rows.filter((row) => statusMatches(unwrapStrapiEntity(row).status, status));
+  return filteredRows.map((row) => mapStrapiPageToStudio(unwrapStrapiEntity(row)));
 }
 
 async function findStudioPageInStrapi(params: {
@@ -351,11 +359,14 @@ async function findStudioPageInStrapi(params: {
       params.slug
     )}&pagination[pageSize]=20&sort=updatedAt:desc${suffix}&populate[theme][fields][0]=themeKey&populate[shell][fields][0]=shellKey&populate[importMaster][fields][0]=importKey`
   );
-  const row = Array.isArray(response.data)
-    ? response.data.find((entry) => {
+  const filteredRows = Array.isArray(response.data)
+    ? response.data.filter((entry) => statusMatches(unwrapStrapiEntity(entry).status, params.status))
+    : [];
+  const row = filteredRows.length > 0
+    ? filteredRows.find((entry) => {
         const candidate = unwrapStrapiEntity(entry) as Record<string, unknown>;
         return typeof candidate.locale === "string" ? candidate.locale === params.locale : true;
-      }) ?? response.data[0]
+      }) ?? filteredRows[0]
     : undefined;
   if (!row) {
     return null;
@@ -604,6 +615,53 @@ async function applyPageToStrapi(page: StudioPageDocument): Promise<PageApplyRes
 }
 
 async function publishStudioPageDocument(pageId: string): Promise<void> {
+  const draftPage = await findStudioPageInStrapi({
+    id: pageId,
+    slug: "",
+    locale: "en",
+    status: "draft"
+  }).catch(() => null);
+  const publishedAt = new Date().toISOString();
+  const restoreDraftPayload = draftPage
+    ? {
+        pageKey: draftPage.id,
+        name: draftPage.name,
+        slug: draftPage.slug,
+        locale: draftPage.locale,
+        status: "draft",
+        lifecycle: "draft",
+        activeShellId: draftPage.activeShellId,
+        shellKey: draftPage.shellKey ?? draftPage.activeShellId ?? "",
+        themeKey: draftPage.themeKey ?? "",
+        blockOrder: draftPage.blockOrder,
+        fieldValues: draftPage.fieldValues,
+        actionOverrides: draftPage.actionOverrides,
+        productMapping: draftPage.productMapping,
+        industryMapping: draftPage.industryMapping,
+        primaryCta: draftPage.primaryCta,
+        conversionConfig: draftPage.conversionConfig,
+        campaignUtmStrategy: draftPage.campaignUtmStrategy,
+        taxonomyState: draftPage.taxonomyState,
+        seoMetadata: draftPage.seoMetadata,
+        seoJsonLdValid: draftPage.seoJsonLdValid,
+        blockSchemaValid: draftPage.blockSchemaValid,
+        previewValid: draftPage.previewValid,
+        previewHtml: draftPage.previewHtml,
+        publishedPreviewHtml: draftPage.previewHtml,
+        publishedAt
+      }
+    : null;
+  const publishedPayload = draftPage
+    ? {
+        ...restoreDraftPayload,
+        status: "published",
+        lifecycle: "published"
+      }
+    : {
+        status: "published",
+        lifecycle: "published",
+        publishedAt
+      };
   const publishEndpoints = [
     `/api/studio-pages/${encodeURIComponent(pageId)}/actions/publish`,
     `/api/studio-pages/${encodeURIComponent(pageId)}/publish`
@@ -615,6 +673,16 @@ async function publishStudioPageDocument(pageId: string): Promise<void> {
         method: "POST",
         body: {}
       });
+      if (restoreDraftPayload) {
+        await requestStrapi(`/api/studio-pages/${encodeURIComponent(pageId)}?status=draft`, {
+          method: "PUT",
+          body: restoreDraftPayload
+        });
+        await requestStrapi(`/api/studio-pages/${encodeURIComponent(pageId)}?status=published`, {
+          method: "PUT",
+          body: publishedPayload
+        });
+      }
       return;
     } catch {
       // try next endpoint
@@ -623,12 +691,14 @@ async function publishStudioPageDocument(pageId: string): Promise<void> {
 
   await requestStrapi(`/api/studio-pages/${encodeURIComponent(pageId)}`, {
     method: "PUT",
-    body: {
-      status: "published",
-      lifecycle: "published",
-      publishedAt: new Date().toISOString()
-    }
+    body: publishedPayload
   });
+  if (restoreDraftPayload) {
+    await requestStrapi(`/api/studio-pages/${encodeURIComponent(pageId)}?status=draft`, {
+      method: "PUT",
+      body: restoreDraftPayload
+    });
+  }
 }
 
 function normalizeActionType(value: unknown): StudioActionType {
@@ -851,8 +921,7 @@ async function importBlocksOnly(payload: PageSaveRequest): Promise<{
   const normalized = normalizeImportPayload(payload);
   const imported = buildImportedTemplates(normalized);
   const warnings: string[] = [];
-  const fallbackPageCount = getStudioStore().pages.length;
-  const pageCountBefore = isStrapiConfigured() ? await readStrapiPageCount() : fallbackPageCount;
+  const pageCountBefore = isStrapiConfigured() ? await readStrapiPageCount() : getStudioStore().pages.length;
 
   if (isStrapiConfigured()) {
     try {
@@ -892,7 +961,7 @@ export async function GET(request: Request): Promise<Response> {
   const requestedStatus = requestUrl.searchParams.get("status");
   const status: PageVersionStatus | undefined =
     requestedStatus === "draft" || requestedStatus === "published" ? requestedStatus : undefined;
-  let pages = getStudioStore().pages;
+  let pages: StudioPageDocument[] = [];
   let source: "strapi" | "fallback" = "fallback";
   if (isStrapiConfigured()) {
     try {
@@ -912,13 +981,23 @@ export async function GET(request: Request): Promise<Response> {
       const fromStrapi = await listPagesFromStrapi(status);
       pages = fromStrapi;
       source = "strapi";
-    } catch {
-      // fall back to in-memory store
+    } catch (error) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Canonical studio pages could not be read from Strapi.",
+          developerError: error instanceof Error ? error.message : String(error)
+        },
+        { status: 502 }
+      );
     }
   }
 
   if (source === "fallback" && status) {
+    pages = getStudioStore().pages;
     pages = pages.filter((entry) => (status === "published" ? entry.status === "published" : entry.status !== "published"));
+  } else if (source === "fallback") {
+    pages = getStudioStore().pages;
   }
 
   if (slug || id) {
@@ -1028,17 +1107,20 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     const page = normalizePage(payload.page ?? {});
-    savePageInFallback(page);
     const previewRoute = page.slug === "home" ? `/${page.locale}` : `/${page.locale}/${page.slug}`;
     const warnings: string[] = [];
     if (!isStrapiConfigured()) {
-      return Response.json(
-        {
-          ok: false,
-          error: "Canonical studio-page persistence requires Strapi configuration."
+      const persistedPage = normalizePage(savePageInFallback(page).find((candidate) => candidate.id === page.id) ?? page);
+      return Response.json({
+        ok: true,
+        data: {
+          page: persistedPage,
+          applied: false,
+          warnings,
+          previewRoute
         },
-        { status: 503 }
-      );
+        source: "fallback"
+      });
     }
 
     let persistedPage = page;

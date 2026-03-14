@@ -6,10 +6,7 @@ type StrapiCollectionResponse = {
   data?: Array<Record<string, unknown>>;
 };
 
-type StrapiSchemaSource = "canonical" | "legacy";
-
 const CANONICAL_SHELL_COLLECTION = "/api/studio-shells";
-const LEGACY_SHELL_COLLECTION = "/api/shell-variants";
 
 function resolveEntityMutationId(value: Record<string, unknown>): string | null {
   if (typeof value.documentId === "string" && value.documentId.length > 0) {
@@ -110,35 +107,6 @@ function normalizeShellFromCanonical(value: unknown): StudioShell {
   };
 }
 
-function normalizeShellFromLegacy(value: unknown): StudioShell {
-  const row = (value ?? {}) as Record<string, unknown>;
-  const rawId = row.documentId ?? row.id;
-  const shell =
-    row.shell && typeof row.shell === "object" && !Array.isArray(row.shell) ? (row.shell as Record<string, unknown>) : {};
-  const navbarVariant =
-    shell.navbarVariant && typeof shell.navbarVariant === "object" && !Array.isArray(shell.navbarVariant)
-      ? (shell.navbarVariant as Record<string, unknown>)
-      : {};
-  const menu =
-    navbarVariant.menu && typeof navbarVariant.menu === "object" && !Array.isArray(navbarVariant.menu)
-      ? (navbarVariant.menu as Record<string, unknown>)
-      : {};
-  const resolvedId = typeof rawId === "string" || typeof rawId === "number" ? String(rawId) : `shell-${Date.now()}`;
-  return {
-    id: resolvedId,
-    key: typeof row.variantKey === "string" ? row.variantKey : "shell",
-    name: typeof shell.title === "string" ? shell.title : "Shell",
-    role: row.role === "navbar" || row.role === "footer" ? row.role : "full",
-    status: row.status === "active" ? "active" : "inactive",
-    updatedAt: typeof row.updatedAt === "string" ? row.updatedAt.slice(0, 10) : new Date().toISOString().slice(0, 10),
-    menuItems: mapMenuItemsFromStrapi(menu.items),
-    actions: mapShellActions(row.actions),
-    navbarBlocks: normalizeBlockArray(row.navbarBlocks ?? shell.navbarBlocks),
-    footerBlocks: normalizeBlockArray(row.footerBlocks ?? shell.footerBlocks),
-    previewHtml: typeof row.previewHtml === "string" ? row.previewHtml : "<div>No preview</div>"
-  };
-}
-
 async function listShellsFromCollection(
   collectionPath: string,
   mapper: (value: unknown) => StudioShell
@@ -177,23 +145,8 @@ async function activateInCollection(
   return refreshed.map((row) => row.normalized);
 }
 
-async function activateInStrapi(
-  shellId: string,
-  shellKey: string | undefined
-): Promise<{ shells: StudioShell[]; schemaSource: StrapiSchemaSource }> {
-  try {
-    const shells = await activateInCollection(CANONICAL_SHELL_COLLECTION, shellId, shellKey, normalizeShellFromCanonical);
-    return {
-      shells,
-      schemaSource: "canonical"
-    };
-  } catch {
-    const shells = await activateInCollection(LEGACY_SHELL_COLLECTION, shellId, shellKey, normalizeShellFromLegacy);
-    return {
-      shells,
-      schemaSource: "legacy"
-    };
-  }
+async function activateInStrapi(shellId: string, shellKey: string | undefined): Promise<StudioShell[]> {
+  return activateInCollection(CANONICAL_SHELL_COLLECTION, shellId, shellKey, normalizeShellFromCanonical);
 }
 
 function activateInFallback(shellId: string): StudioShell[] {
@@ -230,21 +183,22 @@ export async function POST(request: Request): Promise<Response> {
 
     if (isStrapiConfigured()) {
       try {
-        const { shells, schemaSource } = await activateInStrapi(shellId, shellKey);
+        const shells = await activateInStrapi(shellId, shellKey);
         return Response.json({
           ok: true,
           data: shells,
           source: "strapi",
-          schemaSource
+          schemaSource: "canonical"
         });
-      } catch {
-        const fallback = activateInFallback(shellId);
-        return Response.json({
-          ok: true,
-          data: fallback,
-          source: "fallback",
-          schemaSource: "fallback"
-        });
+      } catch (error) {
+        return Response.json(
+          {
+            ok: false,
+            error: "Canonical studio shell activation failed in Strapi.",
+            developerError: error instanceof Error ? error.message : String(error)
+          },
+          { status: 502 }
+        );
       }
     }
 

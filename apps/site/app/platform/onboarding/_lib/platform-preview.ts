@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { sanitizeHtmlToSafeMarkup } from "../../../../lib/studio-html-sanitizer";
 import type { StudioTheme } from "./studio-types";
 
 export type PlatformPreviewAssets = {
@@ -158,9 +159,10 @@ export function extractBodyHtml(input: string): string {
 }
 
 export function sanitizeTargetHtml(input: string): string {
-  return stripPreviewRuntime(input)
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
+  const stripped = stripPreviewRuntime(input)
     .replace(/<link[^>]+rel=["'][^"']*stylesheet[^"']*["'][^>]*>/gi, "");
+
+  return sanitizeHtmlToSafeMarkup(extractBodyHtml(ensureHtmlDocument(stripped)), "studio-preview");
 }
 
 export function buildPlatformTargetDocument(params: {

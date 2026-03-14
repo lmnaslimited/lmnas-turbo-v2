@@ -50,6 +50,97 @@ describe("studio pages route import guards", () => {
     expect(payload.data).toEqual([]);
   });
 
+  it("filters mixed canonical versions so published reads do not return newer draft rows", async () => {
+    strapiMockState.configured = true;
+    strapiMockState.requestStrapi.mockResolvedValueOnce({
+      data: [
+        {
+          documentId: "page-mixed-1",
+          pageKey: "page-mixed-1",
+          name: "Mixed Page",
+          slug: "mixed-page",
+          locale: "en",
+          status: "draft",
+          lifecycle: "draft",
+          blockOrder: ["block-1"],
+          fieldValues: {},
+          actionOverrides: {},
+          productMapping: "lmnas-platform",
+          industryMapping: ["enterprise"],
+          primaryCta: { text: "Book Demo", url: "/contact" },
+          conversionConfig: { trackConversions: true, strategy: "Track Conversions", valuePoints: 0 },
+          campaignUtmStrategy: { source: "lmnas", medium: "studio", campaign: "mixed" },
+          taxonomyState: { valid: true, tags: [] },
+          seoMetadata: { metaTitle: "Mixed Page", metaDescription: "Draft" },
+          seoJsonLdValid: false,
+          blockSchemaValid: true,
+          previewValid: false,
+          previewHtml: "<main><section>Draft</section></main>",
+          publishedPreviewHtml: "<main><section>Draft</section></main>",
+          updatedAt: "2026-03-13"
+        },
+        {
+          documentId: "page-mixed-1",
+          pageKey: "page-mixed-1",
+          name: "Mixed Page",
+          slug: "mixed-page",
+          locale: "en",
+          status: "published",
+          lifecycle: "published",
+          blockOrder: ["block-1"],
+          fieldValues: {},
+          actionOverrides: {},
+          productMapping: "lmnas-platform",
+          industryMapping: ["enterprise"],
+          primaryCta: { text: "Book Demo", url: "/contact" },
+          conversionConfig: { trackConversions: true, strategy: "Track Conversions", valuePoints: 0 },
+          campaignUtmStrategy: { source: "lmnas", medium: "studio", campaign: "mixed" },
+          taxonomyState: { valid: true, tags: [] },
+          seoMetadata: { metaTitle: "Mixed Page", metaDescription: "Published" },
+          seoJsonLdValid: true,
+          blockSchemaValid: true,
+          previewValid: true,
+          previewHtml: "<main><section>Draft</section></main>",
+          publishedPreviewHtml: "<main><section>Published</section></main>",
+          updatedAt: "2026-03-12"
+        }
+      ]
+    });
+
+    const response = await GET(new Request("http://localhost/api/platform/studio/pages?status=published"));
+
+    expect(response.status).toBe(200);
+    const payload = (await response.json()) as {
+      ok: boolean;
+      source: string;
+      data: Array<{ status: string; previewValid: boolean; seoJsonLdValid: boolean; publishedPreviewHtml: string }>;
+    };
+    expect(payload.ok).toBe(true);
+    expect(payload.source).toBe("strapi");
+    expect(payload.data).toHaveLength(1);
+    expect(payload.data[0]?.status).toBe("published");
+    expect(payload.data[0]?.previewValid).toBe(true);
+    expect(payload.data[0]?.seoJsonLdValid).toBe(true);
+    expect(payload.data[0]?.publishedPreviewHtml).toContain("Published");
+  });
+
+  it("hard fails instead of degrading to fallback pages when canonical read fails", async () => {
+    strapiMockState.configured = true;
+    strapiMockState.requestStrapi.mockRejectedValueOnce(new Error("strapi_503: unavailable"));
+
+    const response = await GET(new Request("http://localhost/api/platform/studio/pages?status=published"));
+    const payload = (await response.json()) as {
+      ok: boolean;
+      error: string;
+      developerError: string;
+    };
+
+    expect(response.status).toBe(502);
+    expect(payload.ok).toBe(false);
+    expect(payload.error).toContain("Canonical studio pages could not be read");
+    expect(payload.developerError).toContain("unavailable");
+  });
+
   it("rejects import requests that attempt route slug generation", async () => {
     const response = await POST(
       buildPostRequest({
@@ -349,5 +440,65 @@ describe("studio pages route import guards", () => {
     expect(savePayload.data.page.shellKey).toBe("shell-main");
     expect(savePayload.data.page.themeKey).toBe("default");
     expect(savePayload.data.page.blockOrder).toEqual(["import-source-hero-1-01", "import-source-faq-2-02"]);
+  });
+
+  it("does not persist to fallback store when canonical page save fails", async () => {
+    strapiMockState.configured = true;
+    strapiMockState.requestStrapi.mockRejectedValueOnce(new Error("strapi_503: write failed"));
+    const initialPageIds = getStudioStore().pages.map((page) => page.id);
+
+    const response = await POST(
+      buildPostRequest({
+        mode: "save",
+        page: {
+          id: "page-fail-1",
+          name: "Broken Save",
+          slug: "broken-save",
+          locale: "en",
+          shellKey: "shell-main",
+          themeKey: "default",
+          blockOrder: [],
+          fieldValues: {},
+          actionOverrides: {},
+          productMapping: "lmnas-platform",
+          industryMapping: ["enterprise"],
+          primaryCta: {
+            text: "Book Demo",
+            url: "/contact"
+          },
+          conversionConfig: {
+            trackConversions: true,
+            strategy: "Track Conversions",
+            valuePoints: 0
+          },
+          campaignUtmStrategy: {
+            source: "lmnas",
+            medium: "studio",
+            campaign: "broken-save"
+          },
+          taxonomyState: {
+            valid: true,
+            tags: ["broken"]
+          },
+          seoMetadata: {
+            metaTitle: "Broken Save",
+            metaDescription: "Broken Save"
+          },
+          seoJsonLdValid: true,
+          blockSchemaValid: true,
+          previewValid: true,
+          previewHtml: "<main><section>Broken Save</section></main>"
+        }
+      })
+    );
+    const payload = (await response.json()) as {
+      ok: boolean;
+      error: string;
+    };
+
+    expect(response.status).toBe(502);
+    expect(payload.ok).toBe(false);
+    expect(payload.error).toContain("Canonical studio-page persistence failed");
+    expect(getStudioStore().pages.map((page) => page.id)).toEqual(initialPageIds);
   });
 });

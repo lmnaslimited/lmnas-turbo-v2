@@ -29,11 +29,15 @@ Strict documentation-only governance bounds established for Phase 0.1, guarantee
 
 - RR-first enforcement strictly applies.
 - Must inherit Constitution v2.1 baseline context.
+- Constitution v2.2 may be referenced only as a draft artifact; it is not binding authority.
 - Follow Phase 0.1 template formatting.
 
 ## Acceptance Criteria (observable bullets)
 
-- [ ] Constitution v2.2 reflects explicit rules for:
+- [ ] Constitution authority freeze is explicit:
+  - v2.1 is the binding authority
+  - any v2.2 file is marked draft / non-binding
+- [ ] Constitution governance docs reflect explicit rules for:
   - RR-first enforcement
   - Independent validator model (Validator confirms gaps, does not fix)
   - 4 workflow boundaries (Theme, Block, Shell, Page)

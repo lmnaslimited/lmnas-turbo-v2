@@ -1,4 +1,4 @@
-import { readStoreSnapshot } from "./store";
+import { createSeedStore } from "./store";
 import { requestStrapi } from "./strapi";
 
 type StrapiCollectionResponse = {
@@ -65,7 +65,7 @@ async function deleteAllEntries(endpoint: string): Promise<number> {
 }
 
 async function seedCanonicalThemes(): Promise<number> {
-  const snapshot = readStoreSnapshot();
+  const snapshot = createSeedStore();
   let seeded = 0;
   for (const theme of snapshot.themes) {
     await requestStrapi("/api/studio-themes", {
@@ -87,7 +87,7 @@ async function seedCanonicalThemes(): Promise<number> {
 }
 
 async function seedCanonicalShells(): Promise<number> {
-  const snapshot = readStoreSnapshot();
+  const snapshot = createSeedStore();
   let seeded = 0;
   for (const shell of snapshot.shells) {
     await requestStrapi("/api/studio-shells", {
@@ -110,7 +110,7 @@ async function seedCanonicalShells(): Promise<number> {
 }
 
 async function seedCanonicalBlocks(): Promise<number> {
-  const snapshot = readStoreSnapshot();
+  const snapshot = createSeedStore();
   let seeded = 0;
   for (const block of snapshot.blocks) {
     await requestStrapi("/api/studio-blocks", {
@@ -141,7 +141,7 @@ async function seedCanonicalBlocks(): Promise<number> {
 }
 
 async function seedCanonicalWidgets(): Promise<number> {
-  const snapshot = readStoreSnapshot();
+  const snapshot = createSeedStore();
   let seeded = 0;
   for (const widget of snapshot.widgets) {
     await requestStrapi("/api/studio-widgets", {
@@ -168,7 +168,7 @@ async function seedCanonicalWidgets(): Promise<number> {
 }
 
 async function seedCanonicalPages(): Promise<number> {
-  const snapshot = readStoreSnapshot();
+  const snapshot = createSeedStore();
   let seeded = 0;
   for (const page of snapshot.pages) {
     await requestStrapi("/api/studio-pages", {

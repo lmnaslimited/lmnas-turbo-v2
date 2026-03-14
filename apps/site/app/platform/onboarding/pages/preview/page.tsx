@@ -1,5 +1,6 @@
 import React from "react";
 import { draftMode, headers } from "next/headers";
+import { sanitizeHtmlToSafeMarkup } from "../../../../../lib/studio-html-sanitizer";
 import type { StudioPageDocument } from "../../_lib/studio-types";
 import PreviewClient from "./PreviewClient";
 
@@ -7,6 +8,25 @@ type PreviewPagePayload = {
   ok: boolean;
   data?: StudioPageDocument | null;
 };
+
+function ensureHtmlDocument(input: string): string {
+  const trimmed = input.trim();
+  if (trimmed.length === 0) {
+    return "<!doctype html><html><head></head><body></body></html>";
+  }
+  if (/<html[\s>]/i.test(trimmed)) {
+    return trimmed;
+  }
+  return `<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head><body>${trimmed}</body></html>`;
+}
+
+function extractBodyHtml(input: string): string {
+  const bodyMatch = input.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  if (typeof bodyMatch?.[1] === "string") {
+    return bodyMatch[1];
+  }
+  return input;
+}
 
 function fallbackPreviewHtml(message: string): string {
   return [
@@ -48,7 +68,12 @@ export default async function StudioPagePreview(props: {
   }
 
   const page = await loadPreviewDocument(pageId, status);
-  const html = page?.previewHtml?.trim().length ? page.previewHtml : fallbackPreviewHtml(status === "draft" ? "Draft preview unavailable" : "Published preview unavailable");
+  const sourceHtml = page?.previewHtml?.trim().length
+    ? page.previewHtml
+    : fallbackPreviewHtml(status === "draft" ? "Draft preview unavailable" : "Published preview unavailable");
+  const html = ensureHtmlDocument(
+    sanitizeHtmlToSafeMarkup(extractBodyHtml(ensureHtmlDocument(sourceHtml)), "https://lmnas.com/platform/onboarding/pages/preview")
+  );
   return (
     <PreviewClient
       pageId={pageId}

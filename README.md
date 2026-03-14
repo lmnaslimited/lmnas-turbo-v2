@@ -33,7 +33,8 @@ No manual env export is required for normal local onboarding flow when `.env` / 
 
 ## Guardrails
 
-- Constitution v2.2 is authoritative (Phase 0.1 Strict 4-Workflow Model Enforced): `docs/architecture/LMNAs_Platform_Operating_Constitution_v2_2.md`
+- Constitution v2.1 is authoritative: `docs/architecture/LMNAs_Platform_Operating_Constitution_v2_1.md`
+- Constitution v2.2 is retained as a draft reference only until Arun explicitly supersedes v2.1: `docs/architecture/LMNAs_Platform_Operating_Constitution_v2_2.md`
 - Strapi is source of truth
 - Blocks are pure UI
 - Schema-first contracts

@@ -26,7 +26,18 @@ function isCanonicalIsolationEnabled(): boolean {
 }
 
 export async function POST(): Promise<Response> {
-  if (isStrapiConfigured() && isCanonicalIsolationEnabled()) {
+  if (isStrapiConfigured()) {
+    if (!isCanonicalIsolationEnabled()) {
+      return Response.json(
+        {
+          ok: false,
+          source: "strapi",
+          error: "Canonical studio reset is disabled by local-dev guard. Re-enable canonical isolation to reset Strapi."
+        },
+        { status: 503 }
+      );
+    }
+
     try {
       const canonical = await resetCanonicalStudioSchema();
       const cleanup = isLegacyWipeEnabled() ? await wipeLegacyStudioEntries() : null;
@@ -50,14 +61,12 @@ export async function POST(): Promise<Response> {
         ...(cleanup ? { cleanup } : {})
       });
     } catch (error) {
-      const snapshot = resetStore();
       return Response.json({
-        ok: true,
-        data: summarizeFallbackSnapshot(snapshot),
-        source: "fallback",
-        warning: "Strapi canonical isolation failed. Local fallback store was reset instead.",
+        ok: false,
+        source: "strapi",
+        error: "Canonical studio reset failed in Strapi.",
         developerError: error instanceof Error ? error.message : String(error)
-      });
+      }, { status: 502 });
     }
   }
 

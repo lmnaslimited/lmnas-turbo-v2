@@ -1,123 +1,44 @@
 # TEST OWNERSHIP AND VALIDATION ADDENDUM
 
-**Role:** Requirements, Validation, and Test Governance Owner  
-**Objective:** Eliminate ambiguity in test ownership by formalizing the 4-Persona delivery cycle, strict Phase Gates, and exact Proof expectations.
+## 1. Binding authority
 
----
+- Constitution v2.1 is the binding authority for Phase 0.1.
+- `docs/architecture/LMNAs_Platform_Operating_Constitution_v2_2.md` is draft / non-binding until Arun explicitly supersedes v2.1.
 
-## 1. TEST OWNERSHIP MODEL
+## 2. Role split
 
-Testing responsibilities are explicitly segregated to prevent implementation drift and bias. 
+- `Codex`: implementation, unit tests, implementation-side integration/E2E, executable proof collection.
+- `ChatGPT`: architecture review against the binding constitution and RR scope.
+- `Arun`: functional and UX review of operator-facing behavior.
+- `Gemini`: independent validation against `SPEC` / `TEST`; gap reports only; no code changes or auto-fixes.
 
-- **Unit Tests**: Owned and executed by Implementers (`Claude` / `Codex`).
-- **Implementation-Side E2E Tests**: Owned and executed by Implementers (`Claude` / `Codex`).
-- **Independent Validation Tests**: Owned and executed by the Validator (`Gemini`).
-- **UI Workflow Validation**: Owned by the Validator (`Gemini`).
-- **Strapi Persistence Validation**: Owned by the Validator (`Gemini`).
-- **Integration Validation**: Owned by the Validator (`Gemini`).
-- **Regression Validation**: Owned by the Validator (`Gemini`).
-- **Defect Triage After Validation**: Owned by the Validator (`Gemini`), returning categorized gap reports.
-- **Sign-Off Recommendation**: Owned exclusively by the Validator (`Gemini`).
+## 3. Delivery gates
 
----
+| Gate | Name | Owner | Exit evidence |
+| --- | --- | --- | --- |
+| 1 | Architecture Locked | `ChatGPT` | Constitution + architecture review notes |
+| 2 | RR Locked | `Gemini` | `INT` / `SPEC` / `ADR` / `TASK` |
+| 3 | Implementation Complete | `Codex` | Passing unit / integration command logs |
+| 4 | Implementation-side E2E Complete | `Codex` | Passing local E2E / real-stack command logs |
+| 5 | Independent Validation | `Gemini` | Gap report against locked RR artifacts |
+| 6 | Gap Remediation | `Codex` | Updated passing command logs |
+| 7 | Functional / UX Review + Final Validation | `Arun`, `Gemini` | Functional review notes + validator sign-off |
 
-## 2. DELIVERY GATE MODEL
+## 4. Evidence standard
 
-The Phase 0.1 Development Lifecycle consists of rigorous gates. No gate may be skipped.
+- Executable evidence is mandatory for any closed gate.
+- Exact commands and exact results must be recorded in `PROOF`.
+- JSON / log / persisted-record evidence is required where persistence or runtime governance is claimed.
+- Screenshots are optional supplemental artifacts only. Screenshots do not close a gate on their own.
 
-| Gate | Name | Owner | Entry Criteria | Exit Criteria | Required Artifacts |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Gate 1** | Architecture Locked | `ChatGPT` | Problem defined; product boundary identified. | Phase 0 rules established. | `Constitution`, `ARCHITECTURE.md` |
-| **Gate 2** | Requirements + RR Artifacts Locked | `Gemini` | Gate 1 complete; Intake drafted. | Specifications, Test Plans, ADRs finalized. | `INT`, `SPEC`, `ADR`, `TASK` |
-| **Gate 3** | Implementation Complete (w/ Unit Tests) | `Claude`/`Codex` | Tasks assigned; Dev starts. | Feature integrated; unit tests pass locally. | Unit test logs |
-| **Gate 4** | Implementation-Side E2E Complete | `Claude`/`Codex` | Gate 3 complete. | Dev-side E2E scripts pass without crash. | Local E2E test logs |
-| **Gate 5** | Independent Validation Complete | `Gemini` | `PROOF` draft submitted. | Gap Report generated detailing pass/fail constraints. | `PROOF` updated with Issue formats |
-| **Gate 6** | Gap Remediation | `Claude`/`Codex` | Gap log is populated with failures. | Assigned gaps re-coded and re-tested locally. | Updated local test logs |
-| **Gate 7** | Final Validation & Sign-Off | `Gemini` | Remediated `PROOF` submitted. | Zero critical/high gaps. Sign-off Recommended. | Finalized `PROOF` |
+## 5. Validator constraints
 
----
+- Gemini validates strictly against the approved RR boundary.
+- Gemini reports `requirement gap`, `implementation bug`, `UX inconsistency`, `documentation drift`, or `test coverage gap`.
+- Gemini does not patch code, rewrite tests, or reinterpret requirements after implementation.
 
-## 3. TEST EXECUTION SPLIT
+## 6. Required cross-references
 
-### A. Claude/Codex (Implementation Testing)
-Required: Unit tests for components; local workflow tests; implementation-side E2E checks ensuring basic logic operates; manual console persistence checks.
-
-### B. Gemini (Independent Validation Testing)
-Required: Requirement-to-implementation mapping validation; strict UI testing; independent DB persistence validation; mismatch detection vs Architecture boundaries; execution of explicit `TEST-004` pack. Gemini never writes patches.
-
----
-
-## 4. GEMINI VALIDATOR ROLE
-- **Constraint 1:** Gemini must NOT fix code.
-- **Constraint 2:** Gemini must NOT silently reinterpret requirements.
-- **Constraint 3:** Gemini must test specifically against the approved RR boundary.
-- **Categorization:** Reports identify: `requirement gap`, `implementation bug`, `UX inconsistency`, `documentation drift`, or `test coverage gap`.
-
----
-
-## 5. ISSUE ASSIGNMENT FORMAT
-
-Gemini uses the exact block below when halting Gate 5:
-
-```markdown
-### Issue ID: [G-001]
-- **Workflow**: [Theme / Block / Page / Shell / Widget]
-- **Severity**: [Critical / High / Medium / Low]
-- **Category**: [Gap Category]
-- **Requirement/Test Reference**: [SPEC-### / TEST-###]
-- **Observed Behavior**: [Actual]
-- **Expected Behavior**: [According to SPEC]
-- **Reproduction Path**: 
-  1. [Step 1]
-- **Evidence Expected**: [Visual / Log proof]
-- **Recommended Owner**: [Claude / Codex]
-- **Retest Condition**: [Gate 5 exit trigger]
-```
-
----
-
-## 6. REQUIRED VALIDATION PACK
-
-The exact matrix mapped into `docs/phase0_1/tests/TEST-004-studio-workflow-tightening.md` must be executed rigidly matching `TV-E2E-01` through `TV-MTR-10`.
-
----
-
-## 7. EVIDENCE STANDARD FOR VALIDATION
-
-Implementer assertions (e.g., "Files generated") are universally invalid. Gemini must collect:
-- **Screenshots:** Validating overlaps, Swatch toggles, error traps, or Draft/Prod views.
-- **State Comparisons:** Before/After states of Where-Used logic blocks.
-- **Strapi Entity Dumps:** JSON outputs mapping block UI arrays.
-- **Logs:** Fidelity calculation numeric shifts or GitHub CI E2E run outputs.
-- **Identifers:** Specific node limits.
-
----
-
-## 8. FAILURE / REWORK LOOP
-
-When an issue logs during Gate 5 Validation:
-1. Gemini shifts phase status to Gate 6 returning the format to Claude/Codex.
-2. Implementers fix specifically identified gaps without scope-bloat.
-3. Gemini reruns Targeted Pack for Low/Med severity or Full Regression Pack for High/Critical bugs.
-
----
-
-## 9. SIGN-OFF RULE
-
-Gemini explicitly commands the Sign-Off recommendation at Gate 7 only when evidence passes against approved RR requirements. Architecture sign-off (Gate 1 boundary changes) remains outside Gemini's authority and sits strictly with ChatGPT.
-
----
-
-## 10. INSERTION MAP
-
-This addendum governs Phase 0.1 testing execution. It must be implemented exactly as described.
-
-- **Governed RR Docs**: 
-    - `docs/phase0_1/tests/TEST-004-studio-workflow-tightening.md`
-    - `docs/phase0_1/proof/PROOF-004-studio-workflow-tightening.md`
-- **Referencing RR Docs**: 
-    - `docs/phase0_1/templates/proof.template.md` (Embeds Section 5 Issue Assignment Format)
-    - `docs/phase0_1/templates/tasks.template.md` (Embeds Section 2 Gate Model)
-- **Cross-Reference Updates Required**: 
-    - `README.md`: Must actively require Constitution `v2.2` parity protecting this Gate execution flow.
-    - `AGENTS.md`: Must explicitly bind Claude, Codex, and Gemini to the independent validation splits codified in Section 3 and 4.
+- `README.md` must point to Constitution v2.1 as authoritative.
+- `PROOF-003` must record constitutional authority freeze status.
+- `PROOF-004` must record executable evidence for implementation-side closure and must explicitly mark any still-open merge gate with exact blockers.

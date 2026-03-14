@@ -7,6 +7,8 @@ type PagesPostResponse = {
       id: string;
       slug: string;
       previewHtml?: string;
+      previewValid?: boolean;
+      seoJsonLdValid?: boolean;
     };
     applied?: boolean;
   };
@@ -76,9 +78,9 @@ test.describe("@real studio public route", () => {
       "</body></html>"
     ].join("");
 
-    const initialApplyResponse = await page.request.post("/api/platform/studio/pages", {
+    const initialSaveResponse = await page.request.post("/api/platform/studio/pages", {
       data: {
-        mode: "apply",
+        mode: "save",
         page: {
           id: `studio-public-home-${Date.now()}`,
           name: "Home",
@@ -86,7 +88,7 @@ test.describe("@real studio public route", () => {
           locale: "en",
           lifecycle: "draft",
           status: "draft",
-          blockOrder: [],
+          blockOrder: ["blk-hero-1"],
           fieldValues: {},
           actionOverrides: {},
           productMapping: "lmnas-platform",
@@ -121,19 +123,51 @@ test.describe("@real studio public route", () => {
         }
       }
     });
+    const initialSavePayload = (await initialSaveResponse.json()) as PagesPostResponse;
+    expect(initialSaveResponse.ok(), JSON.stringify(initialSavePayload)).toBe(true);
+    expect(initialSavePayload.ok).toBe(true);
+    expect(initialSavePayload.source).toBe("strapi");
+    expect(initialSavePayload.data?.page?.id).toBeTruthy();
+
+    const canonicalPageId = initialSavePayload.data?.page?.id as string;
+
+    const acceptPreviewResponse = await page.request.post("/api/platform/studio/pages", {
+      data: {
+        mode: "preview-accept",
+        pageId: canonicalPageId
+      }
+    });
+    const acceptPreviewPayload = (await acceptPreviewResponse.json()) as PagesPostResponse;
+    expect(acceptPreviewResponse.ok(), JSON.stringify(acceptPreviewPayload)).toBe(true);
+    expect(acceptPreviewPayload.ok).toBe(true);
+    expect(acceptPreviewPayload.source).toBe("strapi");
+    expect(acceptPreviewPayload.data?.page?.previewValid).toBe(true);
+    expect(acceptPreviewPayload.data?.page?.seoJsonLdValid).toBe(true);
+    const acceptedPage = acceptPreviewPayload.data?.page;
+
+    const initialApplyResponse = await page.request.post("/api/platform/studio/pages", {
+      data: {
+        mode: "apply",
+        page: {
+          ...(acceptedPage ?? { id: canonicalPageId }),
+          previewHtml: liveHtml,
+          publishedPreviewHtml: liveHtml
+        }
+      }
+    });
     const initialApplyPayload = (await initialApplyResponse.json()) as PagesPostResponse;
     expect(initialApplyResponse.ok(), JSON.stringify(initialApplyPayload)).toBe(true);
     expect(initialApplyPayload.ok).toBe(true);
     expect(initialApplyPayload.source).toBe("strapi");
-    expect(initialApplyPayload.data?.page?.id).toBeTruthy();
     expect(initialApplyPayload.data?.applied).toBe(true);
-
-    const canonicalPageId = initialApplyPayload.data?.page?.id as string;
 
     const response = await page.goto("/en/home", { waitUntil: "domcontentloaded" });
     expect(response?.status(), "Expected public route to resolve without 404").toBe(200);
+    await expect(page.locator("[data-studio-runtime='governed']")).toBeVisible();
     await expect(page.getByTestId("studio-runtime-page")).toContainText("Published Studio Snapshot");
     await expect(page.getByTestId("studio-runtime-page")).toContainText("This is the live version.");
+    await expect(page.locator("meta[name='description']")).toHaveAttribute("content", "Public route smoke test");
+    await expect(page.locator("script[type='application/ld+json']")).toHaveCount(1);
 
     const draftSaveResponse = await page.request.post("/api/platform/studio/pages", {
       data: {
@@ -145,7 +179,7 @@ test.describe("@real studio public route", () => {
           locale: "en",
           lifecycle: "draft",
           status: "draft",
-          blockOrder: [],
+          blockOrder: ["blk-hero-1"],
           fieldValues: {},
           actionOverrides: {},
           productMapping: "lmnas-platform",
@@ -185,6 +219,7 @@ test.describe("@real studio public route", () => {
     expect(draftSavePayload.source).toBe("strapi");
 
     await page.goto("/en/home", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("[data-studio-runtime='governed']")).toBeVisible();
     await expect(page.getByTestId("studio-runtime-page")).toContainText("Published Studio Snapshot");
     await expect(page.getByTestId("studio-runtime-page")).toContainText("This is the live version.");
     await expect(page.getByTestId("studio-runtime-page")).not.toContainText("Draft Edit After Publish");
