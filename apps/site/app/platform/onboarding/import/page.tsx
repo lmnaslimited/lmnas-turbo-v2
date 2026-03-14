@@ -311,13 +311,11 @@ function resolveProposalTargetPreviewHtml(params: {
   proposalHtml: string;
   persistedMeta: PersistedProposalMeta | null;
   theme: StudioTheme | null;
-  shell: StudioShell | null;
   hostAssets: ReturnType<typeof usePlatformPreviewAssets>;
 }): string {
   return buildPlatformBlockPreviewDocument({
     proposalHtml: params.proposalHtml || params.persistedMeta?.targetPreviewHtml || "<section></section>",
     theme: params.theme,
-    shellHtml: params.shell?.previewHtml,
     hostAssets: params.hostAssets
   });
 }
@@ -400,10 +398,9 @@ export default function ImportWorkflowPage(): React.ReactElement {
       proposalHtml: focusedProposal.previewHtml ?? focusedProposal.rawHtmlSnippet ?? "<section></section>",
       persistedMeta: focusedProposalMeta,
       theme: compareTheme,
-      shell: selectedShell,
       hostAssets: platformPreviewAssets
     });
-  }, [compareTheme, focusedProposal, focusedProposalMeta, platformPreviewAssets, selectedShell]);
+  }, [compareTheme, focusedProposal, focusedProposalMeta, platformPreviewAssets]);
 
   const sourceAssetCounts = useMemo(() => {
     const manifest =
@@ -886,6 +883,7 @@ export default function ImportWorkflowPage(): React.ReactElement {
           })
         },
         {
+          timeoutMs: 120_000,
           timeoutMessage: "Import analysis timed out. Please retry.",
           fallbackErrorMessage: "Unable to analyze source import."
         }
@@ -1014,6 +1012,15 @@ export default function ImportWorkflowPage(): React.ReactElement {
           summary: { blocksToCreate: number };
           warnings: Array<{ message: string; severity: string }>;
         };
+        matchedBlocks?: Array<{
+          proposalId: string;
+          disposition: "created" | "updated";
+          matchedBlockKey: string;
+          matchedBlockId: string | null;
+          nameChanged: boolean;
+          previewChanged: boolean;
+          publishedContentChanged: boolean;
+        }>;
         error?: string;
       }>(
         "/api/platform/studio/blocks/publish",
@@ -1049,6 +1056,15 @@ export default function ImportWorkflowPage(): React.ReactElement {
       const selectedProposalIds = analysis.blockProposals.filter((block) => selectedBlocks[block.id] !== false).map((block) => block.id);
       const createdCount = selectedProposalIds.filter((proposalId) => persistedProposalMeta[proposalId]?.disposition === "created").length;
       const updatedCount = selectedProposalIds.filter((proposalId) => persistedProposalMeta[proposalId]?.disposition === "updated").length;
+      const updatedMatchDetails = (payload.matchedBlocks ?? [])
+        .filter((entry) => entry.disposition === "updated")
+        .map((entry) => {
+          const matchedId = entry.matchedBlockId ? ` / ${entry.matchedBlockId}` : "";
+          const nameState = entry.nameChanged ? "renamed" : "name unchanged";
+          const previewState = entry.previewChanged ? "preview changed" : "preview unchanged";
+          const publishedState = entry.publishedContentChanged ? "published content changed" : "published content unchanged";
+          return `${entry.matchedBlockKey}${matchedId} ${nameState}, ${previewState}, ${publishedState}`;
+        });
 
       let pageImportMessage = "";
       if (importMode === "page") {
@@ -1138,12 +1154,14 @@ export default function ImportWorkflowPage(): React.ReactElement {
       }
 
       const warningCount = payload.result.warnings.length;
+      const matchDetailMessage =
+        updatedMatchDetails.length > 0 ? ` Match: ${updatedMatchDetails.slice(0, 3).join("; ")}.` : "";
       setStatusMessage(
         payload.result.applied
           ? updatedCount > 0 && createdCount === 0
-            ? `Updated ${updatedCount} existing governed block(s). Warnings: ${warningCount}.${pageImportMessage}`
+            ? `Updated ${updatedCount} existing governed block(s).${matchDetailMessage} Warnings: ${warningCount}.${pageImportMessage}`
             : updatedCount > 0
-              ? `Imported ${createdCount} new governed block(s) and updated ${updatedCount} existing block(s). Warnings: ${warningCount}.${pageImportMessage}`
+              ? `Imported ${createdCount} new governed block(s) and updated ${updatedCount} existing block(s).${matchDetailMessage} Warnings: ${warningCount}.${pageImportMessage}`
               : `Imported ${createdCount || selectedCount} governed block(s). Warnings: ${warningCount}.${pageImportMessage}`
           : `Import completed with no apply. Warnings: ${warningCount}.${pageImportMessage}`
       );
@@ -1546,7 +1564,6 @@ export default function ImportWorkflowPage(): React.ReactElement {
                     proposalHtml,
                     persistedMeta,
                     theme: compareTheme,
-                    shell: selectedShell,
                     hostAssets: platformPreviewAssets
                   });
                   const schemaStatus =
@@ -1707,7 +1724,8 @@ export default function ImportWorkflowPage(): React.ReactElement {
                 <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-2">
                   <p className="text-[11px] text-slate-300">
                     Source uses import master context
-                    {importMaster ? ` (${importMaster.importKey})` : ""}. Target uses selected Studio theme ({selectedThemeKey}) and shell ({selectedShellKey || "none"}).
+                    {importMaster ? ` (${importMaster.importKey})` : ""}. Target uses the selected Studio theme ({selectedThemeKey})
+                    {importMode === "page" ? ` and page shell (${selectedShellKey || "none"})` : " without page shells"}.
                   </p>
                 </div>
               ) : null}
@@ -1728,7 +1746,6 @@ export default function ImportWorkflowPage(): React.ReactElement {
                       : buildPlatformBlockPreviewDocument({
                           proposalHtml: analysis.source.productionPreviewHtml,
                           theme: compareTheme,
-                          shellHtml: selectedShell?.previewHtml,
                           hostAssets: platformPreviewAssets
                         })
                   }

@@ -17,6 +17,16 @@ type StrapiCollectionResponse = {
 const CANONICAL_BLOCK_COLLECTION = "/api/studio-blocks";
 const CANONICAL_IMPORT_MASTER_COLLECTION = "/api/studio-import-masters";
 
+type PublishedBlockMatch = {
+  proposalId: string;
+  disposition: "created" | "updated";
+  matchedBlockKey: string;
+  matchedBlockId: string | null;
+  nameChanged: boolean;
+  previewChanged: boolean;
+  publishedContentChanged: boolean;
+};
+
 function unwrapStrapiEntity(value: Record<string, unknown>): Record<string, unknown> {
   if (value.attributes && typeof value.attributes === "object" && !Array.isArray(value.attributes)) {
     return {
@@ -63,6 +73,10 @@ function resolveEntityMutationId(value: Record<string, unknown>): string | null 
   return null;
 }
 
+function normalizeHtmlComparison(value: unknown): string {
+  return typeof value === "string" ? value.replace(/\s+/g, " ").replace(/>\s+</g, "><").trim() : "";
+}
+
 async function updateImportMasterStatus(importMasterId: string | undefined, status: "imported_blocks" | "imported_page"): Promise<void> {
   if (!importMasterId || importMasterId.trim().length === 0) {
     return;
@@ -96,7 +110,7 @@ async function upsertBlockInCollection(
     importProposalId?: string;
     inUseCount: number;
   }
-): Promise<void> {
+): Promise<PublishedBlockMatch> {
   const lookup = await requestStrapi<StrapiCollectionResponse>(
     `${collectionPath}?filters[${encodeURIComponent(keyField)}][$eq]=${encodeURIComponent(template.key)}&pagination[pageSize]=1`
   );
@@ -159,19 +173,53 @@ async function upsertBlockInCollection(
           previewHtml: template.previewHtml,
           inUseCount: usageCount
         };
+  const nextPreviewHtml =
+    template.targetPreviewHtml ??
+    template.previewHtml ??
+    (typeof existingEntity?.previewHtml === "string" ? existingEntity.previewHtml : "<section></section>");
+  const nextPublishedContentHtml = template.targetPreviewHtml ?? template.previewHtml ?? "";
+  const matchedBlockKey =
+    keyField === "blockKey"
+      ? template.key
+      : typeof existingEntity?.templateKey === "string"
+        ? existingEntity.templateKey
+        : template.key;
+  const matchResult: PublishedBlockMatch = {
+    proposalId: template.importProposalId ?? template.key,
+    disposition: existingId !== null ? "updated" : "created",
+    matchedBlockKey,
+    matchedBlockId: existingId,
+    nameChanged: existingId !== null ? String(existingEntity?.name ?? "").trim() !== template.name.trim() : false,
+    previewChanged:
+      existingId !== null
+        ? normalizeHtmlComparison(existingEntity?.previewHtml) !== normalizeHtmlComparison(nextPreviewHtml)
+        : true,
+    publishedContentChanged:
+      existingId !== null
+        ? normalizeHtmlComparison(existingEntity?.targetPreviewHtml ?? existingEntity?.previewHtml) !==
+          normalizeHtmlComparison(nextPublishedContentHtml)
+        : true
+  };
 
   if (existingId !== null) {
     await requestStrapi(`${collectionPath}/${encodeURIComponent(existingId)}`, {
       method: "PUT",
       body: payload
     });
-    return;
+    return matchResult;
   }
 
-  await requestStrapi(collectionPath, {
+  const created = await requestStrapi<{
+    data?: Record<string, unknown>;
+  }>(collectionPath, {
     method: "POST",
     body: payload
   });
+  const createdEntity = created.data ? unwrapStrapiEntity(created.data) : null;
+  return {
+    ...matchResult,
+    matchedBlockId: createdEntity ? resolveEntityMutationId(createdEntity) : matchResult.matchedBlockId
+  };
 }
 
 async function upsertBlockTemplateInStrapi(template: {
@@ -191,8 +239,8 @@ async function upsertBlockTemplateInStrapi(template: {
   importMasterId?: string;
   importProposalId?: string;
   inUseCount: number;
-}): Promise<void> {
-  await upsertBlockInCollection(CANONICAL_BLOCK_COLLECTION, "blockKey", template);
+}): Promise<PublishedBlockMatch> {
+  return upsertBlockInCollection(CANONICAL_BLOCK_COLLECTION, "blockKey", template);
 }
 
 function upsertBlockTemplateInFallback(template: {
@@ -206,10 +254,12 @@ function upsertBlockTemplateInFallback(template: {
   editableFields: string[];
   actions: Array<{ id: string; label: string; type: StudioActionType; target: string }>;
   previewHtml: string;
-}): void {
+  importProposalId?: string;
+}): PublishedBlockMatch {
   const store = getStudioStore();
   const blocks = [...store.blocks];
   const index = blocks.findIndex((entry) => entry.key === template.key || entry.id === template.key);
+  const existing = index >= 0 ? blocks[index] : null;
   const now = new Date().toISOString().slice(0, 10);
 
   const next = {
@@ -244,6 +294,16 @@ function upsertBlockTemplateInFallback(template: {
     ...store,
     blocks
   });
+  return {
+    proposalId: template.importProposalId ?? template.key,
+    disposition: index >= 0 ? "updated" : "created",
+    matchedBlockKey: template.key,
+    matchedBlockId: existing?.id ?? template.key,
+    nameChanged: existing ? existing.name.trim() !== template.name.trim() : false,
+    previewChanged: existing ? normalizeHtmlComparison(existing.previewHtml) !== normalizeHtmlComparison(template.previewHtml) : true,
+    publishedContentChanged:
+      existing ? normalizeHtmlComparison(existing.previewHtml) !== normalizeHtmlComparison(template.previewHtml) : true
+  };
 }
 
 function withUpdatedPublishResult(base: OnboardingPublishResult, params: { applied: boolean; warnings: OnboardingPublishResult["warnings"] }): OnboardingPublishResult {
@@ -281,6 +341,7 @@ export async function POST(request: Request): Promise<Response> {
 
     const warnings = [...dryRunResult.warnings];
     let applied = false;
+    const matchedBlocks: PublishedBlockMatch[] = [];
     const selectedBlocksFromPublish = dryRunResult.strapiPayload.blockInstances;
     const blockOverrideEntries = parsed.analysis.blockProposals.map((block) => {
       const mappedKey = normalizeTemplateKey(parsed.overrides.mapToExisting[block.id], block.id);
@@ -344,7 +405,7 @@ export async function POST(request: Request): Promise<Response> {
                   target: extractActionTarget(action)
                 }));
 
-          await upsertBlockTemplateInStrapi({
+          const match = await upsertBlockTemplateInStrapi({
             key: mappedKey,
             name: block.displayName ?? block.id,
             family: block.family,
@@ -362,6 +423,7 @@ export async function POST(request: Request): Promise<Response> {
             importProposalId: block.id,
             inUseCount: 0
           });
+          matchedBlocks.push(match);
         }
         await updateImportMasterStatus(importMasterId, "imported_blocks");
         applied = true;
@@ -385,7 +447,7 @@ export async function POST(request: Request): Promise<Response> {
                   target: extractActionTarget(action)
                 }));
 
-          upsertBlockTemplateInFallback({
+          const match = upsertBlockTemplateInFallback({
             key: mappedKey,
             name: block.displayName ?? block.id,
             family: block.family,
@@ -395,8 +457,10 @@ export async function POST(request: Request): Promise<Response> {
             confidence: block.confidence,
             editableFields: block.editableFields,
             actions: blockActions,
-            previewHtml: block.previewHtml ?? block.rawHtmlSnippet ?? "<section></section>"
+            previewHtml: block.previewHtml ?? block.rawHtmlSnippet ?? "<section></section>",
+            importProposalId: block.id
           });
+          matchedBlocks.push(match);
         }
         applied = true;
         warnings.push({
@@ -425,6 +489,7 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({
       ok: true,
       result,
+      matchedBlocks,
       source: applied && isStrapiConfigured() ? "strapi" : "fallback"
     });
   } catch (error) {

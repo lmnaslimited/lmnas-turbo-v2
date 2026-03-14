@@ -1,16 +1,22 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { requestClientJson } from "../../_lib/client-request";
 import { publishPagePreviewAcceptance } from "../../_lib/page-preview-acceptance-channel";
 import { evaluatePagePreviewAcceptance } from "../../_lib/page-validation";
+import { buildPlatformPagePreviewDocument, buildPreviewPlaceholderDocument, usePlatformPreviewAssets } from "../../_lib/platform-preview";
 import type { StudioPageDocument } from "../../_lib/studio-types";
+import type { StudioBlockTemplate, StudioShell, StudioTheme } from "../../_lib/studio-types";
 
 type PreviewClientProps = {
   pageId: string;
   pageName: string;
   status: "draft" | "published";
-  html: string;
+  page: StudioPageDocument | null;
+  blocks: StudioBlockTemplate[];
+  shells: StudioShell[];
+  themes: StudioTheme[];
+  emptyTitle?: string;
   initialPreviewValid?: boolean;
 };
 
@@ -31,11 +37,27 @@ type SaveResponse = {
 };
 
 export default function PreviewClient(props: PreviewClientProps): React.ReactElement {
+  const platformPreviewAssets = usePlatformPreviewAssets();
   const [isReady, setIsReady] = useState(false);
   const [isAccepted, setIsAccepted] = useState(Boolean(props.initialPreviewValid));
   const [isAccepting, setIsAccepting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+  const html = useMemo(() => {
+    if (!props.page) {
+      return buildPreviewPlaceholderDocument(props.emptyTitle ?? "No preview available");
+    }
+
+    return buildPlatformPagePreviewDocument({
+      page: props.page,
+      blocks: props.blocks,
+      shells: props.shells,
+      themes: props.themes,
+      hostAssets: platformPreviewAssets,
+      emptyTitle: props.emptyTitle
+    });
+  }, [platformPreviewAssets, props.blocks, props.emptyTitle, props.page, props.shells, props.themes]);
 
   useEffect(() => {
     setIsReady(true);
@@ -149,7 +171,7 @@ export default function PreviewClient(props: PreviewClientProps): React.ReactEle
           title="studio-page-preview"
           data-testid="studio-page-preview-frame"
           className="h-[calc(100vh-120px)] w-full rounded-xl border border-white/[0.08] bg-white"
-          srcDoc={props.html}
+          srcDoc={html}
           sandbox="allow-scripts allow-same-origin"
         />
       </main>

@@ -1,10 +1,5 @@
 import React from "react";
 import { draftMode, headers } from "next/headers";
-import {
-  buildPlatformPagePreviewDocument,
-  buildPreviewPlaceholderDocument,
-  createStaticPlatformPreviewAssets
-} from "../../_lib/platform-preview-shared";
 import type { StudioBlockTemplate, StudioPageDocument, StudioShell, StudioTheme } from "../../_lib/studio-types";
 import PreviewClient from "./PreviewClient";
 
@@ -69,7 +64,11 @@ export default async function StudioPagePreview(props: {
         pageId=""
         pageName="Missing page id"
         status={status}
-        html={buildPreviewPlaceholderDocument("Missing page id")}
+        page={null}
+        blocks={[]}
+        shells={[]}
+        themes={[]}
+        emptyTitle="Missing page id"
         initialPreviewValid={false}
       />
     );
@@ -84,24 +83,17 @@ export default async function StudioPagePreview(props: {
     pageId,
     status
   });
-  const html = context.page
-    ? buildPlatformPagePreviewDocument({
-        page: context.page,
-        blocks: context.blocks,
-        shells: context.shells,
-        themes: context.themes,
-        hostAssets: createStaticPlatformPreviewAssets(baseUrl),
-        fallbackHtml: status === "published" ? context.page.publishedPreviewHtml ?? context.page.previewHtml : context.page.previewHtml,
-        emptyTitle: status === "draft" ? "Draft preview unavailable" : "Published preview unavailable"
-      })
-    : buildPreviewPlaceholderDocument(status === "draft" ? "Draft preview unavailable" : "Published preview unavailable");
 
   return (
     <PreviewClient
       pageId={pageId}
       pageName={context.page?.name ?? "Studio page preview"}
       status={status}
-      html={html}
+      page={context.page}
+      blocks={context.blocks}
+      shells={context.shells}
+      themes={context.themes}
+      emptyTitle={status === "draft" ? "Draft preview unavailable" : "Published preview unavailable"}
       initialPreviewValid={Boolean(context.page?.previewValid)}
     />
   );

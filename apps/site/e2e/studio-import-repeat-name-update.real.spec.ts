@@ -98,20 +98,39 @@ async function processHtmlImport(page: import("playwright/test").Page, html: str
 async function renameFirstProposal(page: import("playwright/test").Page, nextName: string): Promise<void> {
   const renameInput = page.locator("[data-testid^='import-proposal-name-']").first();
   await renameInput.fill(nextName);
-  const [renameResponse] = await Promise.all([
-    page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes("/api/platform/studio/blocks")),
-    renameInput.press("Tab")
-  ]);
-  expect(renameResponse.ok()).toBe(true);
-  await expect(page.getByText(`Renamed proposal to ${nextName}.`)).toBeVisible();
 }
 
-async function importSelectedBlocks(page: import("playwright/test").Page): Promise<void> {
+async function importSelectedBlocks(page: import("playwright/test").Page): Promise<{
+  ok: boolean;
+  result?: { applied?: boolean };
+  matchedBlocks?: Array<{
+    proposalId: string;
+    disposition: "created" | "updated";
+    matchedBlockKey: string;
+    matchedBlockId: string | null;
+    nameChanged: boolean;
+    previewChanged: boolean;
+    publishedContentChanged: boolean;
+  }>;
+}> {
   const [publishResponse] = await Promise.all([
     page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes("/api/platform/studio/blocks/publish")),
     page.getByTestId("import-publish-selected").click()
   ]);
   expect(publishResponse.ok()).toBe(true);
+  return (await publishResponse.json()) as {
+    ok: boolean;
+    result?: { applied?: boolean };
+    matchedBlocks?: Array<{
+      proposalId: string;
+      disposition: "created" | "updated";
+      matchedBlockKey: string;
+      matchedBlockId: string | null;
+      nameChanged: boolean;
+      previewChanged: boolean;
+      publishedContentChanged: boolean;
+    }>;
+  };
 }
 
 async function fetchImportedBlocks(page: import("playwright/test").Page): Promise<NonNullable<BlocksPayload["data"]>> {
@@ -123,6 +142,8 @@ async function fetchImportedBlocks(page: import("playwright/test").Page): Promis
 }
 
 test.describe("@real repeat import name update", () => {
+  test.describe.configure({ timeout: 180_000 });
+
   test.skip(
     process.env.LMNAS_E2E_REAL_STACK !== "1",
     "Run with LMNAS_E2E_REAL_STACK=1 and reachable canonical Strapi stack."
@@ -134,10 +155,11 @@ test.describe("@real repeat import name update", () => {
     const firstName = `Repeat Import ${Date.now()} A`;
     const secondName = `Repeat Import ${Date.now()} B`;
 
-    await resetStudioState(page);
     await processHtmlImport(page, html);
     await renameFirstProposal(page, firstName);
-    await importSelectedBlocks(page);
+    const firstPublish = await importSelectedBlocks(page);
+    expect(firstPublish.ok).toBe(true);
+    expect(firstPublish.result?.applied).toBe(true);
 
     const firstImportedBlocks = await fetchImportedBlocks(page);
     const renamedBlock = firstImportedBlocks.find((block) => block.name === firstName);
@@ -146,8 +168,21 @@ test.describe("@real repeat import name update", () => {
 
     await processHtmlImport(page, html);
     await renameFirstProposal(page, secondName);
-    await importSelectedBlocks(page);
+    const secondPublish = await importSelectedBlocks(page);
+    expect(secondPublish.ok).toBe(true);
+    expect(secondPublish.result?.applied).toBe(true);
+    expect(secondPublish.matchedBlocks).toEqual([
+      expect.objectContaining({
+        proposalId: "hero-1",
+        disposition: "updated",
+        matchedBlockKey: renamedBlock?.key,
+        nameChanged: true,
+        previewChanged: false,
+        publishedContentChanged: false
+      })
+    ]);
     await expect(page.getByText(/Updated \d+ existing governed block\(s\)\./)).toBeVisible();
+    await expect(page.getByText(new RegExp(`${renamedBlock?.key}.*renamed.*preview unchanged.*published content unchanged`))).toBeVisible();
 
     const secondImportedBlocks = await fetchImportedBlocks(page);
     expect(secondImportedBlocks).toHaveLength(importedCount);

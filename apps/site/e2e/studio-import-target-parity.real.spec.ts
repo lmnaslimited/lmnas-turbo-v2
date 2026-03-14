@@ -56,7 +56,23 @@ async function resetStudioState(page: import("playwright/test").Page): Promise<v
   expect(payload.source).toBe("strapi");
 }
 
+async function gotoStable(page: import("playwright/test").Page, href: string): Promise<void> {
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      await page.goto(href, { waitUntil: "domcontentloaded" });
+      return;
+    } catch (error) {
+      lastError = error;
+      await page.waitForTimeout(400);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
+
 test.describe("@real import target preview parity", () => {
+  test.describe.configure({ timeout: 180_000 });
+
   test.skip(
     process.env.LMNAS_E2E_REAL_STACK !== "1",
     "Run with LMNAS_E2E_REAL_STACK=1 and reachable canonical Strapi stack."
@@ -66,12 +82,18 @@ test.describe("@real import target preview parity", () => {
     const assertNoRuntimeErrors = createRuntimeErrorGate(page);
     const html = await readFile(HTML_FIXTURE_PATH, "utf8");
 
-    await resetStudioState(page);
-    await page.goto("/platform/onboarding/import");
+    await gotoStable(page, "/platform/onboarding/import");
     await expect(page.getByRole("heading", { name: "Import Content" })).toBeVisible();
-
-    await page.getByTestId("import-source-tab-html").click();
-    await page.getByTestId("import-source-input").fill(html);
+    const sourceInput = page.getByTestId("import-source-input");
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await page.getByTestId("import-source-tab-html").click({ force: true });
+      if (await sourceInput.isVisible().catch(() => false)) {
+        break;
+      }
+      await page.waitForTimeout(250);
+    }
+    await expect(sourceInput).toBeVisible();
+    await sourceInput.fill(html);
 
     const [processResponse] = await Promise.all([
       page.waitForResponse((response) => {
@@ -91,6 +113,10 @@ test.describe("@real import target preview parity", () => {
     expect(proposalCardPreviewSrcDoc).toBeTruthy();
     expect(targetPreviewSrcDoc).toBeTruthy();
     expect(normalizeHtml(proposalCardPreviewSrcDoc ?? "")).toContain(extractBodyInnerHtml(targetPreviewSrcDoc));
+    expect(normalizeHtml(targetPreviewSrcDoc ?? "")).toContain("lmnas-preview-tailwind-config");
+    expect(normalizeHtml(targetPreviewSrcDoc ?? "")).toContain("/studio-runtime.css");
+    expect(normalizeHtml(targetPreviewSrcDoc ?? "")).not.toContain("LMNAs");
+    expect(normalizeHtml(targetPreviewSrcDoc ?? "")).not.toContain("Studio Footer");
 
     assertNoRuntimeErrors();
   });

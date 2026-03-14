@@ -303,14 +303,12 @@ export function buildPlatformBlockPreviewDocument(params: {
   proposalHtml: string;
   theme: StudioTheme | null;
   hostAssets: PlatformPreviewAssets;
-  shellHtml?: string;
 }): string {
   const proposalBody = toPreviewBodyHtml(params.proposalHtml);
   return buildPlatformTargetDocument({
     bodyHtml: proposalBody.length > 0 ? `<main class="lmnas-target-main">${proposalBody}</main>` : "<main></main>",
     theme: params.theme,
-    hostAssets: params.hostAssets,
-    beforeBodyHtml: params.shellHtml
+    hostAssets: params.hostAssets
   });
 }
 

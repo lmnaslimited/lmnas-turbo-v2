@@ -130,7 +130,7 @@ const shells: StudioShell[] = [
 ];
 
 describe("platform preview shared helpers", () => {
-  it("builds block previews with platform css and selected theme runtime config", () => {
+  it("builds block previews with platform css and selected theme runtime config without page shells", () => {
     const html = buildPlatformBlockPreviewDocument({
       proposalHtml: "<section class=\"bg-background-light text-primary font-display\"><h1>Hero</h1></section>",
       theme: buildTheme(),
@@ -144,6 +144,7 @@ describe("platform preview shared helpers", () => {
     expect(html).toContain("Fraunces");
     expect(html).toContain("bg-background-light");
     expect(html).toContain("text-primary");
+    expect(html.match(/<div class="lmnas-preview-shell">/g) ?? []).toHaveLength(0);
   });
 
   it("canonicalizes legacy block ids and renders page previews through the same shared pipeline", () => {
@@ -168,5 +169,22 @@ describe("platform preview shared helpers", () => {
     expect(html).toContain("lmnas-preview-tailwind-config");
     expect(html).toContain("http://localhost:3000/studio-runtime.css");
     expect(html).not.toContain("Fallback Preview");
+  });
+
+  it("rebuilds empty page previews from canonical state instead of reviving old fallback content", () => {
+    const html = buildPlatformPagePreviewDocument({
+      page: buildPage({
+        blockOrder: [],
+        previewHtml: "<main><section>Old Snapshot</section></main>"
+      }),
+      blocks: [buildBlock()],
+      shells,
+      themes: [buildTheme()],
+      hostAssets: createStaticPlatformPreviewAssets("http://localhost:3000")
+    });
+
+    expect(html).toContain("No blocks composed yet.");
+    expect(html).not.toContain("Old Snapshot");
+    expect(html.match(/Main Shell/g) ?? []).toHaveLength(1);
   });
 });

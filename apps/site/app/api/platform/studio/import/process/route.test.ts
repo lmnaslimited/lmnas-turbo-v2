@@ -243,7 +243,7 @@ describe("studio import process route", () => {
         source: string;
         schemaSource: string;
         proposalsPersisted: number;
-        proposalBlocks: Array<{ proposalId: string; blockKey: string; schemaStatus: string }>;
+        proposalBlocks: Array<{ proposalId: string; blockKey: string; schemaStatus: string; targetPreviewHtml: string }>;
         upload?: { fileName: string; htmlEntry: string };
       };
     };
@@ -254,6 +254,9 @@ describe("studio import process route", () => {
     expect(payload.persistence.proposalsPersisted).toBe(1);
     expect(payload.persistence.proposalBlocks[0]?.proposalId).toBe("hero-1");
     expect(payload.persistence.proposalBlocks[0]?.schemaStatus).toBe("valid");
+    expect(payload.persistence.proposalBlocks[0]?.targetPreviewHtml).toContain("lmnas-preview-tailwind-config");
+    expect(payload.persistence.proposalBlocks[0]?.targetPreviewHtml).toContain("/studio-runtime.css");
+    expect(payload.persistence.proposalBlocks[0]?.targetPreviewHtml).not.toContain("LMNAs");
     expect(payload.persistence.upload?.fileName).toBe("stitch-export.zip");
     expect(payload.persistence.upload?.htmlEntry).toBe("index.html");
     expect(payload.analysis.blockProposals[0]?.previewHtml?.length ?? 0).toBeGreaterThan(0);

@@ -1,6 +1,12 @@
 import { type OnboardingAnalysis, type OnboardingBlockProposal, type OnboardingSourceType } from "@lmnas/contracts";
 import { analyzeOnboardingSource } from "@lmnas/integrations";
 import { inflateRawSync } from "node:zlib";
+import {
+  buildPlatformBlockPreviewDocument,
+  buildPlatformTargetDocument,
+  createStaticPlatformPreviewAssets
+} from "../../../../../platform/onboarding/_lib/platform-preview-shared";
+import type { StudioTheme } from "../../../../../platform/onboarding/_lib/studio-types";
 import { loadProjectEnv } from "../../../../../lib/env";
 import { getStudioStore, replaceStore } from "../../_lib/store";
 import { isStrapiConfigured, requestStrapi } from "../../_lib/strapi";
@@ -414,42 +420,44 @@ function extractSourceAssetContext(params: {
   };
 }
 
-function toCssVariableName(input: string): string {
-  const normalized = input
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9-]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-  return normalized.length > 0 ? `--${normalized}` : "--lmnas-token";
-}
-
-function buildThemeTokenCss(theme: CanonicalTheme | null): string {
-  if (!theme || theme.tokens.length === 0) {
-    return "";
+function mapCanonicalThemeToPreviewTheme(theme: CanonicalTheme | null): StudioTheme | null {
+  if (!theme) {
+    return null;
   }
 
-  const declarations = theme.tokens
-    .map((token) => {
-      const value = typeof token.value === "string" ? token.value.trim() : "";
-      if (value.length === 0) {
-        return "";
-      }
-      const variable = typeof token.cssVariable === "string" && token.cssVariable.trim().length > 0
-        ? token.cssVariable.trim().startsWith("--")
-          ? token.cssVariable.trim()
-          : `--${token.cssVariable.trim()}`
-        : toCssVariableName(typeof token.key === "string" ? token.key : "lmnas-token");
-      return `${variable}:${value};`;
-    })
-    .filter((entry) => entry.length > 0)
-    .join("");
-
-  if (declarations.length === 0) {
-    return "";
-  }
-
-  return `:root{${declarations}}`;
+  return {
+    id: theme.id,
+    themeKey: theme.themeKey,
+    name: theme.name,
+    status: "active",
+    sourceRef: "canonical-import-theme",
+    createdAt: new Date().toISOString().slice(0, 10),
+    updatedAt: new Date().toISOString().slice(0, 10),
+    tokenCoverage: 1,
+    themeDebt: "",
+    darkMode: theme.darkMode,
+    tokens: theme.tokens
+      .map((token, index) => {
+        const key = typeof token.key === "string" && token.key.trim().length > 0 ? token.key.trim() : `token.${index + 1}`;
+        const value = typeof token.value === "string" ? token.value.trim() : "";
+        if (value.length === 0) {
+          return null;
+        }
+        const cssVariable =
+          typeof token.cssVariable === "string" && token.cssVariable.trim().length > 0
+            ? token.cssVariable.trim()
+            : `--${key.replace(/[^a-z0-9-]+/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "")}`;
+        return {
+          key,
+          label: key,
+          category: key.includes("font") ? "typography" : key.includes("radius") ? "radius" : "color",
+          value,
+          cssVariable,
+          mapped: true
+        } as StudioTheme["tokens"][number];
+      })
+      .filter((token): token is StudioTheme["tokens"][number] => token !== null)
+  };
 }
 
 function buildSourceProposalPreview(params: {
@@ -489,73 +497,41 @@ function buildTargetProposalPreview(params: {
   block: OnboardingBlockProposal;
   theme: CanonicalTheme | null;
 }): string {
-  const snippet = params.block.previewHtml ?? params.block.rawHtmlSnippet ?? "<section></section>";
-  const themeCss = buildThemeTokenCss(params.theme);
-  const bg = params.theme?.darkMode ? "#0b1220" : "#f8fafc";
-  const fg = params.theme?.darkMode ? "#e2e8f0" : "#0f172a";
-
-  return [
-    "<!doctype html>",
-    "<html>",
-    "<head>",
-    "<meta charset=\"utf-8\"/>",
-    "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>",
-    "<style>",
-    themeCss,
-    `body{margin:0;padding:0;background:${bg};color:${fg};font-family:Manrope,Inter,Segoe UI,sans-serif}`,
-    "</style>",
-    "</head>",
-    "<body>",
-    snippet,
-    "</body>",
-    "</html>"
-  ].join("");
+  return buildPlatformBlockPreviewDocument({
+    proposalHtml: params.block.previewHtml ?? params.block.rawHtmlSnippet ?? "<section></section>",
+    theme: mapCanonicalThemeToPreviewTheme(params.theme),
+    hostAssets: createStaticPlatformPreviewAssets()
+  });
 }
 
 function buildTargetComparisonPreview(params: {
   analysis: OnboardingAnalysis;
   theme: CanonicalTheme | null;
   shell: CanonicalShell | null;
+  includeShell: boolean;
 }): string {
-  const themeCss = buildThemeTokenCss(params.theme);
-  const bg = params.theme?.darkMode ? "#0a1428" : "#f8fafc";
-  const fg = params.theme?.darkMode ? "#e2e8f0" : "#0f172a";
-  const shellPreview = params.shell?.previewHtml ?? "";
-
   const blocksHtml = params.analysis.blockProposals
     .map((block, index) => {
       const snippet = block.previewHtml ?? block.rawHtmlSnippet ?? "<section></section>";
       const label = block.displayName ?? block.family;
       return [
-        `<section class=\"lmnas-target-block\" data-index=\"${index + 1}\">`,
-        `<div class=\"lmnas-target-meta\">${label}</div>`,
+        `<section class="overflow-hidden rounded-xl border border-primary/20 bg-background-dark/20" data-index="${index + 1}">`,
+        `<div class="border-b border-primary/10 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-primary">${label}</div>`,
         snippet,
         "</section>"
       ].join("");
     })
     .join("\n");
 
-  return [
-    "<!doctype html>",
-    "<html>",
-    "<head>",
-    "<meta charset=\"utf-8\"/>",
-    "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>",
-    "<style>",
-    themeCss,
-    `body{margin:0;padding:0;background:${bg};color:${fg};font-family:Manrope,Inter,Segoe UI,sans-serif}`,
-    ".lmnas-target-shell{border-bottom:1px solid rgba(148,163,184,.25)}",
-    ".lmnas-target-main{padding:12px;display:grid;gap:12px}",
-    ".lmnas-target-block{border:1px solid rgba(59,130,246,.25);border-radius:12px;overflow:hidden;background:rgba(15,23,42,.35)}",
-    ".lmnas-target-meta{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:8px 10px;border-bottom:1px solid rgba(148,163,184,.2);color:#93c5fd}",
-    "</style>",
-    "</head>",
-    "<body>",
-    shellPreview.trim().length > 0 ? `<div class=\"lmnas-target-shell\">${shellPreview}</div>` : "",
-    `<main class=\"lmnas-target-main\">${blocksHtml || "<section class='lmnas-target-block'><div class='lmnas-target-meta'>No blocks</div></section>"}</main>`,
-    "</body>",
-    "</html>"
-  ].join("");
+  return buildPlatformTargetDocument({
+    bodyHtml: `<main class="lmnas-target-main grid gap-3 p-4">${
+      blocksHtml ||
+      "<section class=\"overflow-hidden rounded-xl border border-primary/20 bg-background-dark/20\"><div class=\"px-3 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-primary\">No blocks</div></section>"
+    }</main>`,
+    theme: mapCanonicalThemeToPreviewTheme(params.theme),
+    hostAssets: createStaticPlatformPreviewAssets(),
+    beforeBodyHtml: params.includeShell ? params.shell?.previewHtml ?? "" : undefined
+  });
 }
 
 async function lookupCanonicalTheme(themeKey: string): Promise<CanonicalTheme | null> {
@@ -850,6 +826,15 @@ function persistDraftProposalsInFallback(analysis: OnboardingAnalysis): Persiste
     const schemaStatus = resolveSchemaStatus(block.confidence, block.previewHtml ?? block.rawHtmlSnippet);
     const existingIndex = blocks.findIndex((entry) => entry.key === blockKey || entry.id === blockKey);
     const name = block.displayName ?? block.family.replaceAll("_", " ");
+    const sourcePreviewHtml = buildSourceProposalPreview({
+      block,
+      analysis,
+      sourceBaseUrl: analysis.source.baseUrl
+    });
+    const targetPreviewHtml = buildTargetProposalPreview({
+      block,
+      theme: null
+    });
 
     const next = {
       id: existingIndex >= 0 ? blocks[existingIndex].id : blockKey,
@@ -867,6 +852,8 @@ function persistDraftProposalsInFallback(analysis: OnboardingAnalysis): Persiste
       editableFields: block.editableFields,
       actions: [],
       previewHtml: block.previewHtml ?? block.rawHtmlSnippet ?? "<section></section>",
+      sourcePreviewHtml,
+      targetPreviewHtml,
       inUseCount: 0,
       usageCount: 0,
       createdAt: existingIndex >= 0 ? blocks[existingIndex].createdAt : now,
@@ -888,8 +875,8 @@ function persistDraftProposalsInFallback(analysis: OnboardingAnalysis): Persiste
       name,
       importMasterId: "fallback",
       importMasterKey: "fallback",
-      sourcePreviewHtml: next.previewHtml,
-      targetPreviewHtml: next.previewHtml
+      sourcePreviewHtml,
+      targetPreviewHtml
     });
   });
 
@@ -1045,7 +1032,8 @@ export async function POST(request: Request): Promise<Response> {
         const targetPreviewHtml = buildTargetComparisonPreview({
           analysis,
           theme: targetTheme,
-          shell: targetShell
+          shell: targetShell,
+          includeShell: importMode === "page"
         });
 
         analysisWithTargetPreview = {

@@ -57,7 +57,16 @@ type PagesPostResponse = {
     applied?: boolean;
     warnings?: string[];
     previewRoute?: string;
-    importedBlocks?: Array<{ key: string; family: string; disposition?: "created" | "updated" }>;
+    importedBlocks?: Array<{
+      key: string;
+      family: string;
+      disposition?: "created" | "updated";
+      matchedBlockKey?: string;
+      matchedBlockId?: string | null;
+      nameChanged?: boolean;
+      previewChanged?: boolean;
+      publishedContentChanged?: boolean;
+    }>;
     blockCount?: number;
     createdCount?: number;
     updatedCount?: number;
@@ -256,8 +265,7 @@ export default function PagesWorkflowPage(): React.ReactElement {
       shells,
       themes,
       previewThemeId: previewSwatchThemeId,
-      hostAssets: platformPreviewAssets,
-      fallbackHtml: selectedPage.previewHtml
+      hostAssets: platformPreviewAssets
     });
   }, [selectedPage, blocks, shells, themes, previewSwatchThemeId, platformPreviewAssets]);
 
@@ -277,8 +285,7 @@ export default function PagesWorkflowPage(): React.ReactElement {
       blocks,
       shells,
       themes,
-      hostAssets: platformPreviewAssets,
-      fallbackHtml: selectedPublishedPage.publishedPreviewHtml ?? selectedPublishedPage.previewHtml
+      hostAssets: platformPreviewAssets
     });
   }, [selectedPublishedPage, blocks, shells, themes, platformPreviewAssets]);
 
@@ -757,13 +764,24 @@ export default function PagesWorkflowPage(): React.ReactElement {
       await refreshBlocks();
       const createdCount = response.data.createdCount ?? 0;
       const updatedCount = response.data.updatedCount ?? 0;
+      const updatedMatchDetails = (response.data.importedBlocks ?? [])
+        .filter((entry) => entry.disposition === "updated")
+        .map((entry) => {
+          const matchedId = entry.matchedBlockId ? ` / ${entry.matchedBlockId}` : "";
+          const nameState = entry.nameChanged ? "renamed" : "name unchanged";
+          const previewState = entry.previewChanged ? "preview changed" : "preview unchanged";
+          const publishedState = entry.publishedContentChanged ? "published content changed" : "published content unchanged";
+          return `${entry.matchedBlockKey ?? entry.key}${matchedId} ${nameState}, ${previewState}, ${publishedState}`;
+        });
       const importSummary =
         createdCount > 0 && updatedCount > 0
           ? `Imported ${createdCount} new reusable section(s) and updated ${updatedCount} existing section(s) from full-page HTML.`
           : updatedCount > 0
             ? `Updated ${updatedCount} existing reusable section(s) from full-page HTML.`
             : `Imported ${createdCount || response.data.blockCount || 0} reusable section(s) from full-page HTML.`;
-      setStatusMessage(importSummary);
+      setStatusMessage(
+        updatedMatchDetails.length > 0 ? `${importSummary} Match: ${updatedMatchDetails.slice(0, 3).join("; ")}.` : importSummary
+      );
     } catch (importError) {
       setError(importError instanceof Error ? importError.message : String(importError));
     } finally {

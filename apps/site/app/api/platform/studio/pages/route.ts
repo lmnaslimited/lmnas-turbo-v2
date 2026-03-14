@@ -44,6 +44,15 @@ type BlockTemplateUpsert = {
 
 type BlockImportDisposition = "created" | "updated";
 
+type ImportedBlockMatch = {
+  disposition: BlockImportDisposition;
+  matchedBlockKey: string;
+  matchedBlockId: string | null;
+  nameChanged: boolean;
+  previewChanged: boolean;
+  publishedContentChanged: boolean;
+};
+
 type StrapiCollectionResponse = {
   data?: Array<Record<string, unknown>>;
   meta?: {
@@ -164,6 +173,10 @@ function savePageInFallback(page: StudioPageDocument): StudioPageDocument[] {
 
 function coerceString(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
+}
+
+function normalizeHtmlComparison(value: unknown): string {
+  return typeof value === "string" ? value.replace(/\s+/g, " ").replace(/>\s+</g, "><").trim() : "";
 }
 
 function mapBlocksToOrder(value: unknown): string[] {
@@ -748,11 +761,12 @@ function normalizeActionType(value: unknown): StudioActionType {
   return "workflow";
 }
 
-async function upsertBlockTemplateInStrapi(template: BlockTemplateUpsert): Promise<BlockImportDisposition> {
+async function upsertBlockTemplateInStrapi(template: BlockTemplateUpsert): Promise<ImportedBlockMatch> {
   const canonicalLookup = await requestStrapi<StrapiCollectionResponse>(
     `/api/studio-blocks?filters[blockKey][$eq]=${encodeURIComponent(template.key)}&pagination[pageSize]=1`
   );
   const canonicalExisting = Array.isArray(canonicalLookup.data) ? canonicalLookup.data[0] : undefined;
+  const canonicalExistingEntity = canonicalExisting ? unwrapStrapiEntity(canonicalExisting) : undefined;
   const canonicalId =
     canonicalExisting && typeof canonicalExisting.documentId === "string"
       ? canonicalExisting.documentId
@@ -779,26 +793,51 @@ async function upsertBlockTemplateInStrapi(template: BlockTemplateUpsert): Promi
     previewHtml: template.previewHtml,
     usageCount: template.inUseCount
   };
+  const matchResult: ImportedBlockMatch = {
+    disposition: canonicalId !== undefined ? "updated" : "created",
+    matchedBlockKey: template.key,
+    matchedBlockId: canonicalId ?? null,
+    nameChanged: canonicalId !== undefined ? String(canonicalExistingEntity?.name ?? "").trim() !== template.name.trim() : false,
+    previewChanged:
+      canonicalId !== undefined
+        ? normalizeHtmlComparison(canonicalExistingEntity?.previewHtml) !== normalizeHtmlComparison(template.previewHtml)
+        : true,
+    publishedContentChanged:
+      canonicalId !== undefined
+        ? normalizeHtmlComparison(canonicalExistingEntity?.targetPreviewHtml ?? canonicalExistingEntity?.previewHtml) !==
+          normalizeHtmlComparison(template.previewHtml)
+        : true
+  };
 
   if (canonicalId !== undefined) {
     await requestStrapi(`/api/studio-blocks/${encodeURIComponent(canonicalId)}`, {
       method: "PUT",
       body: payload
     });
-    return "updated";
+    return matchResult;
   }
 
-  await requestStrapi("/api/studio-blocks", {
+  const created = await requestStrapi<{
+    data?: Record<string, unknown>;
+  }>("/api/studio-blocks", {
     method: "POST",
     body: payload
   });
-  return "created";
+  const createdEntity = created.data ? unwrapStrapiEntity(created.data) : null;
+  return {
+    ...matchResult,
+    matchedBlockId:
+      createdEntity && (typeof createdEntity.documentId === "string" || typeof createdEntity.id === "string" || typeof createdEntity.id === "number")
+        ? String(createdEntity.documentId ?? createdEntity.id)
+        : matchResult.matchedBlockId
+  };
 }
 
-function upsertBlockTemplateInFallback(template: BlockTemplateUpsert): BlockImportDisposition {
+function upsertBlockTemplateInFallback(template: BlockTemplateUpsert): ImportedBlockMatch {
   const store = getStudioStore();
   const blocks = [...store.blocks];
   const index = blocks.findIndex((entry) => entry.key === template.key || entry.id === template.key);
+  const existing = index >= 0 ? blocks[index] : null;
   const now = new Date().toISOString().slice(0, 10);
 
   const next: StudioBlockTemplate = {
@@ -833,7 +872,15 @@ function upsertBlockTemplateInFallback(template: BlockTemplateUpsert): BlockImpo
     ...store,
     blocks
   });
-  return index >= 0 ? "updated" : "created";
+  return {
+    disposition: index >= 0 ? "updated" : "created",
+    matchedBlockKey: template.key,
+    matchedBlockId: existing?.id ?? template.key,
+    nameChanged: existing ? existing.name.trim() !== template.name.trim() : false,
+    previewChanged: existing ? normalizeHtmlComparison(existing.previewHtml) !== normalizeHtmlComparison(template.previewHtml) : true,
+    publishedContentChanged:
+      existing ? normalizeHtmlComparison(existing.previewHtml) !== normalizeHtmlComparison(template.previewHtml) : true
+  };
 }
 
 function normalizeSourceRef(value: unknown): string {
@@ -991,7 +1038,7 @@ async function readStrapiPageCount(): Promise<number | null> {
 
 async function importBlocksOnly(payload: PageSaveRequest): Promise<{
   source: "strapi" | "fallback";
-  imported: Array<BlockTemplateUpsert & { disposition: BlockImportDisposition }>;
+  imported: Array<BlockTemplateUpsert & ImportedBlockMatch>;
   warnings: string[];
   createdCount: number;
   updatedCount: number;
@@ -1005,12 +1052,12 @@ async function importBlocksOnly(payload: PageSaveRequest): Promise<{
 
   if (isStrapiConfigured()) {
     try {
-      const persisted: Array<BlockTemplateUpsert & { disposition: BlockImportDisposition }> = [];
+      const persisted: Array<BlockTemplateUpsert & ImportedBlockMatch> = [];
       for (const template of imported) {
-        const disposition = await upsertBlockTemplateInStrapi(template);
+        const match = await upsertBlockTemplateInStrapi(template);
         persisted.push({
           ...template,
-          disposition
+          ...match
         });
       }
       const pageCountAfter = await readStrapiPageCount();
@@ -1029,12 +1076,12 @@ async function importBlocksOnly(payload: PageSaveRequest): Promise<{
     }
   }
 
-  const persisted: Array<BlockTemplateUpsert & { disposition: BlockImportDisposition }> = [];
+  const persisted: Array<BlockTemplateUpsert & ImportedBlockMatch> = [];
   for (const template of imported) {
-    const disposition = upsertBlockTemplateInFallback(template);
+    const match = upsertBlockTemplateInFallback(template);
     persisted.push({
       ...template,
-      disposition
+      ...match
     });
   }
   const createdCount = persisted.filter((entry) => entry.disposition === "created").length;
@@ -1132,7 +1179,12 @@ export async function POST(request: Request): Promise<Response> {
             name: entry.name,
             family: entry.family,
             sourceRef: entry.sourceRef,
-            disposition: entry.disposition
+            disposition: entry.disposition,
+            matchedBlockKey: entry.matchedBlockKey,
+            matchedBlockId: entry.matchedBlockId,
+            nameChanged: entry.nameChanged,
+            previewChanged: entry.previewChanged,
+            publishedContentChanged: entry.publishedContentChanged
           })),
           blockCount: result.imported.length,
           createdCount: result.createdCount,

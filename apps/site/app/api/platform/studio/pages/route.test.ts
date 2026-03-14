@@ -199,7 +199,15 @@ describe("studio pages route import guards", () => {
       data: {
         blockCount: number;
         routeSlugEntitiesCreated: number;
-        importedBlocks: Array<{ key: string; sourceRef: string }>;
+        importedBlocks: Array<{
+          key: string;
+          sourceRef: string;
+          matchedBlockKey: string;
+          matchedBlockId: string | null;
+          nameChanged: boolean;
+          previewChanged: boolean;
+          publishedContentChanged: boolean;
+        }>;
       };
     };
     expect(payload.ok).toBe(true);
@@ -207,6 +215,10 @@ describe("studio pages route import guards", () => {
     expect(payload.data.blockCount).toBe(2);
     expect(payload.data.routeSlugEntitiesCreated).toBe(0);
     expect(payload.data.importedBlocks.every((entry) => entry.sourceRef === "docs/testing-artifacts/code.html")).toBe(true);
+    expect(payload.data.importedBlocks.every((entry) => entry.matchedBlockKey === entry.key)).toBe(true);
+    expect(payload.data.importedBlocks.every((entry) => entry.nameChanged === false)).toBe(true);
+    expect(payload.data.importedBlocks.every((entry) => entry.previewChanged === true)).toBe(true);
+    expect(payload.data.importedBlocks.every((entry) => entry.publishedContentChanged === true)).toBe(true);
 
     const after = getStudioStore();
     expect(after.blocks.length).toBe(beforeBlockCount + 2);
@@ -249,7 +261,16 @@ describe("studio pages route import guards", () => {
 
   it("updates existing canonical imported blocks on repeated identical html import instead of reporting new duplicates", async () => {
     strapiMockState.configured = true;
-    const storedBlocks = new Map<string, { documentId: string; blockKey: string; name: string }>();
+    const storedBlocks = new Map<
+      string,
+      {
+        documentId: string;
+        blockKey: string;
+        name: string;
+        previewHtml?: string;
+        targetPreviewHtml?: string;
+      }
+    >();
 
     strapiMockState.requestStrapi.mockImplementation((path: string, init?: { method?: string; body?: Record<string, unknown> }) => {
       if (typeof path === "string" && path === "/api/studio-pages?pagination[pageSize]=1") {
@@ -273,7 +294,9 @@ describe("studio pages route import guards", () => {
         const row = {
           documentId: `doc-${blockKey}`,
           blockKey,
-          name: String(init.body?.name ?? blockKey)
+          name: String(init.body?.name ?? blockKey),
+          previewHtml: String(init.body?.previewHtml ?? ""),
+          targetPreviewHtml: String(init.body?.targetPreviewHtml ?? init.body?.previewHtml ?? "")
         };
         storedBlocks.set(blockKey, row);
         return Promise.resolve({ data: row });
@@ -287,7 +310,9 @@ describe("studio pages route import guards", () => {
         }
         const updated = {
           ...existing,
-          name: String(init.body?.name ?? existing.name)
+          name: String(init.body?.name ?? existing.name),
+          previewHtml: String(init.body?.previewHtml ?? existing.previewHtml ?? ""),
+          targetPreviewHtml: String(init.body?.targetPreviewHtml ?? init.body?.previewHtml ?? existing.targetPreviewHtml ?? "")
         };
         storedBlocks.set(existing.blockKey, updated);
         return Promise.resolve({ data: updated });
@@ -311,7 +336,15 @@ describe("studio pages route import guards", () => {
         blockCount: number;
         createdCount: number;
         updatedCount: number;
-        importedBlocks: Array<{ key: string; disposition: "created" | "updated" }>;
+        importedBlocks: Array<{
+          key: string;
+          disposition: "created" | "updated";
+          matchedBlockKey: string;
+          matchedBlockId: string | null;
+          nameChanged: boolean;
+          previewChanged: boolean;
+          publishedContentChanged: boolean;
+        }>;
       };
     };
     expect(firstPayload.ok).toBe(true);
@@ -320,6 +353,9 @@ describe("studio pages route import guards", () => {
     expect(firstPayload.data.createdCount).toBe(2);
     expect(firstPayload.data.updatedCount).toBe(0);
     expect(firstPayload.data.importedBlocks.every((entry) => entry.disposition === "created")).toBe(true);
+    expect(firstPayload.data.importedBlocks.every((entry) => entry.nameChanged === false)).toBe(true);
+    expect(firstPayload.data.importedBlocks.every((entry) => entry.previewChanged === true)).toBe(true);
+    expect(firstPayload.data.importedBlocks.every((entry) => entry.publishedContentChanged === true)).toBe(true);
 
     const secondResponse = await POST(buildPostRequest(requestBody));
     expect(secondResponse.status).toBe(200);
@@ -330,7 +366,15 @@ describe("studio pages route import guards", () => {
         blockCount: number;
         createdCount: number;
         updatedCount: number;
-        importedBlocks: Array<{ key: string; disposition: "created" | "updated" }>;
+        importedBlocks: Array<{
+          key: string;
+          disposition: "created" | "updated";
+          matchedBlockKey: string;
+          matchedBlockId: string | null;
+          nameChanged: boolean;
+          previewChanged: boolean;
+          publishedContentChanged: boolean;
+        }>;
       };
     };
     expect(secondPayload.ok).toBe(true);
@@ -342,6 +386,10 @@ describe("studio pages route import guards", () => {
       firstPayload.data.importedBlocks.map((entry) => entry.key)
     );
     expect(secondPayload.data.importedBlocks.every((entry) => entry.disposition === "updated")).toBe(true);
+    expect(secondPayload.data.importedBlocks.every((entry) => entry.matchedBlockKey === entry.key)).toBe(true);
+    expect(secondPayload.data.importedBlocks.every((entry) => entry.nameChanged === false)).toBe(true);
+    expect(secondPayload.data.importedBlocks.every((entry) => entry.previewChanged === false)).toBe(true);
+    expect(secondPayload.data.importedBlocks.every((entry) => entry.publishedContentChanged === false)).toBe(true);
     expect(storedBlocks.size).toBe(2);
   });
 

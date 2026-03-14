@@ -61,6 +61,13 @@ function extractBodyInnerHtml(input: string | null): string {
   return normalizeHtml(match?.[1] ?? "");
 }
 
+function countOccurrences(input: string | null, needle: string): number {
+  if (!input) {
+    return 0;
+  }
+  return input.split(needle).length - 1;
+}
+
 function createRuntimeErrorGate(page: import("playwright/test").Page): () => void {
   const pageErrors: string[] = [];
   const consoleErrors: string[] = [];
@@ -177,7 +184,6 @@ test.describe("@real page preview publish flow", () => {
     const html = await readFile(HTML_FIXTURE_PATH, "utf8");
 
     try {
-      await resetStudioState(page);
       const importedBlockKeys = await processHtmlImport(page, html);
       expect(importedBlockKeys.length).toBeGreaterThan(0);
 
@@ -416,5 +422,109 @@ test.describe("@real page preview publish flow", () => {
     } finally {
       await publicContext.close();
     }
+  });
+
+  test("removing all page blocks clears the draft snapshot and does not duplicate shells on repeated saves", async ({ page }) => {
+    const assertNoRuntimeErrors = createRuntimeErrorGate(page);
+    const html = await readFile(HTML_FIXTURE_PATH, "utf8");
+
+    const importedBlockKeys = await processHtmlImport(page, html);
+    expect(importedBlockKeys.length).toBeGreaterThan(1);
+
+    const blocksPayload = await fetchJson<BlocksPayload>(page, "/api/platform/studio/blocks");
+    const importedBlocks = (blocksPayload.data ?? []).filter((entry) => importedBlockKeys.includes(entry.key));
+    const firstBlock = importedBlocks[0];
+    const secondBlock = importedBlocks[1];
+    expect(firstBlock?.id).toBeTruthy();
+    expect(secondBlock?.id).toBeTruthy();
+
+    const themesPayload = await fetchJson<ThemesPayload>(page, "/api/platform/studio/themes");
+    const activeTheme = (themesPayload.data ?? []).find((theme) => theme.status === "active") ?? themesPayload.data?.[0];
+    const shellsPayload = await fetchJson<ShellsPayload>(page, "/api/platform/studio/shells");
+    const activeShell = (shellsPayload.data ?? []).find((shell) => shell.status === "active") ?? shellsPayload.data?.[0];
+
+    const pageId = `page-delete-${Date.now()}`;
+    const slug = `page-delete-${Date.now()}`;
+    const createDraftResponse = await page.request.post("/api/platform/studio/pages", {
+      data: {
+        mode: "save",
+        page: {
+          id: pageId,
+          name: "E2E Page Delete Regression",
+          slug,
+          locale: "en",
+          themeKey: activeTheme?.themeKey,
+          shellKey: activeShell?.key,
+          blockOrder: [firstBlock?.id, secondBlock?.id],
+          fieldValues: {},
+          actionOverrides: {},
+          productMapping: "lmnas-platform",
+          industryMapping: ["enterprise"],
+          primaryCta: { text: "Book Demo", url: "/contact" },
+          conversionConfig: { trackConversions: true, strategy: "Track Conversions", valuePoints: 10 },
+          campaignUtmStrategy: { source: "lmnas", medium: "studio", campaign: "page-delete-regression" },
+          taxonomyState: { valid: true, tags: ["import"] },
+          seoMetadata: { metaTitle: "Delete regression", metaDescription: "Delete regression" },
+          seoJsonLdValid: true,
+          blockSchemaValid: true,
+          previewValid: true,
+          previewHtml: ""
+        }
+      }
+    });
+    expect(createDraftResponse.ok()).toBe(true);
+
+    const savedDraftPages = await fetchJson<PagesPayload>(page, "/api/platform/studio/pages?status=draft");
+    const savedDraftPage = Array.isArray(savedDraftPages.data) ? savedDraftPages.data.find((entry) => entry.slug === slug) : null;
+    const canonicalPageId = savedDraftPage?.id ?? pageId;
+    expect(canonicalPageId).toBeTruthy();
+
+    await gotoStable(page, "/platform/onboarding/pages");
+    await page.getByTestId(`pages-item-${canonicalPageId}`).click();
+    await expect
+      .poll(async () => normalizeHtml(await page.getByTestId("pages-preview-frame").getAttribute("srcdoc")), { timeout: 15_000 })
+      .toContain("EUROGRID");
+
+    await page.getByTestId("pages-block-remove-0").click();
+    await page.getByTestId("pages-block-remove-0").click();
+
+    const [firstSave] = await Promise.all([
+      page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes("/api/platform/studio/pages")),
+      page.getByRole("button", { name: "Save Draft" }).click()
+    ]);
+    expect(firstSave.ok()).toBe(true);
+
+    await expect
+      .poll(async () => normalizeHtml(await page.getByTestId("pages-preview-frame").getAttribute("srcdoc")), { timeout: 15_000 })
+      .toContain("No blocks composed yet.");
+    let clearedPreview = normalizeHtml(await page.getByTestId("pages-preview-frame").getAttribute("srcdoc"));
+    expect(clearedPreview).not.toContain("EUROGRID");
+    expect(clearedPreview).not.toContain("Read Customer Stories");
+    expect(countOccurrences(clearedPreview, "LMNAs")).toBe(1);
+
+    const [secondSave] = await Promise.all([
+      page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes("/api/platform/studio/pages")),
+      page.getByRole("button", { name: "Save Draft" }).click()
+    ]);
+    expect(secondSave.ok()).toBe(true);
+
+    await expect
+      .poll(async () => normalizeHtml(await page.getByTestId("pages-preview-frame").getAttribute("srcdoc")), { timeout: 15_000 })
+      .toContain("No blocks composed yet.");
+    clearedPreview = normalizeHtml(await page.getByTestId("pages-preview-frame").getAttribute("srcdoc"));
+    expect(clearedPreview).not.toContain("EUROGRID");
+    expect(clearedPreview).not.toContain("Read Customer Stories");
+    expect(countOccurrences(clearedPreview, "LMNAs")).toBe(1);
+
+    const draftPageResponse = await fetchJson<PagesPayload>(
+      page,
+      `/api/platform/studio/pages?id=${encodeURIComponent(canonicalPageId)}&status=draft`
+    );
+    const draftPage = !Array.isArray(draftPageResponse.data) ? draftPageResponse.data : null;
+    expect(normalizeHtml(draftPage?.previewHtml ?? "")).toContain("No blocks composed yet.");
+    expect(normalizeHtml(draftPage?.previewHtml ?? "")).not.toContain("EUROGRID");
+    expect(countOccurrences(draftPage?.previewHtml ?? "", "LMNAs")).toBe(1);
+
+    assertNoRuntimeErrors();
   });
 });

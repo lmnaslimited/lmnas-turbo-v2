@@ -167,7 +167,15 @@ describe("studio block publish route", () => {
     requestStrapiMock.mockImplementation((path: string, init?: { method?: string; body?: Record<string, unknown> }) => {
       if (typeof path === "string" && path.startsWith("/api/studio-blocks?filters[blockKey][$eq]=")) {
         return Promise.resolve({
-          data: [{ documentId: "block-doc-1", blockKey: "import-source-hero-1-01", name: "Imported Hero" }]
+          data: [
+            {
+              documentId: "block-doc-1",
+              blockKey: "import-source-hero-1-01",
+              name: "Imported Hero",
+              previewHtml: "<section class='hero'><h1>Hero</h1></section>",
+              targetPreviewHtml: "<section class='hero'><h1>Hero</h1></section>"
+            }
+          ]
         });
       }
 
@@ -223,11 +231,31 @@ describe("studio block publish route", () => {
       result: {
         applied: boolean;
       };
+      matchedBlocks: Array<{
+        proposalId: string;
+        disposition: "created" | "updated";
+        matchedBlockKey: string;
+        matchedBlockId: string | null;
+        nameChanged: boolean;
+        previewChanged: boolean;
+        publishedContentChanged: boolean;
+      }>;
     };
 
     expect(payload.ok).toBe(true);
     expect(payload.source).toBe("strapi");
     expect(payload.result.applied).toBe(true);
+    expect(payload.matchedBlocks).toEqual([
+      {
+        proposalId: "hero-1",
+        disposition: "updated",
+        matchedBlockKey: "import-source-hero-1-01",
+        matchedBlockId: "block-doc-1",
+        nameChanged: true,
+        previewChanged: false,
+        publishedContentChanged: false
+      }
+    ]);
     expect(publishOnboardingDraftMock).toHaveBeenCalledTimes(1);
     expect(publishOnboardingDraftMock.mock.calls[0]?.[0]?.overrides.displayNameOverrides["hero-1"]).toBe("Executive Testimonial");
   });

@@ -8,6 +8,20 @@ function normalizeHtml(input: string | null): string {
   return (input ?? "").replace(/\s+/g, " ").replace(/>\s+</g, "><").trim();
 }
 
+function extractStylesheetHrefs(srcDoc: string | null): string[] {
+  return Array.from((srcDoc ?? "").matchAll(/<link[^>]+rel=["'][^"']*stylesheet[^"']*["'][^>]+href=["']([^"']+)["'][^>]*>/gi)).map((match) => {
+    try {
+      const parsed = new URL(match[1]);
+      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+        return `${parsed.origin.includes("localhost") || parsed.hostname === "127.0.0.1" ? "" : parsed.origin}${parsed.pathname}`;
+      }
+    } catch {
+      // ignore parse failure and fall back to raw href
+    }
+    return match[1];
+  });
+}
+
 function createRuntimeErrorGate(page: import("playwright/test").Page): () => void {
   const pageErrors: string[] = [];
   const consoleErrors: string[] = [];
@@ -89,7 +103,6 @@ test.describe("@real page preview acceptance workflow", () => {
 
   test("preview acceptance validates draft preview and resets after edits", async ({ page }) => {
     const assertNoRuntimeErrors = createRuntimeErrorGate(page);
-    await resetStudioState(page);
     const html = await readFile(HTML_FIXTURE_PATH, "utf8");
 
     await page.goto("/platform/onboarding/pages", { waitUntil: "domcontentloaded" });
@@ -106,7 +119,7 @@ test.describe("@real page preview acceptance workflow", () => {
       page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes("/api/platform/studio/pages")),
       page.getByTestId("pages-import-blocks-only").click()
     ]);
-    await expect(page.getByText(/Imported \d+ reusable section\(s\)/)).toBeVisible();
+    await expect(page.getByText(/(?:Imported \d+ new reusable section\(s\)|Updated \d+ existing reusable section\(s\)|Imported \d+ new reusable section\(s\) and updated \d+ existing section\(s\))/)).toBeVisible();
 
     await page.getByTestId("pages-add-block-select").selectOption({ index: 0 });
     await page.getByTestId("pages-add-block-button").click();
@@ -160,10 +173,16 @@ test.describe("@real page preview acceptance workflow", () => {
     await previewPopup.waitForLoadState("domcontentloaded");
     await expect(previewPopup.getByTestId("preview-accept-button")).toBeVisible();
     await expect(previewPopup.getByTestId("preview-accept-button")).toBeEnabled();
+    await expect
+      .poll(async () => normalizeHtml(await previewPopup.locator("iframe[title='studio-page-preview']").getAttribute("srcdoc")), {
+        timeout: 15_000
+      })
+      .toContain("lmnas-preview-tailwind-config");
     const popupPreviewBeforeAccept = normalizeHtml(await previewPopup.locator("iframe[title='studio-page-preview']").getAttribute("srcdoc"));
     expect(popupPreviewBeforeAccept).toContain("lmnas-preview-tailwind-config");
     expect(popupPreviewBeforeAccept).toContain("/studio-runtime.css");
     expect(popupPreviewBeforeAccept).toContain("EUROGRID");
+    expect(extractStylesheetHrefs(popupPreviewBeforeAccept)).toEqual(extractStylesheetHrefs(composerPreviewBeforePopup));
 
     await previewPopup.getByTestId("preview-accept-button").click();
     await expect(previewPopup.getByText(/Preview accepted\./)).toBeVisible();
