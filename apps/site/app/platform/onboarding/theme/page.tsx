@@ -405,13 +405,21 @@ export default function ThemeWorkflowPage(): React.ReactElement {
                 const selected = pendingTheme?.id === theme.id;
                 const active = activeTheme?.id === theme.id;
                 return (
-                  <button
+                  <div
                     key={theme.id}
-                    type="button"
+                    role="button"
+                    tabIndex={0}
                     data-testid={`theme-card-${theme.id}`}
                     onClick={() => {
                       setPendingThemeId(theme.id);
                       setStatusMessage(null);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setPendingThemeId(theme.id);
+                        setStatusMessage(null);
+                      }
                     }}
                     className={`w-full overflow-hidden rounded-xl border text-left transition-all ${
                       selected ? "border-blue-500 bg-blue-500/[0.08] shadow-lg shadow-blue-500/10" : "border-white/[0.08] bg-white/[0.02] hover:border-white/[0.18]"
@@ -455,7 +463,7 @@ export default function ThemeWorkflowPage(): React.ReactElement {
                         </button>
                       </div>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
               {!isLoading && themes.length === 0 ? <p className="text-xs text-slate-500">No canonical themes loaded.</p> : null}

@@ -56,6 +56,11 @@ function normalizeHtml(input: string | null): string {
   return (input ?? "").replace(/\s+/g, " ").replace(/>\s+</g, "><").trim();
 }
 
+function extractBodyInnerHtml(input: string | null): string {
+  const match = (input ?? "").match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  return normalizeHtml(match?.[1] ?? "");
+}
+
 function createRuntimeErrorGate(page: import("playwright/test").Page): () => void {
   const pageErrors: string[] = [];
   const consoleErrors: string[] = [];
@@ -227,10 +232,19 @@ test.describe("@real page preview publish flow", () => {
       const savedDraftPage = Array.isArray(savedDraftPages.data) ? savedDraftPages.data.find((entry) => entry.slug === slug) : null;
       expect(savedDraftPage?.id).toBeTruthy();
       const canonicalPageId = savedDraftPage?.id ?? pageId;
+      const reimportedBlockKeys = await processHtmlImport(page, html);
+      expect([...reimportedBlockKeys].sort()).toEqual([...importedBlockKeys].sort());
 
       await gotoStable(page, "/platform/onboarding/pages");
       await expect(page.getByRole("heading", { name: "Page Composer" })).toBeVisible();
       await page.getByTestId(`pages-item-${canonicalPageId}`).click();
+      await expect
+        .poll(async () => normalizeHtml(await page.getByTestId("pages-preview-frame").getAttribute("srcdoc")), { timeout: 15_000 })
+        .toContain("EUROGRID");
+      await expect(page.getByTestId("pages-canvas-block-0")).not.toContainText("Preview unavailable for this block.");
+      const canvasBlockPreview = normalizeHtml(await page.getByTestId("pages-canvas-block-0").locator("iframe").getAttribute("srcdoc"));
+      expect(canvasBlockPreview).toContain("lmnas-preview-tailwind-config");
+      expect(canvasBlockPreview).toContain("EUROGRID");
 
       let publishRequestCount = 0;
       page.on("request", (request) => {
@@ -269,7 +283,8 @@ test.describe("@real page preview publish flow", () => {
       expect(acceptPreviewResponse.ok()).toBe(true);
       await expect(previewPopup.getByTestId("preview-accept-button")).toContainText("Preview Accepted");
       const initialPreviewPopupDoc = normalizeHtml(await previewPopup.locator("iframe[title='studio-page-preview']").getAttribute("srcdoc"));
-      expect(initialPreviewPopupDoc).not.toContain("<script");
+      expect(initialPreviewPopupDoc).toContain("lmnas-preview-tailwind-config");
+      expect(initialPreviewPopupDoc).toContain("/studio-runtime.css");
       expect(publishRequestCount).toBe(0);
 
       const publishedBeforePreview = await fetchJson<PagesPayload>(page, "/api/platform/studio/pages?status=published");
@@ -307,7 +322,7 @@ test.describe("@real page preview publish flow", () => {
 
       await gotoStable(page, "/platform/onboarding/pages");
       await page.getByTestId(`pages-item-${canonicalPageId}`).click();
-      await page.getByTestId("pages-add-block-select").selectOption(secondBlock?.id ?? block?.id ?? "");
+      await page.getByTestId("pages-add-block-select").selectOption(secondBlock?.key ?? block?.key ?? "");
       await page.getByTestId("pages-add-block-button").click();
       const [saveDraftResponse] = await Promise.all([
         page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes("/api/platform/studio/pages")),
@@ -328,13 +343,13 @@ test.describe("@real page preview publish flow", () => {
       await draftPreviewPopup.waitForLoadState("domcontentloaded");
       const popupAfterEdit = normalizeHtml(await draftPreviewPopup.locator("iframe[title='studio-page-preview']").getAttribute("srcdoc"));
       expect(popupAfterEdit).toContain("EUROGRID");
-      expect(popupAfterEdit).not.toContain("<script");
+      expect(popupAfterEdit).toContain("lmnas-preview-tailwind-config");
       expect(publishRequestCount).toBe(1);
 
       await page.getByRole("button", { name: "Production", exact: true }).click();
       await expect
-        .poll(async () => normalizeHtml(await page.getByTestId("pages-preview-frame").getAttribute("srcdoc")))
-        .toBe(productionAfterPublish);
+        .poll(async () => extractBodyInnerHtml(await page.getByTestId("pages-preview-frame").getAttribute("srcdoc")))
+        .toBe(extractBodyInnerHtml(productionAfterPublish));
 
       await gotoStable(page, "/platform/onboarding/publish");
       await page.getByTestId("publish-governance-page").selectOption(canonicalPageId);
@@ -342,14 +357,16 @@ test.describe("@real page preview publish flow", () => {
         .poll(async () => normalizeHtml(await page.getByTestId("publish-staging-preview").getAttribute("srcdoc")), { timeout: 15_000 })
         .not.toBe(productionAfterPublish);
       const stagingAfterEdit = normalizeHtml(await page.getByTestId("publish-staging-preview").getAttribute("srcdoc"));
-      expect(stagingAfterEdit).toBe(draftPreviewAfterEdit);
-      expect(normalizeHtml(await page.getByTestId("publish-production-preview").getAttribute("srcdoc"))).toBe(productionAfterPublish);
+      expect(extractBodyInnerHtml(stagingAfterEdit)).toBe(extractBodyInnerHtml(draftPreviewAfterEdit));
+      expect(extractBodyInnerHtml(await page.getByTestId("publish-production-preview").getAttribute("srcdoc"))).toBe(
+        extractBodyInnerHtml(productionAfterPublish)
+      );
 
       const publishedAfterDraftEdit = await fetchJson<PagesPayload>(page, "/api/platform/studio/pages?status=published");
       const publishedRecord = Array.isArray(publishedAfterDraftEdit.data)
         ? publishedAfterDraftEdit.data.find((entry) => entry.slug === slug)
         : null;
-      expect(normalizeHtml(publishedRecord?.previewHtml ?? "")).toBe(productionAfterPublish);
+      expect(extractBodyInnerHtml(publishedRecord?.previewHtml ?? "")).toBe(extractBodyInnerHtml(productionAfterPublish));
 
       await expect
         .poll(

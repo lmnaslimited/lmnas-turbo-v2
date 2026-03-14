@@ -261,4 +261,68 @@ describe("studio import process route", () => {
     const afterBlocks = getStudioStore().blocks.length;
     expect(afterBlocks).toBe(beforeBlocks + 1);
   });
+
+  it("updates existing draft canonical blocks on repeat import and persists renamed proposals", async () => {
+    process.env.STUDIO_DEBUG_ALLOW_IMPORT_FALLBACK = "1";
+    analyzeOnboardingSourceMock
+      .mockResolvedValueOnce(
+        buildAnalysis()
+      )
+      .mockResolvedValueOnce({
+        ...buildAnalysis(),
+        blockProposals: [
+          {
+            ...buildAnalysis().blockProposals[0],
+            displayName: "Renamed Imported Hero"
+          }
+        ]
+      });
+
+    const firstResponse = await POST(
+      buildPostRequest({
+        sourceType: "raw_html",
+        sourceValue: "<section class='hero'><h1>Hero</h1></section>",
+        slug: "import-source",
+        locale: "en",
+        themeKey: "default"
+      })
+    );
+    expect(firstResponse.status).toBe(200);
+    const firstPayload = (await firstResponse.json()) as {
+      ok: boolean;
+      persistence: {
+        proposalBlocks: Array<{ blockKey: string; disposition: "created" | "updated"; name: string }>;
+      };
+    };
+    expect(firstPayload.ok).toBe(true);
+    expect(firstPayload.persistence.proposalBlocks[0]?.disposition).toBe("created");
+    const firstBlockKey = firstPayload.persistence.proposalBlocks[0]?.blockKey;
+    expect(firstBlockKey).toBeTruthy();
+
+    const secondResponse = await POST(
+      buildPostRequest({
+        sourceType: "raw_html",
+        sourceValue: "<section class='hero'><h1>Hero</h1></section>",
+        slug: "import-source",
+        locale: "en",
+        themeKey: "default"
+      })
+    );
+    expect(secondResponse.status).toBe(200);
+    const secondPayload = (await secondResponse.json()) as {
+      ok: boolean;
+      persistence: {
+        proposalBlocks: Array<{ blockKey: string; disposition: "created" | "updated"; name: string }>;
+      };
+    };
+
+    expect(secondPayload.ok).toBe(true);
+    expect(secondPayload.persistence.proposalBlocks[0]?.blockKey).toBe(firstBlockKey);
+    expect(secondPayload.persistence.proposalBlocks[0]?.disposition).toBe("updated");
+    expect(secondPayload.persistence.proposalBlocks[0]?.name).toBe("Renamed Imported Hero");
+
+    const persistedBlock = getStudioStore().blocks.find((block) => block.key === firstBlockKey);
+    expect(persistedBlock?.name).toBe("Renamed Imported Hero");
+    expect(getStudioStore().blocks.filter((block) => block.key === firstBlockKey)).toHaveLength(1);
+  });
 });

@@ -4,6 +4,10 @@ import path from "node:path";
 
 const HTML_FIXTURE_PATH = path.resolve(process.cwd(), "docs/testing-artifacts/code.html");
 
+function normalizeHtml(input: string | null): string {
+  return (input ?? "").replace(/\s+/g, " ").replace(/>\s+</g, "><").trim();
+}
+
 function createRuntimeErrorGate(page: import("playwright/test").Page): () => void {
   const pageErrors: string[] = [];
   const consoleErrors: string[] = [];
@@ -138,6 +142,14 @@ test.describe("@real page preview acceptance workflow", () => {
 
     await expect(page.locator("text=Preview valid: no")).toBeVisible();
     await expect(page.locator("text=SEO / JSON-LD valid: no")).toBeVisible();
+    await expect
+      .poll(async () => normalizeHtml(await page.getByTestId("pages-preview-frame").getAttribute("srcdoc")), {
+        timeout: 15_000
+      })
+      .toContain("lmnas-preview-tailwind-config");
+    const composerPreviewBeforePopup = normalizeHtml(await page.getByTestId("pages-preview-frame").getAttribute("srcdoc"));
+    expect(composerPreviewBeforePopup).toContain("/studio-runtime.css");
+    expect(composerPreviewBeforePopup).toContain("EUROGRID");
 
     const [previewSaveResponse, previewPopup] = await Promise.all([
       page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes("/api/platform/studio/pages")),
@@ -148,6 +160,10 @@ test.describe("@real page preview acceptance workflow", () => {
     await previewPopup.waitForLoadState("domcontentloaded");
     await expect(previewPopup.getByTestId("preview-accept-button")).toBeVisible();
     await expect(previewPopup.getByTestId("preview-accept-button")).toBeEnabled();
+    const popupPreviewBeforeAccept = normalizeHtml(await previewPopup.locator("iframe[title='studio-page-preview']").getAttribute("srcdoc"));
+    expect(popupPreviewBeforeAccept).toContain("lmnas-preview-tailwind-config");
+    expect(popupPreviewBeforeAccept).toContain("/studio-runtime.css");
+    expect(popupPreviewBeforeAccept).toContain("EUROGRID");
 
     await previewPopup.getByTestId("preview-accept-button").click();
     await expect(previewPopup.getByText(/Preview accepted\./)).toBeVisible();

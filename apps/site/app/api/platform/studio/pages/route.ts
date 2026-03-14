@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
@@ -40,6 +41,8 @@ type BlockTemplateUpsert = {
   previewHtml: string;
   inUseCount: number;
 };
+
+type BlockImportDisposition = "created" | "updated";
 
 type StrapiCollectionResponse = {
   data?: Array<Record<string, unknown>>;
@@ -465,6 +468,43 @@ async function lookupRelationDocumentId(params: {
   return undefined;
 }
 
+async function canonicalizeBlockOrderInStrapi(blockOrder: string[]): Promise<string[]> {
+  if (blockOrder.length === 0) {
+    return blockOrder;
+  }
+
+  const response = await requestStrapi<StrapiCollectionResponse>("/api/studio-blocks?pagination[pageSize]=200&sort=updatedAt:desc");
+  const rows = Array.isArray(response.data) ? response.data : [];
+  const keyByReference = new Map<string, string>();
+
+  rows.forEach((row) => {
+    const entity = unwrapStrapiEntity(row);
+    const blockKey = typeof entity.blockKey === "string" ? entity.blockKey : typeof entity.key === "string" ? entity.key : null;
+    if (!blockKey || blockKey.trim().length === 0) {
+      return;
+    }
+    const references = [entity.documentId, entity.id, entity.blockKey, entity.key]
+      .filter((value): value is string | number => typeof value === "string" || typeof value === "number")
+      .map((value) => String(value));
+    references.forEach((reference) => keyByReference.set(reference, blockKey));
+  });
+
+  return blockOrder.map((entry) => keyByReference.get(entry) ?? entry);
+}
+
+function canonicalizeBlockOrderInFallback(blockOrder: string[]): string[] {
+  if (blockOrder.length === 0) {
+    return blockOrder;
+  }
+
+  const keyByReference = new Map<string, string>();
+  getStudioStore().blocks.forEach((block) => {
+    [block.id, block.key].forEach((reference) => keyByReference.set(reference, block.key));
+  });
+
+  return blockOrder.map((entry) => keyByReference.get(entry) ?? entry);
+}
+
 async function updateImportMasterStatus(importMasterId: string | undefined, status: "imported_blocks" | "imported_page"): Promise<void> {
   if (!importMasterId || importMasterId.trim().length === 0) {
     return;
@@ -708,7 +748,7 @@ function normalizeActionType(value: unknown): StudioActionType {
   return "workflow";
 }
 
-async function upsertBlockTemplateInStrapi(template: BlockTemplateUpsert): Promise<void> {
+async function upsertBlockTemplateInStrapi(template: BlockTemplateUpsert): Promise<BlockImportDisposition> {
   const canonicalLookup = await requestStrapi<StrapiCollectionResponse>(
     `/api/studio-blocks?filters[blockKey][$eq]=${encodeURIComponent(template.key)}&pagination[pageSize]=1`
   );
@@ -745,16 +785,17 @@ async function upsertBlockTemplateInStrapi(template: BlockTemplateUpsert): Promi
       method: "PUT",
       body: payload
     });
-    return;
+    return "updated";
   }
 
   await requestStrapi("/api/studio-blocks", {
     method: "POST",
     body: payload
   });
+  return "created";
 }
 
-function upsertBlockTemplateInFallback(template: BlockTemplateUpsert): void {
+function upsertBlockTemplateInFallback(template: BlockTemplateUpsert): BlockImportDisposition {
   const store = getStudioStore();
   const blocks = [...store.blocks];
   const index = blocks.findIndex((entry) => entry.key === template.key || entry.id === template.key);
@@ -792,6 +833,7 @@ function upsertBlockTemplateInFallback(template: BlockTemplateUpsert): void {
     ...store,
     blocks
   });
+  return index >= 0 ? "updated" : "created";
 }
 
 function normalizeSourceRef(value: unknown): string {
@@ -799,6 +841,44 @@ function normalizeSourceRef(value: unknown): string {
     return "docs/testing-artifacts/code.html";
   }
   return value.trim();
+}
+
+function normalizeImportedBlockName(value: unknown, fallback: string): string {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : fallback;
+}
+
+function normalizeSnippetIdentity(value: string): string {
+  return value.replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function normalizeImportedKeyPrefix(sourceRef: string): string {
+  const value = sourceRef
+    .split("/")
+    .pop()
+    ?.replace(/\.[a-z0-9]+$/i, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return value && value.length > 0 ? value : "page-import";
+}
+
+function createImportedBlockKey(sourceRef: string, snippet: string, index: number): string {
+  const digest = createHash("sha1")
+    .update(sourceRef)
+    .update("::")
+    .update(normalizeSnippetIdentity(snippet))
+    .update("::")
+    .update(String(index))
+    .digest("hex")
+    .slice(0, 12);
+  const sequence = String(index + 1).padStart(2, "0");
+  return `${normalizeImportedKeyPrefix(sourceRef)}-${digest}-${sequence}`;
 }
 
 function extractBlockSnippets(fullHtml: string): string[] {
@@ -850,12 +930,10 @@ function inferActions(snippet: string, index: number): BlockTemplateUpsert["acti
 
 function buildImportedTemplates(payload: ImportNormalization): BlockTemplateUpsert[] {
   const snippets = extractBlockSnippets(payload.html).slice(0, 24);
-  const stamp = Date.now();
   return snippets.map((snippet, index) => {
-    const sequence = String(index + 1).padStart(2, "0");
     return {
-      key: `page-import-${stamp}-${sequence}`,
-      name: `Imported Block ${index + 1}`,
+      key: createImportedBlockKey(payload.sourceRef, snippet, index),
+      name: normalizeImportedBlockName(undefined, `Imported Block ${index + 1}`),
       family: inferFamily(snippet, index),
       status: "draft",
       themeKey: "default",
@@ -913,8 +991,10 @@ async function readStrapiPageCount(): Promise<number | null> {
 
 async function importBlocksOnly(payload: PageSaveRequest): Promise<{
   source: "strapi" | "fallback";
-  imported: BlockTemplateUpsert[];
+  imported: Array<BlockTemplateUpsert & { disposition: BlockImportDisposition }>;
   warnings: string[];
+  createdCount: number;
+  updatedCount: number;
   pageCountBefore: number | null;
   pageCountAfter: number | null;
 }> {
@@ -925,14 +1005,22 @@ async function importBlocksOnly(payload: PageSaveRequest): Promise<{
 
   if (isStrapiConfigured()) {
     try {
+      const persisted: Array<BlockTemplateUpsert & { disposition: BlockImportDisposition }> = [];
       for (const template of imported) {
-        await upsertBlockTemplateInStrapi(template);
+        const disposition = await upsertBlockTemplateInStrapi(template);
+        persisted.push({
+          ...template,
+          disposition
+        });
       }
       const pageCountAfter = await readStrapiPageCount();
+      const createdCount = persisted.filter((entry) => entry.disposition === "created").length;
       return {
         source: "strapi",
-        imported,
+        imported: persisted,
         warnings,
+        createdCount,
+        updatedCount: persisted.length - createdCount,
         pageCountBefore,
         pageCountAfter
       };
@@ -941,14 +1029,22 @@ async function importBlocksOnly(payload: PageSaveRequest): Promise<{
     }
   }
 
+  const persisted: Array<BlockTemplateUpsert & { disposition: BlockImportDisposition }> = [];
   for (const template of imported) {
-    upsertBlockTemplateInFallback(template);
+    const disposition = upsertBlockTemplateInFallback(template);
+    persisted.push({
+      ...template,
+      disposition
+    });
   }
+  const createdCount = persisted.filter((entry) => entry.disposition === "created").length;
 
   return {
     source: "fallback",
-    imported,
+    imported: persisted,
     warnings,
+    createdCount,
+    updatedCount: persisted.length - createdCount,
     pageCountBefore,
     pageCountAfter: getStudioStore().pages.length
   };
@@ -1035,9 +1131,12 @@ export async function POST(request: Request): Promise<Response> {
             key: entry.key,
             name: entry.name,
             family: entry.family,
-            sourceRef: entry.sourceRef
+            sourceRef: entry.sourceRef,
+            disposition: entry.disposition
           })),
           blockCount: result.imported.length,
+          createdCount: result.createdCount,
+          updatedCount: result.updatedCount,
           pageCountBefore: result.pageCountBefore,
           pageCountAfter: result.pageCountAfter,
           routeSlugEntitiesCreated: createdRouteSlugEntities,
@@ -1106,7 +1205,16 @@ export async function POST(request: Request): Promise<Response> {
       }
     }
 
-    const page = normalizePage(payload.page ?? {});
+    const normalizedPage = normalizePage(payload.page ?? {});
+    const page = isStrapiConfigured()
+      ? {
+          ...normalizedPage,
+          blockOrder: await canonicalizeBlockOrderInStrapi(normalizedPage.blockOrder)
+        }
+      : {
+          ...normalizedPage,
+          blockOrder: canonicalizeBlockOrderInFallback(normalizedPage.blockOrder)
+        };
     const previewRoute = page.slug === "home" ? `/${page.locale}` : `/${page.locale}/${page.slug}`;
     const warnings: string[] = [];
     if (!isStrapiConfigured()) {

@@ -3,10 +3,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { requestClientJson } from "../_lib/client-request";
 import {
-  buildPlatformTargetDocument,
-  ensureHtmlDocument,
-  extractBodyHtml,
-  sanitizeTargetHtml,
+  buildPlatformBlockPreviewDocument,
+  buildPreviewThumbnailDocument,
   usePlatformPreviewAssets
 } from "../_lib/platform-preview";
 import { readPreviewSwatchThemeId, setPreviewSwatchThemeId as setGlobalPreviewSwatchThemeId, subscribePreviewSwatchThemeId } from "../_lib/preview-swatch-state";
@@ -80,50 +78,6 @@ function sanitizePreviewHtml(input: string): string {
   return stripScriptTags(input)
     .replace(/<link[^>]+href=["']https?:\/\/[^"']+["'][^>]*>/gi, "")
     .replace(/\s(?:src|href)=["']https?:\/\/[^"']+["']/gi, "");
-}
-
-function buildThumbnailSrcDoc(input: string): string {
-  const documentHtml = ensureHtmlDocument(input);
-  const thumbnailStyles = [
-    "<style>",
-    "html,body{margin:0;padding:0;overflow:hidden;height:100%}",
-    "body{min-height:100%}",
-    ".thumb-root{width:320%;transform:scale(.3125);transform-origin:top left;min-height:320%;}",
-    ".thumb-root *{animation:none !important;transition:none !important;}",
-    "</style>"
-  ].join("");
-
-  const withThumbnailStyles = documentHtml.includes("</head>")
-    ? documentHtml.replace("</head>", `${thumbnailStyles}</head>`)
-    : documentHtml.replace(/<html([^>]*)>/i, `<html$1><head>${thumbnailStyles}</head>`);
-
-  if (/<body[^>]*>/i.test(withThumbnailStyles)) {
-    return withThumbnailStyles
-      .replace(/<body([^>]*)>/i, "<body$1><div class=\"thumb-root\">")
-      .replace(/<\/body>/i, "</div></body>");
-  }
-
-  return [
-    "<!doctype html><html><head><meta charset=\"utf-8\"/>",
-    "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>",
-    thumbnailStyles,
-    "</head><body>",
-    `<div class="thumb-root">${extractBodyHtml(withThumbnailStyles)}</div>`,
-    "</body></html>"
-  ].join("");
-}
-
-function buildThemedTargetPreview(params: {
-  proposalHtml: string;
-  theme: StudioTheme | null;
-  hostAssets: ReturnType<typeof usePlatformPreviewAssets>;
-}): string {
-  const proposalBody = extractBodyHtml(ensureHtmlDocument(sanitizeTargetHtml(params.proposalHtml)));
-  return buildPlatformTargetDocument({
-    bodyHtml: `<main class="lmnas-target-main">${proposalBody}</main>`,
-    theme: params.theme,
-    hostAssets: params.hostAssets
-  });
 }
 
 function tokenValue(theme: StudioTheme, matchers: string[], fallback: string): string {
@@ -496,11 +450,11 @@ export default function BlocksWorkflowPage(): React.ReactElement {
   const selectedUsageCount = selected ? blockUsage.get(selected.key) ?? blockUsage.get(selected.id) ?? selected.usageCount ?? selected.inUseCount : 0;
 
   function resolveTargetPreview(block: StudioBlockTemplate): string {
-    const proposalHtml = (block.previewHtml ?? block.targetPreviewHtml ?? block.sourcePreviewHtml ?? "").trim();
+    const proposalHtml = (block.targetPreviewHtml ?? block.previewHtml ?? block.sourcePreviewHtml ?? "").trim();
     if (proposalHtml.length === 0) {
       return "";
     }
-    return buildThemedTargetPreview({
+    return buildPlatformBlockPreviewDocument({
       proposalHtml,
       theme: previewTheme,
       hostAssets: platformPreviewAssets
@@ -621,7 +575,12 @@ export default function BlocksWorkflowPage(): React.ReactElement {
                     <div className="flex gap-3">
                       <div className="h-16 w-24 shrink-0 overflow-hidden rounded border border-white/[0.1] bg-[#020d1f]" data-testid={`blocks-item-preview-${block.id}`}>
                           {hasPreview ? (
-                            <iframe title={`${block.key}-thumb`} className="h-full w-full" srcDoc={buildThumbnailSrcDoc(itemPreview)} sandbox="allow-scripts allow-same-origin" />
+                            <iframe
+                              title={`${block.key}-thumb`}
+                              className="h-full w-full"
+                              srcDoc={buildPreviewThumbnailDocument(itemPreview)}
+                              sandbox="allow-scripts allow-same-origin"
+                            />
                           ) : (
                             <div className="flex h-full items-center justify-center px-1 text-center text-[10px] text-slate-500">Preview unavailable</div>
                           )}

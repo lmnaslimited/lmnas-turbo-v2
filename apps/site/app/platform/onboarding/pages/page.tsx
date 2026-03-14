@@ -3,10 +3,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { requestClientJson } from "../_lib/client-request";
 import {
-  buildPlatformTargetDocument,
-  ensureHtmlDocument,
-  extractBodyHtml,
-  sanitizeTargetHtml,
+  buildPlatformBlockPreviewDocument,
+  buildPlatformPagePreviewDocument,
+  buildPreviewPlaceholderDocument,
+  canonicalizeBlockOrder,
+  findBlockByReference,
   usePlatformPreviewAssets
 } from "../_lib/platform-preview";
 import { subscribePagePreviewAcceptance } from "../_lib/page-preview-acceptance-channel";
@@ -56,18 +57,15 @@ type PagesPostResponse = {
     applied?: boolean;
     warnings?: string[];
     previewRoute?: string;
-    importedBlocks?: Array<{ key: string; family: string }>;
+    importedBlocks?: Array<{ key: string; family: string; disposition?: "created" | "updated" }>;
     blockCount?: number;
+    createdCount?: number;
+    updatedCount?: number;
   };
   source?: "strapi" | "fallback";
   error?: string;
   code?: string;
 };
-
-const DEFAULT_NAVBAR_HTML =
-  '<nav style="display:flex;justify-content:space-between;align-items:center;padding:14px 28px;background:#0f172a;color:#f8fafc;font-family:system-ui;border-bottom:1px solid #1e293b"><strong style="font-size:16px">LMNAs</strong><span style="font-size:12px;color:#94a3b8">Studio Shell</span></nav>';
-const DEFAULT_FOOTER_HTML =
-  '<footer style="padding:18px 28px;background:#0b1120;color:#64748b;font-family:system-ui;text-align:center;font-size:12px;border-top:1px solid #1e293b">LMNAs Studio Footer</footer>';
 
 function sanitizeSlug(value: string): string {
   const next = value
@@ -139,60 +137,6 @@ function createDraftPage(name: string, seed: number, existingPages: StudioPageDo
   };
 }
 
-function resolveShellPreview(shells: StudioShell[]): { headerHtml: string; footerHtml: string } {
-  const activeFull = shells.find((shell) => shell.status === "active" && shell.role === "full");
-  const activeNavbar = shells.find((shell) => shell.status === "active" && shell.role === "navbar");
-  const activeFooter = shells.find((shell) => shell.status === "active" && shell.role === "footer");
-
-  return {
-    headerHtml: activeFull?.previewHtml ?? activeNavbar?.previewHtml ?? DEFAULT_NAVBAR_HTML,
-    footerHtml: activeFull ? "" : activeFooter?.previewHtml ?? DEFAULT_FOOTER_HTML
-  };
-}
-
-function buildPreviewHtml(params: {
-  page: StudioPageDocument;
-  blocks: StudioBlockTemplate[];
-  shells: StudioShell[];
-  themes: StudioTheme[];
-  previewTheme?: StudioTheme | null;
-  hostAssets: ReturnType<typeof usePlatformPreviewAssets>;
-}): string {
-  const blockMap = new Map<string, StudioBlockTemplate>();
-  params.blocks.forEach((block) => {
-    blockMap.set(block.id, block);
-    blockMap.set(block.key, block);
-  });
-
-  const sectionHtml = params.page.blockOrder
-    .map((blockId) => {
-      const block = blockMap.get(blockId);
-      return extractBodyHtml(ensureHtmlDocument(sanitizeTargetHtml(block?.targetPreviewHtml ?? block?.previewHtml ?? "")));
-    })
-    .filter((value) => value.trim().length > 0)
-    .join("\n");
-
-  const shell = resolveShellPreview(params.shells);
-  const selectedTheme =
-    params.previewTheme ??
-    params.themes.find((theme) => theme.themeKey === params.page.themeKey) ??
-    params.themes.find((theme) => theme.status === "active") ??
-    params.themes[0] ??
-    null;
-  const body =
-    sectionHtml.length > 0
-      ? sectionHtml
-      : "<section style='padding:48px;font-family:system-ui'><h2>No blocks composed yet.</h2><p>Add reusable blocks from the canvas.</p></section>";
-
-  return buildPlatformTargetDocument({
-    bodyHtml: body,
-    theme: selectedTheme,
-    hostAssets: params.hostAssets,
-    beforeBodyHtml: shell.headerHtml,
-    afterBodyHtml: shell.footerHtml
-  });
-}
-
 function tokenValue(theme: StudioTheme, matchers: string[], fallback: string): string {
   const token = theme.tokens.find((entry) => matchers.some((matcher) => entry.key.toLowerCase().includes(matcher)));
   return token?.value ?? fallback;
@@ -203,10 +147,6 @@ function themeSwatchGradient(theme: StudioTheme): string {
   const background = tokenValue(theme, ["background", "surface", "bg"], theme.darkMode ? "#020617" : "#e2e8f0");
   const muted = tokenValue(theme, ["muted", "secondary"], theme.darkMode ? "#334155" : "#94a3b8");
   return `linear-gradient(135deg, ${background} 0%, ${primary} 62%, ${muted} 100%)`;
-}
-
-function findBlockByKey(blocks: StudioBlockTemplate[], blockKey: string): StudioBlockTemplate | null {
-  return blocks.find((block) => block.id === blockKey || block.key === blockKey) ?? null;
 }
 
 function mergePagesForComposer(draftPages: StudioPageDocument[], publishedPages: StudioPageDocument[]): StudioPageDocument[] {
@@ -274,13 +214,16 @@ export default function PagesWorkflowPage(): React.ReactElement {
       return;
     }
 
-    const canonicalPage = payload.data;
+    const canonicalPage = {
+      ...payload.data,
+      blockOrder: canonicalizeBlockOrder(payload.data.blockOrder, blocks)
+    };
     setPages((current) => {
       const next = current.map((page) => (page.id === pageId || page.slug === canonicalPage.slug ? canonicalPage : page));
       return next.some((page) => page.id === canonicalPage.id) ? next : [canonicalPage, ...next];
     });
     setSelectedId((current) => (current === pageId || current === canonicalPage.id ? canonicalPage.id : current));
-  }, []);
+  }, [blocks]);
 
   useEffect(() => {
     if (pages.length === 0) {
@@ -305,38 +248,39 @@ export default function PagesWorkflowPage(): React.ReactElement {
 
   const draftCanvasHtml = useMemo(() => {
     if (!selectedPage) {
-      return "<html><body><section style='padding:40px;font-family:system-ui'><h2>Select a page to preview.</h2></section></body></html>";
+      return buildPreviewPlaceholderDocument("Select a page to preview.");
     }
-    return buildPreviewHtml({
+    return buildPlatformPagePreviewDocument({
       page: selectedPage,
       blocks,
       shells,
       themes,
-      previewTheme: themes.find((theme) => theme.id === previewSwatchThemeId) ?? null,
-      hostAssets: platformPreviewAssets
+      previewThemeId: previewSwatchThemeId,
+      hostAssets: platformPreviewAssets,
+      fallbackHtml: selectedPage.previewHtml
     });
   }, [selectedPage, blocks, shells, themes, previewSwatchThemeId, platformPreviewAssets]);
 
   const draftPreviewHtml = useMemo(() => {
     if (!selectedPage) {
-      return "<html><body><section style='padding:40px;font-family:system-ui'><h2>Select a page to preview.</h2></section></body></html>";
+      return buildPreviewPlaceholderDocument("Select a page to preview.");
     }
-    return selectedPage.previewHtml.trim().length > 0 ? selectedPage.previewHtml : draftCanvasHtml;
+    return draftCanvasHtml;
   }, [draftCanvasHtml, selectedPage]);
 
   const productionPreviewHtml = useMemo(() => {
-    const publishedPreviewHtml =
-      selectedPage?.publishedPreviewHtml?.trim().length
-        ? selectedPage.publishedPreviewHtml
-        : selectedPublishedPage?.previewHtml?.trim().length
-          ? selectedPublishedPage.previewHtml
-          : "";
-
-    if (!publishedPreviewHtml) {
-      return "<!doctype html><html><head><meta charset=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/></head><body style=\"margin:0;background:#020617;color:#e2e8f0;font-family:Inter,system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;\"><div style=\"text-align:center;padding:32px\"><h2 style=\"margin:0 0 8px;font-size:24px\">No published version</h2><p style=\"margin:0;color:#94a3b8\">Publish this page from Publish Center to create the production version.</p></div></body></html>";
+    if (!selectedPublishedPage) {
+      return buildPreviewPlaceholderDocument("No published version", "Publish this page from Publish Center to create the production version.");
     }
-    return publishedPreviewHtml;
-  }, [selectedPage, selectedPublishedPage]);
+    return buildPlatformPagePreviewDocument({
+      page: selectedPublishedPage,
+      blocks,
+      shells,
+      themes,
+      hostAssets: platformPreviewAssets,
+      fallbackHtml: selectedPublishedPage.publishedPreviewHtml ?? selectedPublishedPage.previewHtml
+    });
+  }, [selectedPublishedPage, blocks, shells, themes, platformPreviewAssets]);
 
   const visiblePreviewHtml = previewMode === "production" ? productionPreviewHtml : draftPreviewHtml;
 
@@ -451,13 +395,21 @@ export default function PagesWorkflowPage(): React.ReactElement {
         const canonicalShells = shellsPayload.data;
         const canonicalThemes = themesPayload.data;
 
-        const mergedPages = mergePagesForComposer(canonicalPages, canonicalPublishedPages);
+        const mergedPages = mergePagesForComposer(canonicalPages, canonicalPublishedPages).map((page) => ({
+          ...page,
+          blockOrder: canonicalizeBlockOrder(page.blockOrder, canonicalBlocks)
+        }));
         setPages(mergedPages);
-        setPublishedPages(canonicalPublishedPages);
+        setPublishedPages(
+          canonicalPublishedPages.map((page) => ({
+            ...page,
+            blockOrder: canonicalizeBlockOrder(page.blockOrder, canonicalBlocks)
+          }))
+        );
         setBlocks(canonicalBlocks);
         setShells(canonicalShells);
         setThemes(canonicalThemes);
-        setCandidateBlockId(blocksPayload.data[0]?.id ?? "");
+        setCandidateBlockId(blocksPayload.data[0]?.key ?? "");
         setSelectedId((previous) => previous ?? mergedPages[0]?.id ?? null);
       } catch (loadError) {
         setError(loadError instanceof Error ? loadError.message : String(loadError));
@@ -561,10 +513,11 @@ export default function PagesWorkflowPage(): React.ReactElement {
     if (!selectedPage || !blockId) {
       return;
     }
+    const canonicalBlockKey = findBlockByReference(blocks, blockId)?.key ?? blockId;
 
     patchSelectedPage((page) => ({
       ...page,
-      blockOrder: [...page.blockOrder, blockId],
+      blockOrder: [...page.blockOrder, canonicalBlockKey],
       updatedAt: new Date().toISOString().slice(0, 10)
     }));
     setStatusMessage("Added block to page canvas.");
@@ -621,10 +574,17 @@ export default function PagesWorkflowPage(): React.ReactElement {
       throw new Error("Canonical studio-block refresh failed. Fallback/legacy source detected.");
     }
 
-    setBlocks(payload.data);
-    if (!candidateBlockId && payload.data[0]) {
-      setCandidateBlockId(payload.data[0].id);
+    const refreshedBlocks = payload.data;
+    setBlocks(refreshedBlocks);
+    if (!candidateBlockId && refreshedBlocks[0]) {
+      setCandidateBlockId(refreshedBlocks[0].key);
     }
+    setPages((current) =>
+      current.map((page) => ({
+        ...page,
+        blockOrder: canonicalizeBlockOrder(page.blockOrder, refreshedBlocks)
+      }))
+    );
   }
 
   useEffect(() => {
@@ -656,6 +616,7 @@ export default function PagesWorkflowPage(): React.ReactElement {
       const pagePayload: StudioPageDocument = {
         ...selectedPage,
         slug: sanitizeSlug(selectedPage.slug),
+        blockOrder: canonicalizeBlockOrder(selectedPage.blockOrder, blocks),
         previewHtml: draftCanvasHtml,
         updatedAt: new Date().toISOString().slice(0, 10)
       };
@@ -732,7 +693,10 @@ export default function PagesWorkflowPage(): React.ReactElement {
         const mergedPages = mergePagesForComposer(
           draftRefresh.data,
           publishedRefresh.ok && Array.isArray(publishedRefresh.data) ? publishedRefresh.data : publishedPages
-        );
+        ).map((page) => ({
+          ...page,
+          blockOrder: canonicalizeBlockOrder(page.blockOrder, blocks)
+        }));
         setPages(mergedPages);
         const matchedPersistedPage =
           mergedPages.find((page) => page.id === persistedPage.id || page.slug === persistedPage.slug) ?? null;
@@ -741,7 +705,12 @@ export default function PagesWorkflowPage(): React.ReactElement {
         }
       }
       if (publishedRefresh.ok && Array.isArray(publishedRefresh.data)) {
-        setPublishedPages(publishedRefresh.data);
+        setPublishedPages(
+          publishedRefresh.data.map((page) => ({
+            ...page,
+            blockOrder: canonicalizeBlockOrder(page.blockOrder, blocks)
+          }))
+        );
       }
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : String(saveError));
@@ -786,7 +755,15 @@ export default function PagesWorkflowPage(): React.ReactElement {
       }
 
       await refreshBlocks();
-      setStatusMessage(`Imported ${response.data.blockCount ?? 0} reusable section(s) from full-page HTML.`);
+      const createdCount = response.data.createdCount ?? 0;
+      const updatedCount = response.data.updatedCount ?? 0;
+      const importSummary =
+        createdCount > 0 && updatedCount > 0
+          ? `Imported ${createdCount} new reusable section(s) and updated ${updatedCount} existing section(s) from full-page HTML.`
+          : updatedCount > 0
+            ? `Updated ${updatedCount} existing reusable section(s) from full-page HTML.`
+            : `Imported ${createdCount || response.data.blockCount || 0} reusable section(s) from full-page HTML.`;
+      setStatusMessage(importSummary);
     } catch (importError) {
       setError(importError instanceof Error ? importError.message : String(importError));
     } finally {
@@ -1001,17 +978,12 @@ export default function PagesWorkflowPage(): React.ReactElement {
 
           {selectedPage ? (
             selectedPage.blockOrder.map((blockKey, index) => {
-              const block = findBlockByKey(blocks, blockKey);
+              const block = findBlockByReference(blocks, blockKey);
               const previewHtml =
                 block && (block.targetPreviewHtml ?? block.previewHtml ?? "").trim().length > 0
-                  ? buildPlatformTargetDocument({
-                      bodyHtml: extractBodyHtml(ensureHtmlDocument(sanitizeTargetHtml(block.targetPreviewHtml ?? block.previewHtml ?? ""))),
-                      theme:
-                        previewTheme ??
-                        themes.find((theme) => theme.themeKey === selectedPage.themeKey) ??
-                        themes.find((theme) => theme.status === "active") ??
-                        themes[0] ??
-                        null,
+                  ? buildPlatformBlockPreviewDocument({
+                      proposalHtml: block.targetPreviewHtml ?? block.previewHtml ?? "",
+                      theme: previewTheme ?? themes.find((theme) => theme.themeKey === selectedPage.themeKey) ?? themes.find((theme) => theme.status === "active") ?? themes[0] ?? null,
                       hostAssets: platformPreviewAssets
                     })
                   : "";
@@ -1091,7 +1063,7 @@ export default function PagesWorkflowPage(): React.ReactElement {
                       className="min-w-[240px] rounded-lg border border-white/[0.12] bg-white/[0.02] px-3 py-2 text-xs text-slate-200"
                     >
                       {blocks.map((block) => (
-                        <option key={block.id} value={block.id}>
+                        <option key={block.id} value={block.key}>
                           {block.name} ({block.family})
                         </option>
                       ))}

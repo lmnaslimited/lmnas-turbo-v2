@@ -6,10 +6,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import { PreviewPane } from "../_components/PreviewPane";
 import { requestClientJson } from "../_lib/client-request";
 import {
-  buildPlatformTargetDocument,
+  buildPlatformBlockPreviewDocument,
+  buildPreviewThumbnailDocument,
   ensureHtmlDocument,
   extractBodyHtml,
-  sanitizeTargetHtml,
   usePlatformPreviewAssets
 } from "../_lib/platform-preview";
 import {
@@ -37,6 +37,7 @@ type AnalyzeResponse = {
       blockKey: string;
       schemaStatus: "valid" | "warning" | "invalid";
       status: "draft";
+      disposition: "created" | "updated";
       name: string;
       importMasterId: string;
       importMasterKey: string;
@@ -72,6 +73,7 @@ type PersistedProposalMeta = {
   blockKey: string;
   schemaStatus: "valid" | "warning" | "invalid";
   status: "draft";
+  disposition: "created" | "updated";
   name: string;
   importMasterId: string;
   importMasterKey: string;
@@ -202,37 +204,6 @@ function readManifestAssetList(manifest: unknown, key: "stylesheets" | "scripts"
   );
 }
 
-function buildThumbnailSrcDoc(input: string): string {
-  const documentHtml = ensureHtmlDocument(input);
-  const thumbnailStyles = [
-    "<style>",
-    "html,body{margin:0;padding:0;overflow:hidden;height:100%}",
-    "body{min-height:100%}",
-    ".thumb-root{width:320%;transform:scale(.3125);transform-origin:top left;min-height:320%;}",
-    ".thumb-root *{animation:none !important;transition:none !important;}",
-    "</style>"
-  ].join("");
-
-  const withThumbnailStyles = documentHtml.includes("</head>")
-    ? documentHtml.replace("</head>", `${thumbnailStyles}</head>`)
-    : documentHtml.replace(/<html([^>]*)>/i, `<html$1><head>${thumbnailStyles}</head>`);
-
-  if (/<body[^>]*>/i.test(withThumbnailStyles)) {
-    return withThumbnailStyles
-      .replace(/<body([^>]*)>/i, "<body$1><div class=\"thumb-root\">")
-      .replace(/<\/body>/i, "</div></body>");
-  }
-
-  return [
-    "<!doctype html><html><head><meta charset=\"utf-8\"/>",
-    "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>",
-    thumbnailStyles,
-    "</head><body>",
-    `<div class="thumb-root">${extractBodyHtml(withThumbnailStyles)}</div>`,
-    "</body></html>"
-  ].join("");
-}
-
 function buildSourcePreviewWithImportContext(params: {
   previewHtml: string;
   importMaster: StudioImportMaster | null;
@@ -336,33 +307,17 @@ function buildExtractedThemeTokens(analysis: OnboardingAnalysis): StudioTheme["t
   return tokens;
 }
 
-function buildThemedTargetPreview(params: {
-  proposalHtml: string;
-  theme: StudioTheme | null;
-  shell: StudioShell | null;
-  hostAssets: ReturnType<typeof usePlatformPreviewAssets>;
-}): string {
-  const proposalBody = extractBodyHtml(ensureHtmlDocument(sanitizeTargetHtml(params.proposalHtml)));
-  const shellPreview = params.shell?.previewHtml?.trim() ?? "";
-
-  return buildPlatformTargetDocument({
-    bodyHtml: `<main class="lmnas-target-main">${proposalBody}</main>`,
-    theme: params.theme,
-    hostAssets: params.hostAssets,
-    beforeBodyHtml: shellPreview.length > 0 ? `<div class="lmnas-target-shell">${shellPreview}</div>` : undefined
-  });
-}
-
 function resolveProposalTargetPreviewHtml(params: {
   proposalHtml: string;
   persistedMeta: PersistedProposalMeta | null;
   theme: StudioTheme | null;
+  shell: StudioShell | null;
   hostAssets: ReturnType<typeof usePlatformPreviewAssets>;
 }): string {
-  return buildThemedTargetPreview({
+  return buildPlatformBlockPreviewDocument({
     proposalHtml: params.proposalHtml || params.persistedMeta?.targetPreviewHtml || "<section></section>",
     theme: params.theme,
-    shell: null,
+    shellHtml: params.shell?.previewHtml,
     hostAssets: params.hostAssets
   });
 }
@@ -432,6 +387,10 @@ export default function ImportWorkflowPage(): React.ReactElement {
     }
     return themes.find((theme) => theme.id === previewSwatchThemeId) ?? selectedTheme;
   }, [previewSwatchThemeId, selectedTheme, themes]);
+  const selectedShell = useMemo(
+    () => shells.find((shell) => shell.key === selectedShellKey) ?? shells.find((shell) => shell.status === "active") ?? null,
+    [shells, selectedShellKey]
+  );
   const focusedTargetPreviewHtml = useMemo(() => {
     if (!focusedProposal) {
       return null;
@@ -441,14 +400,10 @@ export default function ImportWorkflowPage(): React.ReactElement {
       proposalHtml: focusedProposal.previewHtml ?? focusedProposal.rawHtmlSnippet ?? "<section></section>",
       persistedMeta: focusedProposalMeta,
       theme: compareTheme,
+      shell: selectedShell,
       hostAssets: platformPreviewAssets
     });
-  }, [compareTheme, focusedProposal, focusedProposalMeta, platformPreviewAssets]);
-
-  const selectedShell = useMemo(
-    () => shells.find((shell) => shell.key === selectedShellKey) ?? shells.find((shell) => shell.status === "active") ?? null,
-    [shells, selectedShellKey]
-  );
+  }, [compareTheme, focusedProposal, focusedProposalMeta, platformPreviewAssets, selectedShell]);
 
   const sourceAssetCounts = useMemo(() => {
     const manifest =
@@ -987,6 +942,7 @@ export default function ImportWorkflowPage(): React.ReactElement {
           blockKey: entry.blockKey,
           schemaStatus: entry.schemaStatus,
           status: entry.status,
+          disposition: entry.disposition,
           name: entry.name,
           importMasterId: entry.importMasterId,
           importMasterKey: entry.importMasterKey,
@@ -995,6 +951,9 @@ export default function ImportWorkflowPage(): React.ReactElement {
         };
       });
       setPersistedProposalMeta(nextMeta);
+
+      const createdDraftBlocks = payload.persistence?.proposalBlocks.filter((entry) => entry.disposition === "created").length ?? 0;
+      const updatedDraftBlocks = payload.persistence?.proposalBlocks.filter((entry) => entry.disposition === "updated").length ?? 0;
 
       const warningMessage = payload.persistence?.warnings.length
         ? ` Warnings: ${payload.persistence.warnings.join(" ")}`
@@ -1005,7 +964,13 @@ export default function ImportWorkflowPage(): React.ReactElement {
         : "";
 
       setStatusMessage(
-        `Detected ${payload.analysis.blockProposals.length} block candidate(s). Persisted ${payload.persistence?.proposalsPersisted ?? 0} draft canonical block(s).${payload.persistence?.importMaster ? ` Import master: ${payload.persistence.importMaster.importKey}.` : ""}${uploadMessage}${warningMessage}`
+        `Detected ${payload.analysis.blockProposals.length} block candidate(s). ${
+          updatedDraftBlocks > 0 && createdDraftBlocks === 0
+            ? `Updated ${updatedDraftBlocks} existing draft canonical block(s).`
+            : updatedDraftBlocks > 0
+              ? `Created ${createdDraftBlocks} and updated ${updatedDraftBlocks} draft canonical block(s).`
+              : `Created ${createdDraftBlocks || payload.persistence?.proposalsPersisted || 0} draft canonical block(s).`
+        }${payload.persistence?.importMaster ? ` Import master: ${payload.persistence.importMaster.importKey}.` : ""}${uploadMessage}${warningMessage}`
       );
     } catch (analyzeError) {
       setError(analyzeError instanceof Error ? analyzeError.message : String(analyzeError));
@@ -1033,8 +998,13 @@ export default function ImportWorkflowPage(): React.ReactElement {
         Object.values(persistedProposalMeta).find((entry) => entry.importMasterKey.trim().length > 0)?.importMasterKey;
 
       const mapToExisting: Record<string, string> = {};
+      const displayNameOverrides: Record<string, string> = {};
       Object.entries(persistedProposalMeta).forEach(([proposalId, meta]) => {
         mapToExisting[proposalId] = meta.blockKey;
+        const draftName = (proposalNameDrafts[proposalId] ?? meta.name).trim();
+        if (draftName.length > 0) {
+          displayNameOverrides[proposalId] = draftName;
+        }
       });
 
       const payload = await requestClientJson<{
@@ -1056,6 +1026,7 @@ export default function ImportWorkflowPage(): React.ReactElement {
             importMasterId: resolvedImportMasterId,
             importMasterKey: resolvedImportMasterKey,
             overrides: {
+              displayNameOverrides,
               itemImportState: selectedBlocks,
               mapToExisting
             }
@@ -1074,6 +1045,10 @@ export default function ImportWorkflowPage(): React.ReactElement {
         const firstWarning = payload.result.warnings[0]?.message ?? "Canonical block import did not apply.";
         throw new Error(firstWarning);
       }
+
+      const selectedProposalIds = analysis.blockProposals.filter((block) => selectedBlocks[block.id] !== false).map((block) => block.id);
+      const createdCount = selectedProposalIds.filter((proposalId) => persistedProposalMeta[proposalId]?.disposition === "created").length;
+      const updatedCount = selectedProposalIds.filter((proposalId) => persistedProposalMeta[proposalId]?.disposition === "updated").length;
 
       let pageImportMessage = "";
       if (importMode === "page") {
@@ -1165,7 +1140,11 @@ export default function ImportWorkflowPage(): React.ReactElement {
       const warningCount = payload.result.warnings.length;
       setStatusMessage(
         payload.result.applied
-          ? `Imported ${selectedCount} governed block(s). Warnings: ${warningCount}.${pageImportMessage}`
+          ? updatedCount > 0 && createdCount === 0
+            ? `Updated ${updatedCount} existing governed block(s). Warnings: ${warningCount}.${pageImportMessage}`
+            : updatedCount > 0
+              ? `Imported ${createdCount} new governed block(s) and updated ${updatedCount} existing block(s). Warnings: ${warningCount}.${pageImportMessage}`
+              : `Imported ${createdCount || selectedCount} governed block(s). Warnings: ${warningCount}.${pageImportMessage}`
           : `Import completed with no apply. Warnings: ${warningCount}.${pageImportMessage}`
       );
     } catch (importError) {
@@ -1567,6 +1546,7 @@ export default function ImportWorkflowPage(): React.ReactElement {
                     proposalHtml,
                     persistedMeta,
                     theme: compareTheme,
+                    shell: selectedShell,
                     hostAssets: platformPreviewAssets
                   });
                   const schemaStatus =
@@ -1588,7 +1568,7 @@ export default function ImportWorkflowPage(): React.ReactElement {
                           <iframe
                             title={`${block.id}-preview`}
                             className="h-full w-full"
-                            srcDoc={buildThumbnailSrcDoc(targetPreviewHtml)}
+                            srcDoc={buildPreviewThumbnailDocument(targetPreviewHtml)}
                             sandbox="allow-scripts allow-same-origin"
                           />
                         ) : (
@@ -1745,10 +1725,10 @@ export default function ImportWorkflowPage(): React.ReactElement {
                   srcDoc={
                     focusedProposal
                       ? focusedTargetPreviewHtml ?? "<!doctype html><html><head></head><body></body></html>"
-                      : buildThemedTargetPreview({
+                      : buildPlatformBlockPreviewDocument({
                           proposalHtml: analysis.source.productionPreviewHtml,
                           theme: compareTheme,
-                          shell: selectedShell,
+                          shellHtml: selectedShell?.previewHtml,
                           hostAssets: platformPreviewAssets
                         })
                   }

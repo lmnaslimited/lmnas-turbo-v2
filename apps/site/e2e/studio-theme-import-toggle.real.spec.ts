@@ -328,17 +328,12 @@ test.describe("@real theme import toggle flow", () => {
     expect(createPageResponse.ok()).toBe(true);
     const createPagePayload = (await createPageResponse.json()) as PagesSavePayload;
     expect(createPagePayload.ok).toBe(true);
-    expect(createPagePayload.data?.page?.id).toBeTruthy();
-    const canonicalPagesResponse = await page.request.get("/api/platform/studio/pages");
-    expect(canonicalPagesResponse.ok()).toBe(true);
-    const canonicalPagesPayload = (await canonicalPagesResponse.json()) as PagesListPayload;
-    expect(canonicalPagesPayload.ok).toBe(true);
-    const canonicalPublishPage = canonicalPagesPayload.data?.find((entry) => entry.slug === publishPageSlug);
-    expect(canonicalPublishPage?.id).toBeTruthy();
+    const canonicalPublishPageId = createPagePayload.data?.page?.id ?? "";
+    expect(canonicalPublishPageId).toBeTruthy();
 
     await gotoStable(page, "/platform/onboarding/publish");
     await expect(page.getByRole("heading", { name: "Publish Center" })).toBeVisible();
-    await page.getByTestId("publish-governance-page").selectOption(canonicalPublishPage?.id ?? "");
+    await page.getByTestId("publish-governance-page").selectOption(canonicalPublishPageId);
     const productionPreview = normalizeHtml(await page.getByTestId("publish-production-preview").getAttribute("srcdoc"));
     const stagingPreview = normalizeHtml(await page.getByTestId("publish-staging-preview").getAttribute("srcdoc"));
     expect(stagingPreview).toContain("lmnas-preview-tailwind-config");
@@ -359,6 +354,16 @@ test.describe("@real theme import toggle flow", () => {
     expect(publishPayload.data?.persistence?.mutated).toBe(true);
     expect(publishPayload.data?.persistence?.pageId).toBeTruthy();
     expect((publishPayload.data?.warnings ?? []).some((warning) => warning.code === "publish.strapi_persist_failed")).toBe(false);
+    await expect
+      .poll(async () => normalizeHtml(await page.getByTestId("publish-production-preview").getAttribute("srcdoc")), {
+        timeout: 15_000
+      })
+      .toContain("lmnas-preview-tailwind-config");
+    const productionPreviewAfterPublish = normalizeHtml(await page.getByTestId("publish-production-preview").getAttribute("srcdoc"));
+    expect(productionPreviewAfterPublish).toContain("cdn.tailwindcss.com");
+    expect(productionPreviewAfterPublish).toContain("EUROGRID");
+    expect(productionPreviewAfterPublish).not.toBe(productionPreview);
+    expect(productionPreviewAfterPublish).toBe(stagingPreview);
 
     await page.screenshot({
       path: path.join(EVIDENCE_DIR, "tv-e2e-10-theme-shell-import-toggle.png"),

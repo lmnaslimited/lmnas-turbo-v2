@@ -247,6 +247,104 @@ describe("studio pages route import guards", () => {
     expect(payload.data.routeSlugEntitiesCreated).toBe(0);
   });
 
+  it("updates existing canonical imported blocks on repeated identical html import instead of reporting new duplicates", async () => {
+    strapiMockState.configured = true;
+    const storedBlocks = new Map<string, { documentId: string; blockKey: string; name: string }>();
+
+    strapiMockState.requestStrapi.mockImplementation((path: string, init?: { method?: string; body?: Record<string, unknown> }) => {
+      if (typeof path === "string" && path === "/api/studio-pages?pagination[pageSize]=1") {
+        return Promise.resolve({
+          data: [],
+          meta: { pagination: { total: 0 } }
+        });
+      }
+
+      if (typeof path === "string" && path.startsWith("/api/studio-blocks?filters[blockKey][$eq]=")) {
+        const search = new URL(`http://localhost${path}`).searchParams;
+        const requestedKey = search.get("filters[blockKey][$eq]") ?? "";
+        const existing = storedBlocks.get(requestedKey);
+        return Promise.resolve({
+          data: existing ? [existing] : []
+        });
+      }
+
+      if (typeof path === "string" && path === "/api/studio-blocks" && init?.method === "POST") {
+        const blockKey = String(init.body?.blockKey ?? "");
+        const row = {
+          documentId: `doc-${blockKey}`,
+          blockKey,
+          name: String(init.body?.name ?? blockKey)
+        };
+        storedBlocks.set(blockKey, row);
+        return Promise.resolve({ data: row });
+      }
+
+      if (typeof path === "string" && path.startsWith("/api/studio-blocks/") && init?.method === "PUT") {
+        const entityId = path.split("/").pop() ?? "";
+        const existing = Array.from(storedBlocks.values()).find((row) => row.documentId === entityId);
+        if (!existing) {
+          throw new Error(`missing block for ${entityId}`);
+        }
+        const updated = {
+          ...existing,
+          name: String(init.body?.name ?? existing.name)
+        };
+        storedBlocks.set(existing.blockKey, updated);
+        return Promise.resolve({ data: updated });
+      }
+
+      return Promise.resolve({ data: [] });
+    });
+
+    const requestBody = {
+      mode: "import-blocks",
+      sourceRef: "docs/testing-artifacts/code.html",
+      html: "<html><body><section><h1>Hero</h1></section><section><h2>FAQ</h2></section></body></html>"
+    };
+
+    const firstResponse = await POST(buildPostRequest(requestBody));
+    expect(firstResponse.status).toBe(200);
+    const firstPayload = (await firstResponse.json()) as {
+      ok: boolean;
+      source: string;
+      data: {
+        blockCount: number;
+        createdCount: number;
+        updatedCount: number;
+        importedBlocks: Array<{ key: string; disposition: "created" | "updated" }>;
+      };
+    };
+    expect(firstPayload.ok).toBe(true);
+    expect(firstPayload.source).toBe("strapi");
+    expect(firstPayload.data.blockCount).toBe(2);
+    expect(firstPayload.data.createdCount).toBe(2);
+    expect(firstPayload.data.updatedCount).toBe(0);
+    expect(firstPayload.data.importedBlocks.every((entry) => entry.disposition === "created")).toBe(true);
+
+    const secondResponse = await POST(buildPostRequest(requestBody));
+    expect(secondResponse.status).toBe(200);
+    const secondPayload = (await secondResponse.json()) as {
+      ok: boolean;
+      source: string;
+      data: {
+        blockCount: number;
+        createdCount: number;
+        updatedCount: number;
+        importedBlocks: Array<{ key: string; disposition: "created" | "updated" }>;
+      };
+    };
+    expect(secondPayload.ok).toBe(true);
+    expect(secondPayload.source).toBe("strapi");
+    expect(secondPayload.data.blockCount).toBe(2);
+    expect(secondPayload.data.createdCount).toBe(0);
+    expect(secondPayload.data.updatedCount).toBe(2);
+    expect(secondPayload.data.importedBlocks.map((entry) => entry.key)).toEqual(
+      firstPayload.data.importedBlocks.map((entry) => entry.key)
+    );
+    expect(secondPayload.data.importedBlocks.every((entry) => entry.disposition === "updated")).toBe(true);
+    expect(storedBlocks.size).toBe(2);
+  });
+
   it("accepts preview canonically and marks preview and seo validity", async () => {
     strapiMockState.configured = true;
     strapiMockState.requestStrapi
@@ -341,43 +439,83 @@ describe("studio pages route import guards", () => {
 
   it("saves import-as-page payload with canonical block keys and governance refs", async () => {
     strapiMockState.configured = true;
-    strapiMockState.requestStrapi
-      .mockResolvedValueOnce({ data: [] })
-      .mockResolvedValueOnce({ data: [] })
-      .mockResolvedValueOnce({ data: [] })
-      .mockResolvedValueOnce({ data: [] })
-      .mockResolvedValueOnce({ data: [] })
-      .mockResolvedValueOnce({})
-      .mockResolvedValueOnce({
-        data: [
-          {
-            documentId: "studio-page-1",
-            pageKey: "page-import-1",
-            name: "Imported Page",
-            slug: "imported-page",
-            locale: "en",
-            shellKey: "shell-main",
-            themeKey: "default",
-            blockOrder: ["import-source-hero-1-01", "import-source-faq-2-02"],
-            status: "draft",
-            lifecycle: "draft",
-            fieldValues: {},
-            actionOverrides: {},
-            productMapping: "",
-            industryMapping: [],
-            primaryCta: { text: "", url: "" },
-            conversionConfig: { trackConversions: true, strategy: "Track Conversions", valuePoints: 0 },
-            campaignUtmStrategy: { source: "", medium: "", campaign: "" },
-            taxonomyState: { valid: false, tags: [] },
-            seoMetadata: { metaTitle: "", metaDescription: "" },
-            seoJsonLdValid: false,
-            blockSchemaValid: true,
-            previewValid: true,
-            previewHtml: "<main><section>Imported</section></main>",
-            updatedAt: "2026-03-12"
-          }
-        ]
-      });
+    strapiMockState.requestStrapi.mockImplementation((path: string, init?: { method?: string; body?: Record<string, unknown> }) => {
+      if (typeof path === "string" && path === "/api/studio-blocks?pagination[pageSize]=200&sort=updatedAt:desc") {
+        return Promise.resolve({
+          data: [
+            {
+              documentId: "block-doc-1",
+              blockKey: "import-source-hero-1-01"
+            },
+            {
+              documentId: "block-doc-2",
+              blockKey: "import-source-faq-2-02"
+            }
+          ]
+        });
+      }
+
+      if (typeof path === "string" && path.startsWith("/api/studio-pages/page-import-1?")) {
+        return Promise.resolve({ data: null });
+      }
+
+      if (typeof path === "string" && path.startsWith("/api/studio-pages?filters[pageKey][$eq]=page-import-1")) {
+        return Promise.resolve({ data: [] });
+      }
+
+      if (typeof path === "string" && path.startsWith("/api/studio-pages?filters[slug][$eq]=imported-page")) {
+        if (init?.method === "POST") {
+          throw new Error("unexpected POST on slug lookup");
+        }
+        return Promise.resolve({
+          data: [
+            {
+              documentId: "studio-page-1",
+              pageKey: "page-import-1",
+              name: "Imported Page",
+              slug: "imported-page",
+              locale: "en",
+              shellKey: "shell-main",
+              themeKey: "default",
+              blockOrder: ["import-source-hero-1-01", "import-source-faq-2-02"],
+              status: "draft",
+              lifecycle: "draft",
+              fieldValues: {},
+              actionOverrides: {},
+              productMapping: "",
+              industryMapping: [],
+              primaryCta: { text: "", url: "" },
+              conversionConfig: { trackConversions: true, strategy: "Track Conversions", valuePoints: 0 },
+              campaignUtmStrategy: { source: "", medium: "", campaign: "" },
+              taxonomyState: { valid: false, tags: [] },
+              seoMetadata: { metaTitle: "", metaDescription: "" },
+              seoJsonLdValid: false,
+              blockSchemaValid: true,
+              previewValid: true,
+              previewHtml: "<main><section>Imported</section></main>",
+              updatedAt: "2026-03-12"
+            }
+          ]
+        });
+      }
+
+      if (typeof path === "string" && path.startsWith("/api/studio-themes?filters[themeKey][$eq]=default")) {
+        return Promise.resolve({ data: [] });
+      }
+
+      if (typeof path === "string" && path.startsWith("/api/studio-shells?filters[shellKey][$eq]=shell-main")) {
+        return Promise.resolve({ data: [] });
+      }
+
+      if (typeof path === "string" && path === "/api/studio-pages?status=draft" && init?.method === "POST") {
+        expect(init.body?.blockOrder).toEqual(["import-source-hero-1-01", "import-source-faq-2-02"]);
+        return Promise.resolve({
+          data: { documentId: "studio-page-1" }
+        });
+      }
+
+      return Promise.resolve({ data: [] });
+    });
 
     const saveResponse = await POST(
       buildPostRequest({
@@ -389,7 +527,7 @@ describe("studio pages route import guards", () => {
           locale: "en",
           shellKey: "shell-main",
           themeKey: "default",
-          blockOrder: ["import-source-hero-1-01", "import-source-faq-2-02"],
+          blockOrder: ["block-doc-1", "block-doc-2"],
           fieldValues: {},
           actionOverrides: {},
           productMapping: "",

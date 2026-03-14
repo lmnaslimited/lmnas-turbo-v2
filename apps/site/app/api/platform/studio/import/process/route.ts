@@ -47,6 +47,7 @@ type PersistedDraftBlock = {
   blockKey: string;
   schemaStatus: "valid" | "warning" | "invalid";
   status: "draft";
+  disposition: "created" | "updated";
   name: string;
   importMasterId: string;
   importMasterKey: string;
@@ -716,7 +717,7 @@ async function upsertCanonicalBlockInStrapi(block: {
   editableFields: string[];
   actions: Array<{ id: string; label: string; type: string; target: string }>;
   schemaStatus: "valid" | "warning" | "invalid";
-}): Promise<void> {
+}): Promise<"created" | "updated"> {
   const lookup = await requestStrapi<StrapiCollectionResponse>(
     `${CANONICAL_BLOCK_COLLECTION}?filters[blockKey][$eq]=${encodeURIComponent(block.blockKey)}&pagination[pageSize]=1`
   );
@@ -751,13 +752,14 @@ async function upsertCanonicalBlockInStrapi(block: {
       method: "PUT",
       body: payload
     });
-    return;
+    return "updated";
   }
 
   await requestStrapi(CANONICAL_BLOCK_COLLECTION, {
     method: "POST",
     body: payload
   });
+  return "created";
 }
 
 async function persistDraftProposalsToStrapi(params: {
@@ -792,7 +794,7 @@ async function persistDraftProposalsToStrapi(params: {
     });
     const name = block.displayName ?? block.family.replaceAll("_", " ");
 
-    await upsertCanonicalBlockInStrapi({
+    const disposition = await upsertCanonicalBlockInStrapi({
       blockKey,
       name,
       family: block.family,
@@ -820,6 +822,7 @@ async function persistDraftProposalsToStrapi(params: {
       blockKey,
       schemaStatus,
       status: "draft",
+      disposition,
       name,
       importMasterId: params.importMaster.id,
       importMasterKey: params.importMaster.importKey,
@@ -881,6 +884,7 @@ function persistDraftProposalsInFallback(analysis: OnboardingAnalysis): Persiste
       blockKey,
       schemaStatus,
       status: "draft",
+      disposition: existingIndex >= 0 ? "updated" : "created",
       name,
       importMasterId: "fallback",
       importMasterKey: "fallback",

@@ -3,10 +3,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { requestClientJson } from "../_lib/client-request";
 import {
-  buildPlatformTargetDocument,
-  ensureHtmlDocument,
-  extractBodyHtml,
-  sanitizeTargetHtml,
+  buildPlatformPagePreviewDocument,
+  buildPreviewPlaceholderDocument,
   usePlatformPreviewAssets
 } from "../_lib/platform-preview";
 import { readPreviewSwatchThemeId, subscribePreviewSwatchThemeId } from "../_lib/preview-swatch-state";
@@ -64,90 +62,6 @@ function changeToneClasses(tone: ChangeCard["tone"]): { badge: string; icon: str
     return { badge: "bg-rose-500/10 text-rose-300", icon: "bg-rose-500/10 text-rose-400" };
   }
   return { badge: "bg-blue-500/10 text-blue-300", icon: "bg-blue-500/10 text-blue-400" };
-}
-
-function previewSrcDoc(page: StudioPageDocument | null): string {
-  const html = page?.previewHtml?.trim() ?? "";
-  if (html.length > 0) {
-    return html;
-  }
-  return [
-    "<!doctype html><html><head><meta charset=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/></head><body style=\"margin:0;background:#020617;color:#e2e8f0;font-family:Inter,system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;\">",
-    "<div style=\"text-align:center;padding:32px\"><h2 style=\"margin:0 0 8px;font-size:24px\">No preview available</h2><p style=\"margin:0;color:#94a3b8\">Save the canonical page preview before publishing.</p></div>",
-    "</body></html>"
-  ].join("");
-}
-
-function unpublishedPreviewSrcDoc(): string {
-  return [
-    "<!doctype html><html><head><meta charset=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/></head><body style=\"margin:0;background:#020617;color:#e2e8f0;font-family:Inter,system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;\">",
-    "<div style=\"text-align:center;padding:32px\"><h2 style=\"margin:0 0 8px;font-size:24px\">No published version</h2><p style=\"margin:0;color:#94a3b8\">Publish this page from Publish Center to create the production version.</p></div>",
-    "</body></html>"
-  ].join("");
-}
-
-function resolveShellPreview(shells: StudioShell[]): { headerHtml: string; footerHtml: string } {
-  const activeFull = shells.find((shell) => shell.status === "active" && shell.role === "full");
-  const activeNavbar = shells.find((shell) => shell.status === "active" && shell.role === "navbar");
-  const activeFooter = shells.find((shell) => shell.status === "active" && shell.role === "footer");
-
-  return {
-    headerHtml:
-      activeFull?.previewHtml ??
-      activeNavbar?.previewHtml ??
-      '<nav style="display:flex;justify-content:space-between;align-items:center;padding:14px 28px;background:#0f172a;color:#f8fafc;font-family:system-ui;border-bottom:1px solid #1e293b"><strong style="font-size:16px">LMNAs</strong><span style="font-size:12px;color:#94a3b8">Studio Shell</span></nav>',
-    footerHtml:
-      activeFull
-        ? ""
-        : activeFooter?.previewHtml ??
-          '<footer style="padding:18px 28px;background:#0b1120;color:#64748b;font-family:system-ui;text-align:center;font-size:12px;border-top:1px solid #1e293b">LMNAs Studio Footer</footer>'
-  };
-}
-
-function buildStagingPreview(params: {
-  page: StudioPageDocument | null;
-  blocks: StudioBlockTemplate[];
-  shells: StudioShell[];
-  themes: StudioTheme[];
-  previewTheme: StudioTheme | null;
-  hostAssets: ReturnType<typeof usePlatformPreviewAssets>;
-}): string {
-  if (!params.page) {
-    return previewSrcDoc(null);
-  }
-
-  const blockMap = new Map<string, StudioBlockTemplate>();
-  params.blocks.forEach((block) => {
-    blockMap.set(block.id, block);
-    blockMap.set(block.key, block);
-  });
-
-  const sectionHtml = params.page.blockOrder
-    .map((blockId) => {
-      const block = blockMap.get(blockId);
-      return extractBodyHtml(ensureHtmlDocument(sanitizeTargetHtml(block?.targetPreviewHtml ?? block?.previewHtml ?? "")));
-    })
-    .filter((html) => html.trim().length > 0)
-    .join("\n");
-
-  const shell = resolveShellPreview(params.shells);
-  const theme =
-    params.previewTheme ??
-    params.themes.find((entry) => entry.themeKey === params.page?.themeKey) ??
-    params.themes.find((entry) => entry.status === "active") ??
-    params.themes[0] ??
-    null;
-
-  return buildPlatformTargetDocument({
-    bodyHtml:
-      sectionHtml.length > 0
-        ? sectionHtml
-        : "<section style='padding:48px;font-family:system-ui'><h2>No blocks composed yet.</h2><p>Add reusable blocks before publishing.</p></section>",
-    theme,
-    hostAssets: params.hostAssets,
-    beforeBodyHtml: shell.headerHtml,
-    afterBodyHtml: shell.footerHtml
-  });
 }
 
 export default function PublishWorkflowPage(): React.ReactElement {
@@ -297,34 +211,32 @@ export default function PublishWorkflowPage(): React.ReactElement {
   );
   const productionPreview = useMemo(
     () => {
-      const publishedPreviewHtml =
-        governancePage?.publishedPreviewHtml?.trim().length
-          ? governancePage.publishedPreviewHtml
-          : publishedPage?.previewHtml?.trim().length
-            ? publishedPage.previewHtml
-            : "";
-      if (!publishedPreviewHtml) {
-        return unpublishedPreviewSrcDoc();
+      if (!publishedPage) {
+        return buildPreviewPlaceholderDocument("No published version", "Publish this page from Publish Center to create the production version.");
       }
-      return publishedPreviewHtml;
+      return buildPlatformPagePreviewDocument({
+        page: publishedPage,
+        blocks,
+        shells,
+        themes,
+        hostAssets: platformPreviewAssets,
+        fallbackHtml: publishedPage.publishedPreviewHtml ?? publishedPage.previewHtml
+      });
     },
-    [governancePage, publishedPage]
+    [publishedPage, blocks, shells, themes, platformPreviewAssets]
   );
   const stagingPreview = useMemo(
     () => {
       if (!governancePage) {
-        return previewSrcDoc(null);
+        return buildPreviewPlaceholderDocument("No preview available", "Save the canonical page preview before publishing.");
       }
-      if (governancePage.previewHtml.trim().length > 0) {
-        return governancePage.previewHtml;
-      }
-      return buildStagingPreview({
+      return buildPlatformPagePreviewDocument({
         page: governancePage,
         blocks,
         shells,
         themes,
-        previewTheme: null,
-        hostAssets: platformPreviewAssets
+        hostAssets: platformPreviewAssets,
+        fallbackHtml: governancePage.previewHtml
       });
     },
     [blocks, governancePage, platformPreviewAssets, shells, themes]
