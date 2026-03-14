@@ -1,0 +1,41 @@
+{
+  "ok": true,
+  "data": {
+    "legacyBlockTemplatesBefore": 0,
+    "legacyBlockTemplatesAfter": 0,
+    "pagesWithLegacyBlocksBefore": 0,
+    "pagesWithLegacyBlocksAfter": 0,
+    "sterile": true
+  },
+  "source": "strapi",
+  "cleanup": {
+    "executedAt": "2026-03-10T13:20:31.965Z",
+    "blockTemplates": {
+      "before": [],
+      "deletedIds": [],
+      "after": []
+    },
+    "pages": {
+      "before": [
+        {
+          "id": "vla553v5q4tulwwqk3k4aszc",
+          "slug": "home",
+          "locale": "en",
+          "totalBlocks": 1,
+          "legacyBlockCount": 0
+        }
+      ],
+      "updated": [],
+      "after": [
+        {
+          "id": "vla553v5q4tulwwqk3k4aszc",
+          "slug": "home",
+          "locale": "en",
+          "totalBlocks": 1,
+          "legacyBlockCount": 0
+        }
+      ]
+    },
+    "sterile": true
+  }
+}

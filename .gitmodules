@@ -1,0 +1,3 @@
+[submodule "docs/operating"]
+	path = docs/operating
+	url = https://github.com/lmnaslimited/lmnas-context.git

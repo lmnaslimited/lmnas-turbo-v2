@@ -1,0 +1,31 @@
+{
+  "collectionName": "components_shell_shell_assignments",
+  "info": {
+    "displayName": "shell-assignment"
+  },
+  "options": {},
+  "attributes": {
+    "scope": {
+      "type": "enumeration",
+      "enum": ["site", "page"],
+      "required": true,
+      "default": "page"
+    },
+    "shellVariantId": {
+      "type": "string",
+      "required": true
+    },
+    "pageSlug": {
+      "type": "string",
+      "required": false
+    },
+    "navbarVariantId": {
+      "type": "string",
+      "required": false
+    },
+    "footerVariantId": {
+      "type": "string",
+      "required": false
+    }
+  }
+}

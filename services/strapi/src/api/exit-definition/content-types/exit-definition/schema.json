@@ -1,0 +1,25 @@
+{
+  "kind": "collectionType",
+  "collectionName": "exit_definitions",
+  "info": {
+    "singularName": "exit-definition",
+    "pluralName": "exit-definitions",
+    "displayName": "Exit Definition"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "exitId": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "definition": {
+      "type": "component",
+      "repeatable": false,
+      "component": "exits.exit-definition",
+      "required": true
+    }
+  }
+}

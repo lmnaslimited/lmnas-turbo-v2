@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LMNAs Studio - Page Composer</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1162d4",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101822",
+                        "surface": "#1a2432",
+                        "border-subtle": "#233348",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined { font-size: 20px; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+<div class="flex h-screen overflow-hidden">
+<!-- Sidebar -->
+<aside class="w-64 flex-shrink-0 bg-background-dark border-r border-border-subtle flex flex-col hidden">
+<div class="p-6 flex items-center gap-3">
+<div class="size-10 rounded-full bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-white">grid_view</span>
+</div>
+<div>
+<h1 class="text-white text-base font-bold leading-tight">LMNAs Studio</h1>
+<p class="text-slate-400 text-xs font-normal">Premium B2B SaaS</p>
+</div>
+</div>
+<nav class="flex-1 px-4 space-y-2 mt-4">
+<a class="flex items-center gap-3 px-3 py-2 text-slate-400 hover:text-white hover:bg-surface rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">download</span>
+<span class="text-sm font-medium">Import</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-400 hover:text-white hover:bg-surface rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">widgets</span>
+<span class="text-sm font-medium">Blocks</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-white bg-primary/20 border border-primary/30 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-primary">description</span>
+<span class="text-sm font-medium">Pages</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-400 hover:text-white hover:bg-surface rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">extension</span>
+<span class="text-sm font-medium">Widgets</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-400 hover:text-white hover:bg-surface rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">palette</span>
+<span class="text-sm font-medium">Theme &amp; Shell</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-400 hover:text-white hover:bg-surface rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">rocket_launch</span>
+<span class="text-sm font-medium">Publish</span>
+</a>
+</nav>
+<div class="p-4 border-t border-border-subtle">
+<div class="flex items-center gap-3 px-2 py-3 bg-surface rounded-xl">
+<div class="size-8 rounded-full bg-slate-700" data-alt="User profile avatar placeholder"></div>
+<div class="flex flex-col">
+<span class="text-xs font-bold text-white">Alex Rivera</span>
+<span class="text-[10px] text-slate-400 uppercase tracking-wider">Admin</span>
+</div>
+<span class="material-symbols-outlined ml-auto text-slate-500">settings</span>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<div class="flex-1 flex flex-col min-w-0 bg-background-dark">
+<!-- Header -->
+<header class="h-16 border-b border-border-subtle flex items-center justify-between px-8 shrink-0">
+<div class="flex flex-col">
+<h2 class="text-white text-lg font-bold">Page Composer</h2>
+<p class="text-slate-400 text-xs">Compose and edit your pages using reusable blocks.</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 px-3 py-1.5 bg-surface border border-border-subtle rounded-lg text-slate-300 text-xs font-medium hover:text-white hover:border-primary transition-all mr-4">
+<span class="material-symbols-outlined !text-sm">side_navigation</span>
+    Show Panels
+</button><button class="px-4 py-2 text-slate-300 text-sm font-medium hover:text-white transition-colors">Save Draft</button>
+<div class="flex items-center gap-1 bg-surface p-1 rounded-full border border-border-subtle mr-2">
+<button class="w-6 h-6 rounded-full bg-primary ring-2 ring-offset-2 ring-offset-background-dark ring-primary"></button>
+<button class="w-6 h-6 rounded-full bg-emerald-500 hover:scale-110 transition-transform"></button>
+<button class="w-6 h-6 rounded-full bg-amber-500 hover:scale-110 transition-transform"></button>
+<button class="w-6 h-6 rounded-full bg-purple-500 hover:scale-110 transition-transform"></button>
+</div><button class="bg-primary hover:bg-primary/90 text-white px-5 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all">
+<span class="material-symbols-outlined !text-[18px]">visibility</span>
+                        Preview Page
+                    </button>
+</div>
+</header>
+<!-- Three Column Layout -->
+<div class="flex-1 flex overflow-hidden">
+<!-- Left: Page List -->
+<div class="w-72 border-r border-border-subtle flex flex-col bg-background-dark/50 overflow-y-auto">
+<div class="p-4 border-b border-border-subtle">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 !text-base">search</span>
+<input class="w-full bg-surface border-none rounded-lg pl-10 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:ring-1 focus:ring-primary" placeholder="Search pages..." type="text"/>
+</div>
+</div>
+<div class="flex-1 p-2 space-y-1">
+<div class="px-3 py-2 flex items-center justify-between group bg-surface rounded-lg cursor-pointer">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">home</span>
+<span class="text-sm font-medium text-white">Home</span>
+</div>
+<span class="flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+</div>
+<div class="px-3 py-2 flex items-center justify-between group hover:bg-surface/50 rounded-lg cursor-pointer">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-500">info</span>
+<span class="text-sm font-medium text-slate-300">About Us</span>
+</div>
+<span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">DRAFT</span>
+</div>
+<div class="px-3 py-2 flex items-center justify-between group hover:bg-surface/50 rounded-lg cursor-pointer">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-500">payments</span>
+<span class="text-sm font-medium text-slate-300">Pricing</span>
+</div>
+<span class="flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+</div>
+<div class="px-3 py-2 flex items-center justify-between group hover:bg-surface/50 rounded-lg cursor-pointer">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-500">article</span>
+<span class="text-sm font-medium text-slate-300">Blog</span>
+</div>
+<span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">DRAFT</span>
+</div>
+</div>
+<div class="p-4">
+<button class="w-full py-2 border border-dashed border-border-subtle rounded-lg text-slate-400 text-xs font-medium hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined !text-sm">add</span> Add New Page
+                        </button>
+</div>
+</div>
+<!-- Center: Visual Composer -->
+<div class="flex-1 bg-background-light dark:bg-slate-900/50 p-8 overflow-y-auto bg-[radial-gradient(#233348_1px,transparent_1px)] [background-size:24px_24px]"><div class="max-w-4xl mx-auto mb-4 flex items-center justify-between opacity-50">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined !text-sm text-slate-400">layers</span>
+<span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Canvas Workspace</span>
+</div>
+<div class="flex gap-4">
+<span class="material-symbols-outlined !text-sm text-slate-400">stay_primary_portrait</span>
+<span class="material-symbols-outlined !text-sm text-slate-400">tablet_mac</span>
+<span class="material-symbols-outlined !text-sm text-primary">desktop_windows</span>
+</div>
+</div>
+<div class="max-w-4xl mx-auto space-y-6">
+<!-- Block: Hero -->
+<div class="relative group border-2 border-transparent hover:border-primary/50 rounded-xl overflow-hidden transition-all bg-surface shadow-2xl">
+<!-- Block Controls Overlay -->
+<div class="absolute right-4 top-4 opacity-0 group-hover:opacity-100 flex items-center gap-2 transition-opacity z-10">
+<button class="bg-background-dark border border-border-subtle p-2 rounded-lg hover:bg-primary hover:border-primary transition-colors">
+<span class="material-symbols-outlined text-white !text-base">drag_indicator</span>
+</button>
+<button class="bg-background-dark border border-border-subtle p-2 rounded-lg hover:bg-primary hover:border-primary transition-colors">
+<span class="material-symbols-outlined text-white !text-base">sync</span>
+</button>
+<button class="bg-red-500/20 border border-red-500/50 p-2 rounded-lg hover:bg-red-500 transition-colors">
+<span class="material-symbols-outlined text-red-500 group-hover:text-white !text-base">delete</span>
+</button>
+</div>
+<!-- Block Content -->
+<div class="p-12 text-center space-y-6">
+<div class="w-20 h-20 bg-primary/20 rounded-2xl mx-auto flex items-center justify-center">
+<span class="material-symbols-outlined text-primary !text-4xl">rocket</span>
+</div>
+<h1 class="text-4xl font-bold text-white outline-none focus:ring-2 focus:ring-primary rounded px-2" contenteditable="true">Scale your business faster than ever.</h1>
+<p class="text-slate-400 text-lg max-w-xl mx-auto outline-none focus:ring-2 focus:ring-primary rounded px-2" contenteditable="true">The all-in-one platform for modern enterprise solutions and automated workflows.</p>
+<div class="flex justify-center gap-4">
+<div class="bg-primary px-8 py-3 rounded-lg font-bold text-white">Get Started</div>
+<div class="border border-border-subtle px-8 py-3 rounded-lg font-bold text-slate-300">Learn More</div>
+</div>
+</div>
+</div>
+<!-- Block: Features -->
+<div class="relative group border-2 border-primary rounded-xl overflow-hidden transition-all bg-surface shadow-2xl">
+<!-- Active Edit State -->
+<div class="absolute -left-1 top-1/2 -translate-y-1/2 h-2/3 w-1 bg-primary rounded-full"></div>
+<div class="absolute right-4 top-4 flex items-center gap-2 z-10">
+<button class="bg-background-dark border border-border-subtle p-2 rounded-lg text-white"><span class="material-symbols-outlined !text-base">expand_less</span></button>
+<button class="bg-background-dark border border-border-subtle p-2 rounded-lg text-white"><span class="material-symbols-outlined !text-base">expand_more</span></button>
+<button class="bg-primary border border-primary p-2 rounded-lg text-white"><span class="material-symbols-outlined !text-base">settings</span></button>
+</div>
+<div class="p-10">
+<div class="grid grid-cols-3 gap-8">
+<div class="space-y-3">
+<span class="material-symbols-outlined text-primary">analytics</span>
+<h3 class="font-bold text-white" contenteditable="true">Real-time Analytics</h3>
+<p class="text-sm text-slate-400" contenteditable="true">Track every metric as it happens with our live dashboard.</p>
+</div>
+<div class="space-y-3">
+<span class="material-symbols-outlined text-primary">shield</span>
+<h3 class="font-bold text-white" contenteditable="true">Enterprise Security</h3>
+<p class="text-sm text-slate-400" contenteditable="true">Bank-grade encryption for all your sensitive data.</p>
+</div>
+<div class="space-y-3">
+<span class="material-symbols-outlined text-primary">cloud</span>
+<h3 class="font-bold text-white" contenteditable="true">Cloud Sync</h3>
+<p class="text-sm text-slate-400" contenteditable="true">Access your data from anywhere in the world instantly.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Add Block Placeholder -->
+<div class="border-2 border-dashed border-border-subtle rounded-xl p-8 flex flex-col items-center justify-center gap-3 hover:border-primary/50 hover:bg-surface/30 cursor-pointer transition-all"><div class="flex flex-col items-center py-4">
+<div class="grid grid-cols-2 gap-4 w-full max-w-md">
+<div class="aspect-video rounded-lg bg-surface border border-border-subtle flex flex-col items-center justify-center gap-2 hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group">
+<span class="material-symbols-outlined text-slate-500 group-hover:text-primary">view_quilt</span>
+<span class="text-[10px] font-bold text-slate-400 group-hover:text-primary uppercase">Features</span>
+</div>
+<div class="aspect-video rounded-lg bg-surface border border-border-subtle flex flex-col items-center justify-center gap-2 hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group">
+<span class="material-symbols-outlined text-slate-500 group-hover:text-primary">image</span>
+<span class="text-[10px] font-bold text-slate-400 group-hover:text-primary uppercase">Hero Gallery</span>
+</div>
+</div>
+<div class="mt-6 flex flex-col items-center gap-2">
+<div class="size-12 rounded-full bg-primary/20 flex items-center justify-center text-primary shadow-inner">
+<span class="material-symbols-outlined !text-2xl">add</span>
+</div>
+<span class="text-sm font-bold text-slate-300">Open Component Gallery</span>
+<p class="text-[10px] text-slate-500">Browse 40+ pre-built sections</p>
+</div>
+</div></div>
+</div>
+</div>
+<!-- Right: Properties Panel -->
+<div class="w-80 border-l border-border-subtle bg-background-dark flex flex-col overflow-y-auto hidden">
+<!-- Propagation Alert / Toggle - CRITICAL FEATURE -->
+<div class="p-5 bg-surface/30 border-b border-border-subtle">
+<label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4 block">Update Strategy</label>
+<div class="grid grid-cols-1 gap-3">
+<div class="relative p-3 rounded-xl border-2 border-primary bg-primary/10 cursor-pointer group">
+<div class="flex items-start gap-3">
+<div class="size-8 rounded-lg bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/40">
+<span class="material-symbols-outlined !text-lg">insert_drive_file</span>
+</div>
+<div class="flex-1">
+<p class="text-xs font-bold text-white">Page Only</p>
+<p class="text-[10px] text-slate-400 leading-tight mt-0.5">Changes affect only this specific page.</p>
+</div>
+<span class="material-symbols-outlined text-primary !text-base">check_circle</span>
+</div>
+</div>
+<div class="relative p-3 rounded-xl border border-border-subtle bg-surface hover:border-slate-600 transition-all cursor-pointer group">
+<div class="flex items-start gap-3">
+<div class="size-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-white transition-colors">
+<span class="material-symbols-outlined !text-lg">all_inclusive</span>
+</div>
+<div class="flex-1">
+<p class="text-xs font-bold text-slate-300 group-hover:text-white">Global Sync</p>
+<p class="text-[10px] text-slate-500 leading-tight mt-0.5">Sync changes across 14 other pages using this block.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="p-5 space-y-6">
+<!-- Block Properties Section -->
+<div class="space-y-3">
+<label class="text-xs font-medium text-slate-300">Background Style</label>
+<div class="flex flex-wrap gap-2">
+<button class="size-8 rounded-lg bg-surface border-2 border-primary ring-2 ring-primary/20 ring-offset-2 ring-offset-background-dark" title="Dark Surface"></button>
+<button class="size-8 rounded-lg bg-gradient-to-br from-primary to-blue-700 hover:scale-105 transition-transform" title="Gradient Blue"></button>
+<button class="size-8 rounded-lg bg-black hover:scale-105 transition-transform border border-border-subtle" title="Pure Black"></button>
+<button class="size-8 rounded-lg bg-slate-100 hover:scale-105 transition-transform" title="Light"></button>
+<button class="size-8 rounded-lg bg-surface border border-dashed border-slate-600 flex items-center justify-center group">
+<span class="material-symbols-outlined !text-xs text-slate-500 group-hover:text-white">add</span>
+</button>
+</div>
+</div>
+<hr class="border-border-subtle"/>
+<!-- SEO Section -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest">SEO &amp; Meta</h3>
+<span class="material-symbols-outlined text-slate-500 !text-sm">info</span>
+</div>
+<div class="space-y-4">
+<div class="space-y-1.5">
+<label class="text-xs font-medium text-slate-300">Meta Title</label>
+<input class="w-full bg-surface border-border-subtle rounded-lg text-sm text-white focus:ring-primary" type="text" value="Home | LMNAs Studio"/>
+</div>
+<div class="space-y-1.5">
+<label class="text-xs font-medium text-slate-300">Meta Description</label>
+<textarea class="w-full bg-surface border-border-subtle rounded-lg text-sm text-white focus:ring-primary" rows="3">Premium enterprise dashboard solutions for modern B2B SaaS companies...</textarea>
+</div>
+</div>
+</section>
+<hr class="border-border-subtle"/>
+<!-- Page Shell Section -->
+<section>
+<h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Page Shell</h3>
+<div class="p-3 bg-surface rounded-xl border border-border-subtle group hover:border-primary transition-all cursor-pointer">
+<div class="flex items-center gap-3">
+<div class="size-8 bg-slate-800 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-500">web</span>
+</div>
+<div class="flex-1">
+<p class="text-xs font-bold text-white">Main Marketing Shell</p>
+<p class="text-[10px] text-slate-500">Header v2, Footer v1</p>
+</div>
+<span class="material-symbols-outlined text-slate-500 group-hover:text-primary">chevron_right</span>
+</div>
+</div>
+</section>
+</div>
+<div class="mt-auto p-4 bg-background-dark/80 backdrop-blur-sm border-t border-border-subtle">
+<button class="w-full bg-primary py-3 rounded-lg text-white text-sm font-bold shadow-lg shadow-primary/30 flex items-center justify-center gap-2">
+<span class="material-symbols-outlined !text-[18px]">publish</span>
+                            Update Page
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

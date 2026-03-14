@@ -1,0 +1,17 @@
+{
+  "collectionName": "components_exits_exit_policies",
+  "info": {
+    "displayName": "exit-policy"
+  },
+  "options": {},
+  "attributes": {
+    "environmentAllowlist": {
+      "type": "json",
+      "required": false
+    },
+    "roleAllowlist": {
+      "type": "json",
+      "required": false
+    }
+  }
+}

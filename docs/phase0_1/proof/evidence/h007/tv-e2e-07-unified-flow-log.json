@@ -1,0 +1,603 @@
+{
+  "steps": {
+    "import": {
+      "request": {
+        "sourceRef": "docs/testing-artifacts/code.html"
+      },
+      "response": {
+        "status": 200,
+        "payload": {
+          "ok": true,
+          "analysis": {
+            "intake": {
+              "sourceType": "raw_html",
+              "sourceValue": "<!DOCTYPE html>\n<html>\n  <body>\n    <section>\n      <h1>LMNAs Product Recovery Hero</h1>\n      <p>Unified operator flow baseline source.</p>\n      <a href=\"/book-demo\">Book Demo</a>\n    </section>\n    <section>\n      <h2>Why teams choose LMNAs</h2>\n      <p>Reusable block extraction from approved source.</p>\n    </section>\n    <section>\n      <h2>FAQ</h2>\n      <p>How does the recovery flow ensure safe publishing?</p>\n    </section>\n  </body>\n</html>",
+              "slug": "block-import",
+              "locale": "en",
+              "themeKey": "default"
+            },
+            "source": {
+              "sourceRef": "raw-html",
+              "referencePreviewHtml": "<!DOCTYPE html>\n<html><head><style>.lmnas-source-item{outline:2px solid transparent;outline-offset:2px;cursor:pointer;transition:outline-color .15s ease;}.lmnas-source-item:hover{outline-color:#5aa2ff;}.lmnas-source-item-active{outline-color:#0b66ff !important;box-shadow:0 0 0 2px rgba(11,102,255,.2);}</style></head>\n  <body class=\"theme-default\">\n    <section>\n      <h1>LMNAs Product Recovery Hero</h1>\n      <p>Unified operator flow baseline source.</p>\n      <a href=\"/book-demo\">Book Demo</a>\n    </section>\n    <section>\n      <h2>Why teams choose LMNAs</h2>\n      <p>Reusable block extraction from approved source.</p>\n    </section>\n    <section>\n      <h2>FAQ</h2>\n      <p>How does the recovery flow ensure safe publishing?</p>\n    </section>\n  </body>\n</html>",
+              "productionPreviewHtml": "<!DOCTYPE html>\n<html><head><style>.lmnas-source-item{outline:2px solid transparent;outline-offset:2px;cursor:pointer;transition:outline-color .15s ease;}.lmnas-source-item:hover{outline-color:#5aa2ff;}.lmnas-source-item-active{outline-color:#0b66ff !important;box-shadow:0 0 0 2px rgba(11,102,255,.2);}</style></head>\n  <body class=\"theme-default\">\n    <section>\n      <h1>LMNAs Product Recovery Hero</h1>\n      <p>Unified operator flow baseline source.</p>\n      <a href=\"/book-demo\">Book Demo</a>\n    </section>\n    <section>\n      <h2>Why teams choose LMNAs</h2>\n      <p>Reusable block extraction from approved source.</p>\n    </section>\n    <section>\n      <h2>FAQ</h2>\n      <p>How does the recovery flow ensure safe publishing?</p>\n    </section>\n  </body>\n</html>",
+              "rawMarkupPreview": "<!DOCTYPE html>\n<html>\n  <body>\n    <section>\n      <h1>LMNAs Product Recovery Hero</h1>\n      <p>Unified operator flow baseline source.</p>\n      <a href=\"/book-demo\">Book Demo</a>\n    </section>\n    <section>\n      <h2>Why teams choose LMNAs</h2>\n      <p>Reusable block extraction from approved source.</p>\n    </section>\n    <section>\n      <h2>FAQ</h2>\n      <p>How does the recovery flow ensure safe publishing?</p>\n    </section>\n  </body>\n</html>",
+              "themeScopeClass": "theme-default",
+              "styleProfile": {
+                "appliedStrategy": "unstyled_fallback",
+                "inlineStyleTagCount": 0,
+                "linkedStylesheetCount": 0,
+                "unresolvedStylesheetCount": 0,
+                "fidelityNotes": [
+                  "No stylesheet tags found. Preview may rely on browser defaults."
+                ]
+              }
+            },
+            "shellCandidates": [
+              {
+                "id": "navbar-fallback-1",
+                "displayName": "Fallback Navbar",
+                "type": "navbar",
+                "selectorHint": "<body>",
+                "previewSelector": "body",
+                "confidence": 0.35,
+                "menuItems": [],
+                "editableFields": [
+                  "navItemLabel",
+                  "navDestination"
+                ],
+                "ctaLabels": [],
+                "sourceSnippet": "<body>",
+                "previewHtml": "<div>No navigation detected</div>"
+              },
+              {
+                "id": "footer-fallback-1",
+                "displayName": "Fallback Footer",
+                "type": "footer",
+                "selectorHint": "<body>",
+                "previewSelector": "body",
+                "confidence": 0.3,
+                "menuItems": [],
+                "editableFields": [
+                  "footerLinks",
+                  "legalText"
+                ],
+                "ctaLabels": [],
+                "sourceSnippet": "<body>",
+                "previewHtml": "<div>No footer detected</div>"
+              }
+            ],
+            "blockProposals": [
+              {
+                "id": "block-1",
+                "displayName": "Block 1",
+                "family": "hero",
+                "selectorHint": "section:nth-of-type(1)",
+                "previewSelector": "section:nth-of-type(1)",
+                "confidence": 0.6,
+                "editableFields": [
+                  "heading",
+                  "subheading",
+                  "richText",
+                  "buttonText",
+                  "buttonUrl"
+                ],
+                "ctaLabels": [
+                  "Book Demo"
+                ],
+                "actionIds": [
+                  "action_book_demo_1"
+                ],
+                "segmentation": "keep",
+                "rawHtmlSnippet": "<section>\n      <h1>LMNAs Product Recovery Hero</h1>\n      <p>Unified operator flow baseline source.</p>\n      <a href=\"/book-demo\">Book Demo</a>\n    </section>",
+                "sourceSnippet": "<section>\n      <h1>LMNAs Product Recovery Hero</h1>\n      <p>Unified operator flow baseline source.</p>\n      <a href=\"/book-demo\">Book Demo</a>\n    </section>",
+                "previewHtml": "<section>\n      <h1>LMNAs Product Recovery Hero</h1>\n      <p>Unified operator flow baseline source.</p>\n      <a href=\"/book-demo\">Book Demo</a>\n    </section>"
+              },
+              {
+                "id": "block-2",
+                "displayName": "Block 2",
+                "family": "rich_text_section",
+                "selectorHint": "section:nth-of-type(2)",
+                "previewSelector": "section:nth-of-type(2)",
+                "confidence": 0.42,
+                "editableFields": [
+                  "heading",
+                  "subheading",
+                  "richText"
+                ],
+                "ctaLabels": [],
+                "actionIds": [],
+                "segmentation": "keep",
+                "rawHtmlSnippet": "<section>\n      <h2>Why teams choose LMNAs</h2>\n      <p>Reusable block extraction from approved source.</p>\n    </section>",
+                "sourceSnippet": "<section>\n      <h2>Why teams choose LMNAs</h2>\n      <p>Reusable block extraction from approved source.</p>\n    </section>",
+                "previewHtml": "<section>\n      <h2>Why teams choose LMNAs</h2>\n      <p>Reusable block extraction from approved source.</p>\n    </section>"
+              },
+              {
+                "id": "block-3",
+                "displayName": "Block 3",
+                "family": "faq",
+                "selectorHint": "section:nth-of-type(3)",
+                "previewSelector": "section:nth-of-type(3)",
+                "confidence": 0.6,
+                "editableFields": [
+                  "heading",
+                  "subheading",
+                  "richText",
+                  "faqItems"
+                ],
+                "ctaLabels": [],
+                "actionIds": [],
+                "segmentation": "keep",
+                "rawHtmlSnippet": "<section>\n      <h2>FAQ</h2>\n      <p>How does the recovery flow ensure safe publishing?</p>\n    </section>",
+                "sourceSnippet": "<section>\n      <h2>FAQ</h2>\n      <p>How does the recovery flow ensure safe publishing?</p>\n    </section>",
+                "previewHtml": "<section>\n      <h2>FAQ</h2>\n      <p>How does the recovery flow ensure safe publishing?</p>\n    </section>"
+              }
+            ],
+            "widgetProposals": [
+              {
+                "id": "booking_popup_book_demo",
+                "name": "Booking Popup",
+                "displayName": "Booking Popup",
+                "widgetType": "booking_popup",
+                "selectorHint": "a[href='/book-demo']",
+                "previewSelector": "a[href='/book-demo']",
+                "confidence": 0.8200000000000001,
+                "editableFields": [
+                  "heading",
+                  "body",
+                  "buttonText"
+                ],
+                "triggerLabels": [
+                  "Book Demo"
+                ],
+                "associatedActionIds": [
+                  "action_book_demo_1"
+                ],
+                "sourceSnippet": "Book Demo",
+                "previewHtml": "<div><strong>Book Demo</strong></div>"
+              }
+            ],
+            "actionProposals": [
+              {
+                "id": "action_book_demo_1",
+                "label": "Book Demo",
+                "displayName": "Book Demo",
+                "selectorHint": "a[href='/book-demo']",
+                "previewSelector": "a[href='/book-demo']",
+                "confidence": 0.86,
+                "actionType": "open_widget",
+                "sourceSurface": "block",
+                "sourceItemId": "block-1",
+                "sourceItemLabel": "Block 1",
+                "ctaKind": "anchor",
+                "ctaHref": "/book-demo",
+                "destination": {
+                  "kind": "widget",
+                  "value": "booking_popup_book_demo"
+                },
+                "suggestedExitId": "book_appointment_primary",
+                "summary": "Open booking widget",
+                "sourceSnippet": "<a href=\"/book-demo\">Book Demo</a>",
+                "previewHtml": "<a href=\"/book-demo\">Book Demo</a>"
+              }
+            ],
+            "exitProposals": [
+              {
+                "id": "book_appointment_primary",
+                "name": "Book Demo",
+                "eventName": "exit_book_appointment_primary_triggered",
+                "selectorHint": "a[href='/book-demo']",
+                "confidence": 0.86,
+                "state": "active",
+                "frontendAdapterType": "modal",
+                "backendAdapterType": "n8n_webhook",
+                "workflowTarget": {
+                  "kind": "n8n_webhook",
+                  "value": "n8n://workflow/book_demo"
+                },
+                "sourceActionId": "action_book_demo_1",
+                "suggestedBinding": {
+                  "locationType": "block",
+                  "locationId": "block-1"
+                }
+              }
+            ],
+            "theme": {
+              "themeKey": "default",
+              "tokenFirstMatchRatio": 0.5,
+              "arbitraryValueCount": 0,
+              "themeDebtSummary": "Token-first mapping is healthy.",
+              "hasDarkModeTrigger": false,
+              "extractedFonts": [],
+              "extractedColors": {},
+              "utilityClassUsages": []
+            },
+            "fidelityWarnings": [
+              {
+                "code": "blocks.low_confidence",
+                "message": "1 block(s) need operator confirmation due to low confidence mapping.",
+                "severity": "warning"
+              },
+              {
+                "code": "preview.structural_match",
+                "message": "Source sections=3, mapped blocks=3, structural match=100.0%",
+                "severity": "info"
+              },
+              {
+                "code": "preview.fidelity_note_1",
+                "message": "No stylesheet tags found. Preview may rely on browser defaults.",
+                "severity": "warning"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "proposal": {
+      "detectionVisible": true,
+      "detectedBlockCount": 3
+    },
+    "blockNormalization": {
+      "blockPublishStatus": 200
+    },
+    "pageComposition": {
+      "selectedPageId": "page-1773288384804",
+      "selectedPageSlug": "h007-recovery-page",
+      "routeSlugEntitiesCreated": 0,
+      "importedSectionCount": 3
+    },
+    "contentEditing": {
+      "localScopeApplied": true,
+      "reusableScopeApplied": true,
+      "localScopeLeftReusableBlockUnchanged": true,
+      "reusableScopeLeftPageLocalHeadlineUnchanged": true,
+      "reusableScopeMutatedReusableBlock": true
+    },
+    "widgetActionBinding": {
+      "rejectionStatus": 400,
+      "rejectionPayload": {
+        "ok": false,
+        "code": "widgets.raw_script_forbidden",
+        "error": "Raw executable script uploads are forbidden. Widgets must map to approved repo paths."
+      },
+      "successStatus": 200,
+      "executeStatus": 200,
+      "mappedAction": {
+        "id": "import-action-1",
+        "label": "Imported Link",
+        "type": "link_url",
+        "target": "widget-calendar-booking"
+      },
+      "widgetBlockId": "193"
+    },
+    "preview": {
+      "frameVisible": true,
+      "swatchPreviewBannerVisible": true
+    },
+    "publish": {
+      "status": 200,
+      "payload": {
+        "ok": true,
+        "data": {
+          "mode": "apply",
+          "applied": true,
+          "blocked": false,
+          "source": "strapi",
+          "fidelityMode": "allow-below-threshold",
+          "warnings": [
+            {
+              "code": "publish.fidelity_dark_media_detected",
+              "message": "Source includes @media(dark) or prefers-color-scheme dark rules.",
+              "severity": "info"
+            },
+            {
+              "code": "publish.fidelity_typography_mismatch",
+              "message": "Typography mismatch 1.000 exceeds threshold 0.270.",
+              "severity": "warning"
+            }
+          ],
+          "activeTheme": {
+            "id": "theme-1773288388918",
+            "themeKey": "h004-live-active",
+            "name": "H004 Live Active",
+            "darkMode": true,
+            "status": "active"
+          },
+          "ignoredPreviewSwatchThemeId": "theme-1773288388477",
+          "rejectionReason": null,
+          "fidelity": {
+            "threshold": 0.27,
+            "hasDarkMediaQuery": true,
+            "darkModeMismatchRatio": 0,
+            "typographyMismatchRatio": 1,
+            "highestMismatchRatio": 1,
+            "exceedsThreshold": true,
+            "sourceFonts": [
+              "comic sans ms",
+              "cursive"
+            ],
+            "themeTypographyFonts": [
+              "manrope",
+              "sans-serif"
+            ],
+            "figmaTypographyFonts": [
+              "manrope",
+              "inter"
+            ]
+          },
+          "payload": {
+            "generatedAt": "2026-03-12T04:06:28.934Z",
+            "mode": "apply",
+            "activeTheme": {
+              "id": "theme-1773288388918",
+              "themeKey": "h004-live-active",
+              "name": "H004 Live Active",
+              "darkMode": true,
+              "status": "active"
+            },
+            "sourceHtml": "<style>\n@media(dark) {\n  body { background: #020617; color: #f8fafc; }\n}\nbody { font-family: 'Comic Sans MS', cursive; }\n</style>\n<main><h1>Publish Fidelity Probe</h1><p>Inspect fidelity before commit.</p></main>",
+            "fidelity": {
+              "mode": "allow-below-threshold",
+              "threshold": 0.27,
+              "report": {
+                "hasDarkMediaQuery": true,
+                "darkModeMismatchRatio": 0,
+                "typographyMismatchRatio": 1,
+                "highestMismatchRatio": 1,
+                "exceedsThreshold": true
+              }
+            }
+          },
+          "persistence": {
+            "source": "strapi",
+            "mutated": true,
+            "themeId": "ooo64phlz9wdqqtbu0lv3asw"
+          }
+        }
+      }
+    },
+    "reopen": {
+      "status": "modified"
+    }
+  },
+  "entitiesChanged": {
+    "pages": [
+      {
+        "id": "page-1773288384804",
+        "slug": "h007-recovery-page",
+        "updatedAt": "2026-03-12"
+      }
+    ],
+    "blocks": [
+      {
+        "id": "193",
+        "name": "Imported Block 1",
+        "updatedAt": "2026-03-12"
+      },
+      {
+        "id": "189",
+        "name": "Imported Block 3",
+        "updatedAt": "2026-03-12"
+      },
+      {
+        "id": "187",
+        "name": "Imported Block 2",
+        "updatedAt": "2026-03-12"
+      },
+      {
+        "id": "185",
+        "name": "Imported Block 1",
+        "updatedAt": "2026-03-12"
+      },
+      {
+        "id": "183",
+        "name": "Block 3",
+        "updatedAt": "2026-03-12"
+      },
+      {
+        "id": "182",
+        "name": "Block 2",
+        "updatedAt": "2026-03-12"
+      },
+      {
+        "id": "181",
+        "name": "H007 Refined Reusable Block",
+        "updatedAt": "2026-03-12"
+      }
+    ],
+    "widgets": [
+      {
+        "id": "widget-1773288387228-2",
+        "name": "H007 Calendar Widget",
+        "repoPath": "/components/widgets/calendar-widget.ts"
+      }
+    ],
+    "themes": [
+      {
+        "id": "theme-1773288389538",
+        "themeKey": "h004-live-active",
+        "status": "active"
+      },
+      {
+        "id": "theme-1773288389538",
+        "themeKey": "tv-mtr-01",
+        "status": "draft"
+      },
+      {
+        "id": "theme-1773288389538",
+        "themeKey": "derived-1773126417933",
+        "status": "draft"
+      },
+      {
+        "id": "theme-1773288389538",
+        "themeKey": "default",
+        "status": "inactive"
+      },
+      {
+        "id": "theme-1773288389538",
+        "themeKey": "theme-e2e-1773080055816",
+        "status": "inactive"
+      },
+      {
+        "id": "theme-1773288389538",
+        "themeKey": "theme-e2e-1773080022615",
+        "status": "inactive"
+      },
+      {
+        "id": "theme-1773288389538",
+        "themeKey": "theme-e2e-1773079851226",
+        "status": "inactive"
+      },
+      {
+        "id": "theme-1773288389538",
+        "themeKey": "theme-e2e-1773079715218",
+        "status": "inactive"
+      },
+      {
+        "id": "theme-1773288389538",
+        "themeKey": "theme-e2e-1773079555989",
+        "status": "inactive"
+      },
+      {
+        "id": "theme-1773288389538",
+        "themeKey": "theme-e2e-1773079347885",
+        "status": "inactive"
+      },
+      {
+        "id": "theme-1773288389538",
+        "themeKey": "theme-e2e-1773079167061",
+        "status": "inactive"
+      },
+      {
+        "id": "theme-1773288389538",
+        "themeKey": "theme-e2e-1773078946714",
+        "status": "inactive"
+      },
+      {
+        "id": "theme-1773288389538",
+        "themeKey": "theme-e2e-1773078789513",
+        "status": "inactive"
+      }
+    ],
+    "shells": []
+  },
+  "entitiesConfirmedUnchanged": {
+    "pageIds": [],
+    "blockIds": [
+      "180",
+      "176",
+      "174",
+      "172",
+      "167",
+      "163",
+      "161",
+      "159",
+      "154",
+      "150",
+      "148",
+      "146",
+      "129",
+      "127",
+      "125",
+      "123",
+      "121",
+      "119",
+      "117",
+      "115",
+      "113",
+      "111",
+      "109",
+      "107",
+      "105",
+      "103",
+      "101",
+      "99",
+      "97",
+      "95",
+      "93",
+      "91",
+      "89",
+      "87",
+      "85",
+      "83",
+      "81",
+      "79",
+      "77",
+      "75",
+      "73",
+      "71",
+      "69",
+      "67",
+      "65",
+      "63",
+      "61",
+      "59",
+      "57",
+      "55",
+      "53",
+      "51",
+      "49",
+      "47",
+      "45",
+      "43",
+      "41",
+      "39",
+      "37",
+      "35",
+      "33",
+      "31",
+      "29",
+      "27",
+      "24",
+      "22",
+      "20",
+      "18",
+      "16",
+      "14",
+      "12",
+      "10"
+    ],
+    "widgetIds": [
+      "widget-calendar-booking"
+    ],
+    "themeIds": [],
+    "shellIds": [
+      "jyb7jskgszgjcps0y1c1mikx",
+      "hrbd1zw68lyi99ns2o52eg6c",
+      "nqph206ecjcxfp8uizh8m5re",
+      "wpb4byte44h7ywupphjpkbue",
+      "k5tg148073zh834uh2m9wedu",
+      "k2bp4og7980z4ac38isq5quq",
+      "iy0olu9gsi8aeup1vguojp7c",
+      "vhos6kqjysk07vl1jgota9kb",
+      "yg2634zxoqcqdm1k6b7v3yv1",
+      "ze7lz622jotg33mdqaxqil7p",
+      "d1ne9f06rxe390o3h4sri98w",
+      "viswom4ckuh35huvtgreanj6",
+      "ub1b5uqv8n0lksvlfv5d6yv7",
+      "jdkgxvy97scr29did5um61ma",
+      "rz3xlzc8dqa4sc9i8nw1cyql",
+      "n4oqh0ap8yms8iyq3uyx8l59",
+      "mxbok4iuecg6bz21sjqttr5e",
+      "k7rvblrqcyhiwrgpfwqwba2b",
+      "bn1x8kkuecds9oh4cz6azh1s",
+      "w7lh95cvbez3u6pahpn8j2m2",
+      "z3y7qkipayzpsfckbodo0txj",
+      "pn3n9v8x0k2qobvbp4xa0tpd",
+      "a0h2dc7v3om8et2u9nq37we7",
+      "tz427q3z77cvz2zncmznplu6",
+      "ij4zsxbre7jv3v06lulvvowu",
+      "drhutbak7bwtq9rhku2hy14o",
+      "a4ocpxm3s4qgf2zk42bbjijd"
+    ],
+    "routeSlugEntitiesCreated": 0,
+    "rawExecutableWidgetScriptPersisted": false,
+    "localScopeLeftReusableBlockUnchanged": true,
+    "reusableScopeLeftPageLocalHeadlineUnchanged": true
+  },
+  "boundariesPreserved": {
+    "strapiGovernance": true,
+    "slugSuppression": true,
+    "publishSafeguards": true,
+    "nonExecutableWidgetSafety": true
+  }
+}

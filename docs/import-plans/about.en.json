@@ -1,0 +1,49 @@
+{
+  "blocks": [
+    {
+      "__component": "blocks.hero",
+      "conversionConfig": {
+        "destination": {
+          "type": "url",
+          "value": "/Users/arunkumar.ganesan/Downloads/start.html"
+        },
+        "eventCategory": "conversion",
+        "eventName": "hero_primary_cta_click",
+        "intent": "book"
+      },
+      "ctaHref": "#",
+      "ctaLabel": "Request a Demo",
+      "heading": "Our Mission",
+      "subheading": "Enterprise Power — Without Enterprise Complexity."
+    }
+  ],
+  "page": {
+    "conversionConfig": {
+      "destination": {
+        "type": "url",
+        "value": "/Users/arunkumar.ganesan/Downloads/start.html"
+      },
+      "eventCategory": "conversion",
+      "eventName": "hero_primary_cta_click",
+      "intent": "book"
+    },
+    "layoutKey": "simpleLayout",
+    "locale": "en",
+    "pageType": "simple",
+    "seo": {
+      "canonical": "/Users/arunkumar.ganesan/Downloads/start.html",
+      "metaDescription": "Enterprise Power — Without Enterprise Complexity.",
+      "metaTitle": "About Us - LMNAs (Evolution Timeline)",
+      "robots": "index,follow"
+    },
+    "slug": "about",
+    "sourceUrl": "/Users/arunkumar.ganesan/Downloads/start.html"
+  },
+  "publish": {
+    "state": "draft"
+  },
+  "source": {
+    "fetchedAt": "2026-02-28T08:29:46.693Z",
+    "schemaVersion": "content-plan.v1"
+  }
+}

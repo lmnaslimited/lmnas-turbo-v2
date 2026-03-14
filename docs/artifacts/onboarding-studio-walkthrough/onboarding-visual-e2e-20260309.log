@@ -1,0 +1,11 @@
+Command:
+pnpm exec playwright test -c playwright.config.ts apps/site/e2e/onboarding.visual.spec.ts --reporter=list
+
+Run timestamp (local): 2026-03-10
+
+Running 2 tests using 1 worker
+
+✓ apps/site/e2e/onboarding.visual.spec.ts:49:5 › visual onboarding flow renders styled preview, traceability, and final assembly
+- apps/site/e2e/onboarding.visual.spec.ts:77:5 › @real apply mode succeeds when local Strapi stack is reachable (skipped)
+
+1 passed, 1 skipped

@@ -1,0 +1,82 @@
+{
+  "kind": "collectionType",
+  "collectionName": "studio_widgets",
+  "info": {
+    "singularName": "studio-widget",
+    "pluralName": "studio-widgets",
+    "displayName": "Studio Widget"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "widgetKey": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "widgetType": {
+      "type": "enumeration",
+      "enum": [
+        "modal",
+        "drawer",
+        "embedded_form",
+        "subscription_popup",
+        "booking_popup",
+        "download_gate",
+        "chat_launcher",
+        "inline_expand_collapse",
+        "below_fold_widget"
+      ],
+      "required": true,
+      "default": "modal"
+    },
+    "surface": {
+      "type": "enumeration",
+      "enum": ["modal", "drawer", "inline", "popup", "below_fold"],
+      "required": true,
+      "default": "inline"
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["active", "inactive"],
+      "required": true,
+      "default": "active"
+    },
+    "lifecycle": {
+      "type": "enumeration",
+      "enum": ["draft", "published", "archived"],
+      "required": true,
+      "default": "draft"
+    },
+    "readiness": {
+      "type": "enumeration",
+      "enum": ["ready", "warning", "blocked"],
+      "required": true,
+      "default": "ready"
+    },
+    "repoPath": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "text"
+    },
+    "editableFields": {
+      "type": "json"
+    },
+    "defaultExitId": {
+      "type": "string"
+    },
+    "visualMockHtml": {
+      "type": "text"
+    },
+    "placement": {
+      "type": "json"
+    }
+  }
+}

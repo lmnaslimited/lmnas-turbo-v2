@@ -1,0 +1,213 @@
+import { describe, expect, it, vi } from "vitest";
+import { analyzeOnboardingSource, ExitContractRegistry, publishOnboardingDraft } from "./onboarding";
+
+const sampleHtml = `
+<html>
+  <body>
+    <div class="announcement-bar">Limited offer this month</div>
+    <nav>
+      <a href="/products">Products</a>
+      <a href="/about">About</a>
+    </nav>
+    <section class="hero">
+      <h1>Reimagine your revenue workflow</h1>
+      <p>Accelerate quotes and improve margin quality.</p>
+      <a href="/book-appointment">Book Appointment</a>
+    </section>
+    <section class="faq accordion">
+      <h2>FAQ</h2>
+      <button>Send me the Full Report</button>
+    </section>
+    <footer>
+      <a href="/privacy">Privacy</a>
+    </footer>
+  </body>
+</html>
+`;
+
+describe("onboarding pipeline", () => {
+  it("analyzes source and detects shell, block, widget, action, and exit proposals", async () => {
+    const analysis = await analyzeOnboardingSource({
+      sourceType: "raw_html",
+      sourceValue: sampleHtml,
+      slug: "home",
+      locale: "en",
+      themeKey: "default"
+    });
+
+    expect(analysis.shellCandidates.some((candidate) => candidate.type === "navbar")).toBe(true);
+    expect(analysis.shellCandidates.some((candidate) => candidate.type === "footer")).toBe(true);
+    expect(analysis.blockProposals.length).toBeGreaterThan(0);
+    expect(analysis.widgetProposals.length).toBeGreaterThan(0);
+    expect(analysis.actionProposals.length).toBeGreaterThan(0);
+    expect(analysis.exitProposals.some((proposal) => proposal.id === "book_appointment_primary")).toBe(true);
+    expect(analysis.source.productionPreviewHtml.length).toBeGreaterThan(0);
+  });
+
+  it("produces publish payload in dry-run mode", async () => {
+    const analysis = await analyzeOnboardingSource({
+      sourceType: "raw_html",
+      sourceValue: sampleHtml,
+      slug: "home",
+      locale: "en",
+      themeKey: "default"
+    });
+
+    const result = await publishOnboardingDraft({
+      analysis,
+      mode: "dry-run",
+      overrides: {
+        blockFamilyOverrides: {},
+        exitStateOverrides: {},
+        itemImportState: {},
+        itemTypeOverrides: {},
+        fieldOverrides: {},
+        mapToExisting: {},
+        segmentationOverrides: {},
+        actionTypeOverrides: {},
+        actionLabelOverrides: {},
+        actionTargetOverrides: {}
+      }
+    });
+
+    expect(result.mode).toBe("dry-run");
+    expect(result.applied).toBe(false);
+    expect(result.summary.blocksToCreate).toBeGreaterThan(0);
+    expect(result.summary.widgetsToCreate).toBeGreaterThan(0);
+    expect(result.summary.actionsToCreate).toBeGreaterThan(0);
+    expect(result.summary.exitsRequired).toBeGreaterThan(0);
+    expect(result.previewLinks.length).toBeGreaterThan(0);
+    expect(result.strapiPayload.widgetDefinitions.length).toBeGreaterThan(0);
+    expect(result.strapiPayload.actionBindings.length).toBeGreaterThan(0);
+  });
+
+  it("reports low-confidence and source-fidelity warnings for ambiguous unstyled content", async () => {
+    const analysis = await analyzeOnboardingSource({
+      sourceType: "raw_html",
+      sourceValue: "<div><p>Alpha signal content</p><a href='/next'>Continue</a></div>",
+      slug: "unstyled-page",
+      locale: "en",
+      themeKey: "default"
+    });
+
+    const warningCodes = analysis.fidelityWarnings.map((warning) => warning.code);
+    expect(warningCodes).toContain("blocks.low_confidence");
+    expect(warningCodes.some((code) => code.startsWith("preview.fidelity_note_"))).toBe(true);
+  });
+
+  it("warns when action mappings reference missing widgets or require auto-generated exits", async () => {
+    const analysis = await analyzeOnboardingSource({
+      sourceType: "raw_html",
+      sourceValue: sampleHtml,
+      slug: "mapping-gap-check",
+      locale: "en",
+      themeKey: "default"
+    });
+
+    const widgetAction = analysis.actionProposals[0];
+    const workflowAction = analysis.actionProposals.find((proposal) => proposal.id !== widgetAction?.id);
+    expect(widgetAction).toBeDefined();
+    expect(workflowAction).toBeDefined();
+
+    const result = await publishOnboardingDraft({
+      analysis,
+      mode: "dry-run",
+      overrides: {
+        blockFamilyOverrides: {},
+        exitStateOverrides: {},
+        itemImportState: Object.fromEntries(analysis.widgetProposals.map((widget) => [widget.id, false])),
+        itemTypeOverrides: {},
+        fieldOverrides: {},
+        mapToExisting: {},
+        segmentationOverrides: {},
+        actionTypeOverrides: {
+          [widgetAction!.id]: "open_widget",
+          [workflowAction!.id]: "workflow"
+        },
+        actionLabelOverrides: {},
+        actionTargetOverrides: {
+          [widgetAction!.id]: {
+            widgetId: "widget_missing_from_selection"
+          }
+        }
+      }
+    });
+
+    const warningCodes = result.warnings.map((warning) => warning.code);
+    expect(warningCodes).toContain("actions.widget_mapping_gap");
+    expect(warningCodes).toContain("actions.exit_mapping_gap");
+  });
+
+  it("fails URL ingestion with a timeout error instead of hanging indefinitely", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+          return new Promise<Response>((_resolve, reject) => {
+            const signal = init?.signal;
+            if (signal) {
+              signal.addEventListener("abort", () => {
+                const abortError = new Error("aborted");
+                abortError.name = "AbortError";
+                reject(abortError);
+              });
+            }
+          });
+        }) as typeof fetch
+      );
+
+      const pendingAnalysis = analyzeOnboardingSource({
+        sourceType: "url",
+        sourceValue: "https://example.com/source",
+        slug: "timeout-check",
+        locale: "en",
+        themeKey: "default"
+      });
+      const handledFailure = pendingAnalysis.catch((error) => error);
+      await vi.advanceTimersByTimeAsync(12_500);
+      const failure = await handledFailure;
+      expect(failure).toBeInstanceOf(Error);
+      expect((failure as Error).message).toContain("Source URL request timed out");
+    } finally {
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("exit contract registry", () => {
+  it("registers and toggles exit states", () => {
+    const registry = new ExitContractRegistry();
+    registry.register({
+      id: "book_appointment_primary",
+      name: "Book Appointment",
+      state: "active",
+      eventName: "exit_book_appointment_primary_triggered",
+      payloadSchema: {
+        format: "json-schema",
+        schema: {}
+      },
+      frontendAdapterType: "redirect",
+      backendAdapterType: "n8n_webhook",
+      workflowTarget: {
+        kind: "n8n_webhook",
+        value: "n8n://workflow/book_appointment"
+      },
+      fallbackBehavior: "show_fallback_contact",
+      successBehavior: "show_success_message",
+      failureBehavior: "show_error_message",
+      analyticsMapping: {
+        click: "exit_book_appointment_primary_triggered"
+      },
+      policy: {
+        environmentAllowlist: [],
+        roleAllowlist: []
+      }
+    });
+
+    expect(registry.resolve("book_appointment_primary")?.state).toBe("active");
+    registry.setState("book_appointment_primary", "inactive");
+    expect(registry.resolve("book_appointment_primary")?.state).toBe("inactive");
+  });
+});

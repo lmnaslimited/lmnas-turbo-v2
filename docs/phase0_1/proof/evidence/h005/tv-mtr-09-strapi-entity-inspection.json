@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-03-11T07:49:35.256Z",
+  "strapiBase": "http://localhost:1337",
+  "pagesTotal": 3,
+  "importedBlockTemplatesTotal": 6,
+  "samplePageSlugs": [
+    "tv-e2e-04-page",
+    "draft-page-1",
+    "home"
+  ],
+  "sampleImportedBlockTemplateKeys": [
+    "page-import-1773215168371-02",
+    "page-import-1773215168371-01",
+    "page-import-1773215305672-01",
+    "page-import-1773215305672-02",
+    "page-import-1773215324344-01",
+    "page-import-1773215324344-02"
+  ]
+}

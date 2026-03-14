@@ -1,0 +1,116 @@
+{
+  "kind": "collectionType",
+  "collectionName": "studio_pages",
+  "info": {
+    "singularName": "studio-page",
+    "pluralName": "studio-pages",
+    "displayName": "Studio Page"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "pageKey": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "string",
+      "required": true
+    },
+    "locale": {
+      "type": "string",
+      "required": true,
+      "default": "en"
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["draft", "published"],
+      "required": true,
+      "default": "draft"
+    },
+    "lifecycle": {
+      "type": "enumeration",
+      "enum": ["draft", "published", "archived"],
+      "required": true,
+      "default": "draft"
+    },
+    "activeShellId": {
+      "type": "string"
+    },
+    "shell": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::studio-shell.studio-shell"
+    },
+    "shellKey": {
+      "type": "string"
+    },
+    "theme": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::studio-theme.studio-theme"
+    },
+    "themeKey": {
+      "type": "string"
+    },
+    "importMaster": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::studio-import-master.studio-import-master"
+    },
+    "blockOrder": {
+      "type": "json"
+    },
+    "fieldValues": {
+      "type": "json"
+    },
+    "actionOverrides": {
+      "type": "json"
+    },
+    "productMapping": {
+      "type": "string"
+    },
+    "industryMapping": {
+      "type": "json"
+    },
+    "primaryCta": {
+      "type": "json"
+    },
+    "conversionConfig": {
+      "type": "json"
+    },
+    "campaignUtmStrategy": {
+      "type": "json"
+    },
+    "taxonomyState": {
+      "type": "json"
+    },
+    "seoMetadata": {
+      "type": "json"
+    },
+    "seoJsonLdValid": {
+      "type": "boolean",
+      "default": false
+    },
+    "blockSchemaValid": {
+      "type": "boolean",
+      "default": true
+    },
+    "previewValid": {
+      "type": "boolean",
+      "default": false
+    },
+    "previewHtml": {
+      "type": "text"
+    },
+    "publishedPreviewHtml": {
+      "type": "text"
+    }
+  }
+}

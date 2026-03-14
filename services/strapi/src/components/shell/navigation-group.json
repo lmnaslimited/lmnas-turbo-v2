@@ -1,0 +1,19 @@
+{
+  "collectionName": "components_shell_navigation_groups",
+  "info": {
+    "displayName": "navigation-group"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "items": {
+      "type": "component",
+      "repeatable": true,
+      "component": "shell.navigation-item",
+      "required": false
+    }
+  }
+}

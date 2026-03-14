@@ -1,0 +1,64 @@
+{
+  "collectionName": "components_actions_action_bindings",
+  "info": {
+    "displayName": "action-binding"
+  },
+  "options": {},
+  "attributes": {
+    "actionId": {
+      "type": "string",
+      "required": true
+    },
+    "label": {
+      "type": "string",
+      "required": true
+    },
+    "actionType": {
+      "type": "enumeration",
+      "enum": [
+        "link_url",
+        "scroll_to_section",
+        "open_modal",
+        "open_drawer",
+        "open_widget",
+        "submit_form",
+        "download_asset",
+        "external_booking",
+        "workflow"
+      ],
+      "required": true,
+      "default": "link_url"
+    },
+    "locationType": {
+      "type": "enumeration",
+      "enum": ["block", "navbar", "footer", "widget", "page"],
+      "required": true,
+      "default": "block"
+    },
+    "locationId": {
+      "type": "string",
+      "required": true
+    },
+    "targetUrl": {
+      "type": "string",
+      "required": false
+    },
+    "targetSectionId": {
+      "type": "string",
+      "required": false
+    },
+    "widgetId": {
+      "type": "string",
+      "required": false
+    },
+    "exitId": {
+      "type": "string",
+      "required": false
+    },
+    "openInNewTab": {
+      "type": "boolean",
+      "required": false,
+      "default": false
+    }
+  }
+}

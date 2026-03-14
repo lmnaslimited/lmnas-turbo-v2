@@ -1,0 +1,101 @@
+{
+  "kind": "collectionType",
+  "collectionName": "studio_blocks",
+  "info": {
+    "singularName": "studio-block",
+    "pluralName": "studio-blocks",
+    "displayName": "Studio Block"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "blockKey": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "family": {
+      "type": "string",
+      "required": true
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["active", "inactive", "draft"],
+      "required": true,
+      "default": "active"
+    },
+    "lifecycle": {
+      "type": "enumeration",
+      "enum": ["draft", "published", "archived"],
+      "required": true,
+      "default": "draft"
+    },
+    "scope": {
+      "type": "enumeration",
+      "enum": ["global", "page-local"],
+      "required": true,
+      "default": "global"
+    },
+    "schemaStatus": {
+      "type": "enumeration",
+      "enum": ["valid", "invalid", "warning"],
+      "required": true,
+      "default": "valid"
+    },
+    "themeKey": {
+      "type": "string",
+      "required": true,
+      "default": "default"
+    },
+    "sourceType": {
+      "type": "string"
+    },
+    "sourceRef": {
+      "type": "string"
+    },
+    "sourcePreviewHtml": {
+      "type": "text"
+    },
+    "targetPreviewHtml": {
+      "type": "text"
+    },
+    "sourceAssetContext": {
+      "type": "json"
+    },
+    "importProposalId": {
+      "type": "string"
+    },
+    "importMaster": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::studio-import-master.studio-import-master"
+    },
+    "confidence": {
+      "type": "decimal"
+    },
+    "editableFields": {
+      "type": "json"
+    },
+    "actions": {
+      "type": "json"
+    },
+    "previewHtml": {
+      "type": "text"
+    },
+    "usageCount": {
+      "type": "integer",
+      "default": 0
+    },
+    "productMapping": {
+      "type": "string"
+    },
+    "industryMapping": {
+      "type": "json"
+    }
+  }
+}

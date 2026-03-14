@@ -1,0 +1,356 @@
+{
+  "ok": true,
+  "data": [
+    {
+      "id": "theme-1773204951264",
+      "themeKey": "h004-live-active",
+      "name": "H004 Live Active",
+      "status": "active",
+      "sourceRef": "h004-live-smoke",
+      "createdAt": "2026-03-11",
+      "updatedAt": "2026-03-11",
+      "tokenCoverage": 0.9,
+      "themeDebt": "H004 live persistence baseline\n[studio:fidelity-settings] {\"mode\":\"allow-below-threshold\",\"threshold\":0.27}",
+      "darkMode": true,
+      "tokens": [
+        {
+          "key": "font-display",
+          "label": "Display Font",
+          "category": "typography",
+          "value": "Manrope, sans-serif",
+          "cssVariable": "--font-display",
+          "mapped": true
+        }
+      ]
+    },
+    {
+      "id": "theme-1773204951264",
+      "themeKey": "tv-mtr-01",
+      "name": "TV MTR 01 Theme",
+      "status": "draft",
+      "sourceRef": "tv-mtr-01",
+      "createdAt": "2026-03-10",
+      "updatedAt": "2026-03-10",
+      "tokenCoverage": 0.87,
+      "themeDebt": "none",
+      "darkMode": true,
+      "tokens": [
+        {
+          "key": "surface-bg",
+          "label": "Surface Background",
+          "category": "color",
+          "value": "#111827",
+          "cssVariable": "--theme-surface-bg",
+          "mapped": true
+        },
+        {
+          "key": "surface-text",
+          "label": "Surface Text",
+          "category": "color",
+          "value": "#f9fafb",
+          "cssVariable": "--theme-surface-text",
+          "mapped": true
+        },
+        {
+          "key": "surface-accent",
+          "label": "Surface Accent",
+          "category": "color",
+          "value": "#22c55e",
+          "cssVariable": "--theme-surface-accent",
+          "mapped": true
+        }
+      ]
+    },
+    {
+      "id": "theme-1773204951264",
+      "themeKey": "derived-1773126417933",
+      "name": "Derived Theme 2",
+      "status": "draft",
+      "sourceRef": "User HTML input",
+      "createdAt": "2026-03-10",
+      "updatedAt": "2026-03-10",
+      "tokenCoverage": 0.35,
+      "themeDebt": "8 arbitrary class values detected; convert to platform tokens where possible.",
+      "darkMode": true,
+      "tokens": [
+        {
+          "key": "c0",
+          "label": "Primary",
+          "category": "color",
+          "value": "#135bec",
+          "cssVariable": "--color-derived-0",
+          "mapped": false
+        },
+        {
+          "key": "c1",
+          "label": "Secondary",
+          "category": "color",
+          "value": "#f6f6f8",
+          "cssVariable": "--color-derived-1",
+          "mapped": false
+        },
+        {
+          "key": "c2",
+          "label": "Accent",
+          "category": "color",
+          "value": "#101622",
+          "cssVariable": "--color-derived-2",
+          "mapped": false
+        },
+        {
+          "key": "f0",
+          "label": "Primary Text Font",
+          "category": "typography",
+          "value": "Manrope",
+          "cssVariable": "--font-derived-0",
+          "mapped": false
+        },
+        {
+          "key": "f1",
+          "label": "Font 2",
+          "category": "typography",
+          "value": "Material Symbols Outlined",
+          "cssVariable": "--font-derived-1",
+          "mapped": false
+        }
+      ]
+    },
+    {
+      "id": "theme-1773204951264",
+      "themeKey": "default",
+      "name": "LMNAs Default",
+      "status": "inactive",
+      "sourceRef": "globals.css",
+      "createdAt": "2026-03-09",
+      "updatedAt": "2026-03-09",
+      "tokenCoverage": 0.92,
+      "themeDebt": "3 arbitrary color values detected outside token system",
+      "darkMode": true,
+      "tokens": [
+        {
+          "key": "bg",
+          "label": "Background",
+          "category": "color",
+          "value": "#0b1120",
+          "cssVariable": "--color-lmnas-bg",
+          "mapped": true
+        },
+        {
+          "key": "text",
+          "label": "Primary Text",
+          "category": "color",
+          "value": "#f1f5f9",
+          "cssVariable": "--color-lmnas-text",
+          "mapped": true
+        },
+        {
+          "key": "font-display",
+          "label": "Display Font",
+          "category": "typography",
+          "value": "Manrope, sans-serif",
+          "cssVariable": "--font-display",
+          "mapped": true
+        }
+      ]
+    },
+    {
+      "id": "theme-1773204951264",
+      "themeKey": "theme-e2e-1773080055816",
+      "name": "E2E Activation Theme",
+      "status": "inactive",
+      "sourceRef": "e2e",
+      "createdAt": "2026-03-09",
+      "updatedAt": "2026-03-09",
+      "tokenCoverage": 0.61,
+      "themeDebt": "none",
+      "darkMode": false,
+      "tokens": [
+        {
+          "key": "primary",
+          "label": "Primary",
+          "category": "color",
+          "value": "#0b66ff",
+          "cssVariable": "--color-primary",
+          "mapped": true
+        }
+      ]
+    },
+    {
+      "id": "theme-1773204951264",
+      "themeKey": "theme-e2e-1773080022615",
+      "name": "E2E Activation Theme",
+      "status": "inactive",
+      "sourceRef": "e2e",
+      "createdAt": "2026-03-09",
+      "updatedAt": "2026-03-09",
+      "tokenCoverage": 0.61,
+      "themeDebt": "none",
+      "darkMode": false,
+      "tokens": [
+        {
+          "key": "primary",
+          "label": "Primary",
+          "category": "color",
+          "value": "#0b66ff",
+          "cssVariable": "--color-primary",
+          "mapped": true
+        }
+      ]
+    },
+    {
+      "id": "theme-1773204951264",
+      "themeKey": "theme-e2e-1773079851226",
+      "name": "E2E Activation Theme",
+      "status": "inactive",
+      "sourceRef": "e2e",
+      "createdAt": "2026-03-09",
+      "updatedAt": "2026-03-09",
+      "tokenCoverage": 0.61,
+      "themeDebt": "none",
+      "darkMode": false,
+      "tokens": [
+        {
+          "key": "primary",
+          "label": "Primary",
+          "category": "color",
+          "value": "#0b66ff",
+          "cssVariable": "--color-primary",
+          "mapped": true
+        }
+      ]
+    },
+    {
+      "id": "theme-1773204951264",
+      "themeKey": "theme-e2e-1773079715218",
+      "name": "E2E Activation Theme",
+      "status": "inactive",
+      "sourceRef": "e2e",
+      "createdAt": "2026-03-09",
+      "updatedAt": "2026-03-09",
+      "tokenCoverage": 0.61,
+      "themeDebt": "none",
+      "darkMode": false,
+      "tokens": [
+        {
+          "key": "primary",
+          "label": "Primary",
+          "category": "color",
+          "value": "#0b66ff",
+          "cssVariable": "--color-primary",
+          "mapped": true
+        }
+      ]
+    },
+    {
+      "id": "theme-1773204951264",
+      "themeKey": "theme-e2e-1773079555989",
+      "name": "E2E Activation Theme",
+      "status": "inactive",
+      "sourceRef": "e2e",
+      "createdAt": "2026-03-09",
+      "updatedAt": "2026-03-09",
+      "tokenCoverage": 0.61,
+      "themeDebt": "none",
+      "darkMode": false,
+      "tokens": [
+        {
+          "key": "primary",
+          "label": "Primary",
+          "category": "color",
+          "value": "#0b66ff",
+          "cssVariable": "--color-primary",
+          "mapped": true
+        }
+      ]
+    },
+    {
+      "id": "theme-1773204951264",
+      "themeKey": "theme-e2e-1773079347885",
+      "name": "E2E Activation Theme",
+      "status": "inactive",
+      "sourceRef": "e2e",
+      "createdAt": "2026-03-09",
+      "updatedAt": "2026-03-09",
+      "tokenCoverage": 0.61,
+      "themeDebt": "none",
+      "darkMode": false,
+      "tokens": [
+        {
+          "key": "primary",
+          "label": "Primary",
+          "category": "color",
+          "value": "#0b66ff",
+          "cssVariable": "--color-primary",
+          "mapped": true
+        }
+      ]
+    },
+    {
+      "id": "theme-1773204951264",
+      "themeKey": "theme-e2e-1773079167061",
+      "name": "E2E Activation Theme",
+      "status": "inactive",
+      "sourceRef": "e2e",
+      "createdAt": "2026-03-09",
+      "updatedAt": "2026-03-09",
+      "tokenCoverage": 0.61,
+      "themeDebt": "none",
+      "darkMode": false,
+      "tokens": [
+        {
+          "key": "primary",
+          "label": "Primary",
+          "category": "color",
+          "value": "#0b66ff",
+          "cssVariable": "--color-primary",
+          "mapped": true
+        }
+      ]
+    },
+    {
+      "id": "theme-1773204951264",
+      "themeKey": "theme-e2e-1773078946714",
+      "name": "E2E Activation Theme",
+      "status": "inactive",
+      "sourceRef": "e2e",
+      "createdAt": "2026-03-09",
+      "updatedAt": "2026-03-09",
+      "tokenCoverage": 0.61,
+      "themeDebt": "none",
+      "darkMode": false,
+      "tokens": [
+        {
+          "key": "primary",
+          "label": "Primary",
+          "category": "color",
+          "value": "#0b66ff",
+          "cssVariable": "--color-primary",
+          "mapped": true
+        }
+      ]
+    },
+    {
+      "id": "theme-1773204951264",
+      "themeKey": "theme-e2e-1773078789513",
+      "name": "E2E Activation Theme",
+      "status": "inactive",
+      "sourceRef": "e2e",
+      "createdAt": "2026-03-09",
+      "updatedAt": "2026-03-09",
+      "tokenCoverage": 0.61,
+      "themeDebt": "none",
+      "darkMode": false,
+      "tokens": [
+        {
+          "key": "primary",
+          "label": "Primary",
+          "category": "color",
+          "value": "#0b66ff",
+          "cssVariable": "--color-primary",
+          "mapped": true
+        }
+      ]
+    }
+  ],
+  "source": "strapi"
+}

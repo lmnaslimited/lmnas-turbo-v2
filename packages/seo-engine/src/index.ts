@@ -1,5 +1,5 @@
 import type { FAQBlock } from "@lmnas/blocks";
-import type { Page } from "@lmnas/contracts";
+import type { BlogPost, Page } from "@lmnas/contracts";
 
 type SeoOutput = {
   meta: {
@@ -26,6 +26,11 @@ function buildFaqJsonLd(faq: FAQBlock) {
   };
 }
 
+function joinBlogCanonical(slug: string): string {
+  const canonicalBase = (process.env.BLOG_CANONICAL_BASE || "https://lmnas.com/blogs").replace(/\/+$/, "");
+  return `${canonicalBase}/${slug.replace(/^\/+/, "")}`;
+}
+
 export function buildSeo(page: Page): SeoOutput {
   const jsonLd: object[] = [];
   const faqBlock = page.blocks.find((b) => b.type === "faq") as FAQBlock | undefined;
@@ -41,5 +46,24 @@ export function buildSeo(page: Page): SeoOutput {
       robots: page.seo?.robots
     },
     jsonLd
+  };
+}
+
+export function buildBlogSeo(post: BlogPost): SeoOutput {
+  return {
+    meta: {
+      title: post.seo.metaTitle,
+      description: post.seo.metaDescription,
+      canonical: joinBlogCanonical(post.slug),
+      robots: post.seo.robots
+    },
+    jsonLd: [
+      {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        headline: post.title,
+        description: post.excerpt
+      }
+    ]
   };
 }

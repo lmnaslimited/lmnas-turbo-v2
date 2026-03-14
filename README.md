@@ -1,90 +1,77 @@
-# LMNAs Turbo v2
+# LMNAs Website Operating System (Turbo v2)
 
-Local-first monorepo platform scaffold for `lmnas.com` with block-based rendering, Strapi CMS, n8n, and deterministic mocks.
+UI-first, governed website platform for LMNAs.
 
-## Quick Start
+Core stack: Next.js + Strapi + n8n + Rudder.
 
-1. `pnpm install`
-2. `cp .env.example .env`
-3. `docker compose up -d`
-4. `pnpm dev`
+## Fastest Operator Path
 
-Expected local services:
-- Site: `http://localhost:3000`
-- Strapi: `http://localhost:1337`
-- n8n: `http://localhost:5678`
-- Lens mock: `http://localhost:4010/appointments`
-- Rudder mock: `http://localhost:4011/track`
+1. Start stack
+- `pnpm install`
+- `cp .env.example .env`
+- `docker compose up -d`
+- `pnpm dev`
 
-## Repository Layout
+2. Open onboarding studio
+- `http://localhost:3000/platform/onboarding`
 
-- `apps/site`: Next.js App Router site for `lmnas.com`.
-- `apps/docs`: placeholder Next.js app for `docs.lmnas.com`.
-- `apps/blogs`: placeholder Next.js app for `blogs.lmnas.com`.
-- `apps/gateway`: optional gateway placeholder and rewrite guidance.
-- `packages/blocks`: pure block components (`Hero`, `FAQ`) + schemas/defaults/mocks.
-- `packages/block-registry`: maps block type -> component + zod schema.
-- `packages/renderer`: validates and renders blocks safely.
-- `packages/seo-engine`: meta and JSON-LD generation.
-- `packages/contracts`: zod contracts for page/block/Strapi payloads.
-- `packages/integrations`: transport adapters (`strapiClient`, `lens`, `analytics`).
-- `packages/testkit`: fixtures and test utilities.
-- `packages/eslint-config`: boundary guardrail rules.
-- `services/strapi`: Strapi v4 CMS project with seeded `home` page.
-- `services/n8n`: versioned workflow folder.
-- `services/mocks`: local express mocks (`lens-api`, `rudder`).
-- `infra/docker-compose.yml`: local service stack.
+3. Run the 4 workflows
+- Theme: `http://localhost:3000/platform/onboarding/theme`
+- Block Import: `http://localhost:3000/platform/onboarding/blocks`
+- Shells: `http://localhost:3000/platform/onboarding/shells`
+- Pages: `http://localhost:3000/platform/onboarding/pages`
+
+No manual env export is required for normal local onboarding flow when `.env` / `.env.local` are present.
+
+## Platform Objects
+
+- Shells: navbar/footer/utility/announcement
+- Blocks: reusable content sections
+- Widgets: modal/drawer/form/chat/download/booking surfaces
+- Actions: CTA behavior bindings
+- Exits: backend/business workflow contracts
 
 ## Guardrails
 
-- No reusable components in apps: `apps/*/src/components/**` is forbidden.
-- Apps must not use direct external API clients (`axios`, `fetch wrappers`, etc.) for platform integrations.
-- Zod schemas live only in `packages/contracts` and `packages/blocks/*/schema.ts`.
-- Blocks are pure and do not fetch data.
-- Integrations only adapt transport + validate; no business logic.
+- Constitution v2.1 is authoritative: `docs/architecture/LMNAs_Platform_Operating_Constitution_v2_1.md`
+- Constitution v2.2 is retained as a draft reference only until Arun explicitly supersedes v2.1: `docs/architecture/LMNAs_Platform_Operating_Constitution_v2_2.md`
+- Strapi is source of truth
+- Blocks are pure UI
+- Schema-first contracts
+- Integrations via adapters
+- n8n orchestration + Rudder events
+- CLI onboarding is fallback only (CI/debug/batch)
 
-## Gateway Rewrites (Placeholder)
+## Key Routes
 
-`apps/gateway` is optional locally, but intended production host routing is:
-- `lmnas.com` -> `apps/site`
-- `docs.lmnas.com` -> `apps/docs`
-- `blogs.lmnas.com` -> `apps/blogs`
+- Site: `http://localhost:3000`
+- Onboarding: `http://localhost:3000/platform/onboarding`
+- Analyze API: `POST /api/platform/onboarding/analyze`
+- Block Publish API: `POST /api/platform/studio/blocks/publish`
+- Theme APIs: `GET/POST /api/platform/studio/themes`, `POST /api/platform/studio/themes/activate`
+- Shell APIs: `GET/POST /api/platform/studio/shells`, `POST /api/platform/studio/shells/activate`
+- Blocks Library API: `GET/POST /api/platform/studio/blocks`
+- Pages API: `GET/POST /api/platform/studio/pages`
+- Exit runtime API: `POST /api/platform/exits/execute`
 
-## How Preview Works
+## Commands
 
-- Preview route: `http://localhost:3000/preview?slug=home&token=local-preview-token`
-- Token checking is local-friendly (optional if `STRAPI_PREVIEW_TOKEN` is unset).
-- In preview mode invalid blocks render an explicit error card with the zod issue path.
-- In production mode invalid blocks are skipped safely with placeholder UI.
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test`
+- `pnpm build`
+- `pnpm test:e2e`
+- `pnpm test:e2e:real`
 
-## Add a New Block (Manual)
+## Docs
 
-1. Create `packages/blocks/<BlockName>/` with:
-   - `Component.tsx`
-   - `schema.ts`
-   - `defaults.json`
-   - `mock.ts`
-   - `index.ts`
-2. Export the block from `packages/blocks/index.ts`.
-3. Register it in `packages/block-registry/src/index.ts`.
-4. Extend unions/contracts in `packages/contracts/src/index.ts`.
-5. Add tests in `packages/renderer` and (if needed) `packages/seo-engine`.
-
-## Codex Block Generation Placeholder
-
-Future generator contract (placeholder):
-- Command: `pnpm generate:block <BlockName>`
-- Expected output: creates block files + updates exports + registry wiring + contract union.
-
-Generator is intentionally left as a placeholder in this scaffold; manual flow above is the source of truth.
-
-## Strapi Notes
-
-- Content type: `Page` with `slug`, dynamic zone `blocks` (`hero`, `faq`), component `seo`.
-- Bootstrap seeds page `home` and attempts to enable public `find/findOne` permissions for page API.
-- If Strapi is temporarily unavailable, `@lmnas/integrations` falls back to `@lmnas/testkit` fixture so the site still renders.
-
-## Codex Scaffold Docs
-
-- Scaffold spec and copy/paste prompt are versioned under `docs/codex/`.
-- Start here: `docs/codex/README.md`.
+- `docs/platform/vision.md`
+- `docs/platform/operator-manual.md`
+- `docs/platform/onboarding-workflow.md`
+- `docs/platform/shell-system.md`
+- `docs/platform/page-workflow.md`
+- `docs/platform/block-model.md`
+- `docs/platform/exit-architecture.md`
+- `docs/platform/theme-model.md`
+- `docs/platform/developer-implementation.md`
+- `docs/platform/migration-plan.md`

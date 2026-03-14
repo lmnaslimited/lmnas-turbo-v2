@@ -1,0 +1,50 @@
+{
+  "kind": "collectionType",
+  "collectionName": "studio_shells",
+  "info": {
+    "singularName": "studio-shell",
+    "pluralName": "studio-shells",
+    "displayName": "Studio Shell"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "shellKey": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "role": {
+      "type": "enumeration",
+      "enum": ["navbar", "footer", "full"],
+      "required": true,
+      "default": "full"
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["active", "inactive"],
+      "required": true,
+      "default": "inactive"
+    },
+    "menuItems": {
+      "type": "json"
+    },
+    "actions": {
+      "type": "json"
+    },
+    "navbarBlocks": {
+      "type": "json"
+    },
+    "footerBlocks": {
+      "type": "json"
+    },
+    "previewHtml": {
+      "type": "text"
+    }
+  }
+}

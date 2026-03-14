@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1162d4",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101822",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 antialiased font-display">
+<div class="flex h-screen overflow-hidden">
+<!-- Sidebar -->
+<aside class="w-64 flex-shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col">
+<div class="p-6 flex items-center gap-3">
+<div class="size-10 rounded-full bg-primary flex items-center justify-center text-white">
+<span class="material-symbols-outlined">workspaces</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-white text-base font-bold leading-none">LMNAs Studio</h1>
+<p class="text-slate-400 text-xs mt-1">Premium B2B SaaS</p>
+</div>
+</div>
+<nav class="flex-1 px-3 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">download</span>
+<span class="text-sm font-medium">Import</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">widgets</span>
+<span class="text-sm font-medium">Blocks</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">description</span>
+<span class="text-sm font-medium">Pages</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">extension</span>
+<span class="text-sm font-medium">Widgets</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 bg-primary text-white rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px] fill-1">palette</span>
+<span class="text-sm font-medium">Theme &amp; Shell</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">rocket_launch</span>
+<span class="text-sm font-medium">Publish</span>
+</a>
+</nav>
+<div class="p-4 border-t border-slate-800">
+<div class="flex items-center gap-3 p-2">
+<div class="size-8 rounded-full bg-slate-700" data-alt="User avatar placeholder"></div>
+<div class="flex-1 min-w-0">
+<p class="text-xs font-semibold text-white truncate">Alex Rivera</p>
+<p class="text-[10px] text-slate-500 truncate">Admin Access</p>
+</div>
+<span class="material-symbols-outlined text-slate-500 text-sm">settings</span>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+<!-- Header -->
+<header class="h-16 flex items-center justify-between px-8 border-b border-slate-800 bg-background-dark/50 backdrop-blur-md z-10">
+<div class="flex flex-col">
+<h2 class="text-lg font-bold text-white leading-tight">Design System Studio</h2>
+<p class="text-xs text-slate-400">Manage the visual identity and global shell of your studio output.</p>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 mr-4 px-3 py-1.5 bg-slate-800/50 rounded-lg border border-slate-700"><span class="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Inheritance</span><select class="bg-transparent border-none text-[10px] font-bold text-white focus:ring-0 p-0 cursor-pointer"><option>Auto (System)</option><option>Forced Dark</option><option>Forced Light</option></select></div><div class="flex items-center bg-slate-800 rounded-lg p-1 mr-2">
+<button class="p-1.5 rounded-md text-slate-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-sm block">light_mode</span>
+</button>
+<button class="p-1.5 rounded-md bg-slate-700 text-white shadow-sm transition-colors">
+<span class="material-symbols-outlined text-sm block">dark_mode</span>
+</button>
+<button class="p-1.5 rounded-md text-slate-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-sm block">desktop_windows</span>
+</button>
+</div><button class="text-slate-400 hover:text-white text-sm font-medium transition-colors">Discard</button>
+<button class="bg-primary hover:bg-primary/90 text-white px-5 py-2 rounded-lg text-sm font-bold transition-all shadow-lg shadow-primary/20">
+                        Apply Changes
+                    </button>
+</div>
+</header>
+<!-- Workspace Layout -->
+<div class="flex-1 flex overflow-hidden">
+<!-- Left Panel: Presets & Shells -->
+<div class="w-72 border-r border-slate-800 flex flex-col bg-slate-900/40 custom-scrollbar overflow-y-auto">
+<div class="p-6 space-y-8">
+<div>
+<h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">System Presets</h3>
+<div class="space-y-3"><button class="w-full p-0 rounded-xl bg-primary/10 border-2 border-primary text-left group overflow-hidden shadow-lg shadow-primary/5">
+<div class="h-16 bg-gradient-to-br from-[#111822] via-[#1162d4] to-[#1e293b] p-3 flex justify-between items-start">
+<div class="flex gap-1.5">
+<div class="size-2 rounded-full bg-white/20"></div>
+<div class="size-2 rounded-full bg-white/20"></div>
+</div>
+<span class="material-symbols-outlined text-white text-lg">check_circle</span>
+</div>
+<div class="p-3 bg-slate-900/50">
+<span class="text-sm font-bold text-white">Midnight Pro</span>
+<p class="text-[10px] text-slate-500">Deep dark UI with primary blue accents</p>
+</div>
+</button>
+<button class="w-full p-0 rounded-xl bg-slate-800/50 border border-slate-700 text-left hover:border-slate-500 transition-all group overflow-hidden">
+<div class="h-16 bg-gradient-to-br from-[#0a192f] via-[#64ffda] to-[#112240] p-3">
+<div class="flex gap-1.5">
+<div class="size-2 rounded-full bg-white/10"></div>
+<div class="size-2 rounded-full bg-white/10"></div>
+</div>
+</div>
+<div class="p-3 bg-slate-900/20">
+<span class="text-sm font-bold text-slate-300 group-hover:text-white">Deep Ocean</span>
+<p class="text-[10px] text-slate-500">Emerald accents on navy background</p>
+</div>
+</button>
+<button class="w-full p-0 rounded-xl bg-slate-800/50 border border-slate-700 text-left hover:border-slate-500 transition-all group overflow-hidden">
+<div class="h-16 bg-gradient-to-br from-[#0f172a] via-[#94a3b8] to-[#334155] p-3">
+<div class="flex gap-1.5">
+<div class="size-2 rounded-full bg-white/10"></div>
+<div class="size-2 rounded-full bg-white/10"></div>
+</div>
+</div>
+<div class="p-3 bg-slate-900/20">
+<span class="text-sm font-bold text-slate-300 group-hover:text-white">Slate Dark</span>
+<p class="text-[10px] text-slate-500">Classic grey-scale professional palette</p>
+</div>
+</button></div>
+</div>
+<div>
+<h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">System Presets</h3>
+<div class="space-y-3">
+<div class="relative rounded-xl overflow-hidden border-2 border-primary group cursor-pointer shadow-xl shadow-primary/5">
+<div class="h-24 bg-slate-800 bg-gradient-to-br from-slate-800 to-slate-900 p-2" data-alt="Sidebar navigation layout preview">
+<div class="flex h-full gap-2">
+<div class="w-4 bg-primary/40 rounded-sm"></div>
+<div class="flex-1 bg-white/5 rounded-sm"></div>
+</div>
+</div>
+<div class="absolute inset-0 bg-primary/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="text-white text-[10px] font-bold uppercase tracking-widest">Active Shell</span>
+</div>
+<div class="p-2 bg-slate-800/80 backdrop-blur-sm">
+<p class="text-[10px] font-bold text-white">Left Sidebar Nav</p>
+</div>
+</div>
+<div class="relative rounded-xl overflow-hidden border border-slate-700 group cursor-pointer hover:border-slate-500 transition-all">
+<div class="h-24 bg-slate-800 bg-gradient-to-br from-slate-800 to-slate-900 p-2" data-alt="Top navigation layout preview">
+<div class="flex flex-col h-full gap-2">
+<div class="h-3 bg-white/10 rounded-sm"></div>
+<div class="flex-1 bg-white/5 rounded-sm"></div>
+</div>
+</div>
+<div class="p-2 bg-slate-800/80 backdrop-blur-sm">
+<p class="text-[10px] font-bold text-slate-400">Minimal Top Nav</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Center: Live Preview -->
+<div class="flex-1 bg-slate-950 p-10 flex flex-col overflow-hidden">
+<div class="mb-4 flex items-center justify-between">
+<span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-900 px-2 py-1 rounded">Live Preview</span>
+<div class="flex gap-2">
+<span class="material-symbols-outlined text-slate-500 text-lg cursor-pointer hover:text-white">desktop_windows</span>
+<span class="material-symbols-outlined text-slate-500 text-lg cursor-pointer hover:text-white">tablet_mac</span>
+<span class="material-symbols-outlined text-slate-500 text-lg cursor-pointer hover:text-white">smartphone</span>
+</div>
+</div>
+<div class="flex-1 bg-background-dark border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col scale-95 origin-top transition-transform">
+<!-- Preview Top Bar -->
+<div class="h-10 border-b border-slate-800 flex items-center px-4 justify-between bg-slate-900/50">
+<div class="flex gap-1.5">
+<div class="size-2 rounded-full bg-slate-700"></div>
+<div class="size-2 rounded-full bg-slate-700"></div>
+<div class="size-2 rounded-full bg-slate-700"></div>
+</div>
+<div class="h-4 w-48 bg-slate-800 rounded-full"></div>
+<div class="size-5 rounded-full bg-primary/40"></div>
+</div>
+<!-- Preview Body -->
+<div class="flex-1 flex">
+<div class="w-16 border-r border-slate-800 flex flex-col items-center py-4 gap-4">
+<div class="size-8 rounded-lg bg-primary"></div>
+<div class="size-6 rounded-md bg-slate-800"></div>
+<div class="size-6 rounded-md bg-slate-800"></div>
+<div class="size-6 rounded-md bg-slate-800"></div>
+</div>
+<div class="flex-1 p-8 space-y-6">
+<div class="flex justify-between items-start">
+<div class="space-y-2">
+<div class="h-6 w-40 bg-slate-100 rounded"></div>
+<div class="h-3 w-64 bg-slate-500 rounded"></div>
+</div>
+<div class="h-8 w-24 bg-primary rounded-lg"></div>
+</div>
+<div class="grid grid-cols-3 gap-4">
+<div class="h-32 rounded-xl bg-slate-900 border border-slate-800 p-4 space-y-3">
+<div class="h-3 w-12 bg-slate-700 rounded"></div>
+<div class="h-8 w-full bg-slate-800 rounded"></div>
+</div>
+<div class="h-32 rounded-xl bg-slate-900 border border-slate-800 p-4 space-y-3">
+<div class="h-3 w-12 bg-slate-700 rounded"></div>
+<div class="h-8 w-full bg-slate-800 rounded"></div>
+</div>
+<div class="h-32 rounded-xl bg-slate-900 border border-slate-800 p-4 space-y-3">
+<div class="h-3 w-12 bg-slate-700 rounded"></div>
+<div class="h-8 w-full bg-slate-800 rounded"></div>
+</div>
+</div>
+<div class="h-40 w-full rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center">
+<div class="text-slate-700 material-symbols-outlined text-4xl">analytics</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Panel: Visual Swatches -->
+<div class="w-80 border-l border-slate-800 bg-slate-900/40 custom-scrollbar overflow-y-auto">
+<div class="p-6 space-y-8">
+<div>
+<h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Color Tokens</h3>
+<div class="space-y-4">
+<div class="flex items-center justify-between p-3 bg-slate-800/50 rounded-xl border border-slate-700 cursor-pointer hover:border-primary/50 transition-all">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-lg bg-primary shadow-lg shadow-primary/40 border border-white/10"></div>
+<div>
+<p class="text-xs font-bold text-white">sys.color.primary</p>
+<p class="text-[10px] text-slate-500">Global Primary</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-500 text-sm">colorize</span>
+</div>
+<div class="flex items-center justify-between p-3 bg-slate-800/50 rounded-xl border border-slate-700 cursor-pointer hover:border-primary/50 transition-all">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-lg bg-background-dark border border-white/10"></div>
+<div>
+<p class="text-xs font-bold text-white">sys.color.background</p>
+<p class="text-[10px] text-slate-500">Main Canvas</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-500 text-sm">colorize</span>
+</div>
+<div class="flex items-center justify-between p-3 bg-slate-800/50 rounded-xl border border-slate-700 cursor-pointer hover:border-primary/50 transition-all">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-lg bg-slate-800 border border-white/10"></div>
+<div>
+<p class="text-xs font-bold text-white">sys.color.surface-elevated</p>
+<p class="text-[10px] text-slate-500">Cards &amp; Modals</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-500 text-sm">colorize</span>
+</div>
+</div>
+</div>
+<div>
+<h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Color Tokens</h3>
+<div class="space-y-4">
+<div class="p-4 bg-slate-800/50 rounded-xl border border-slate-700 hover:border-primary/50 cursor-pointer transition-all group">
+<div class="flex justify-between items-center mb-3">
+<p class="text-[10px] text-slate-500 uppercase font-bold tracking-tight">Display Font</p>
+<span class="text-[10px] text-primary font-bold">Inter</span>
+</div>
+<p class="text-lg text-white font-bold leading-none mb-1">Headline Text</p>
+<p class="text-[10px] text-slate-500 truncate">The quick brown fox jumps over the lazy dog.</p>
+</div>
+<div class="p-4 bg-slate-800/50 rounded-xl border border-slate-700 hover:border-primary/50 cursor-pointer transition-all group">
+<div class="flex justify-between items-center mb-3">
+<p class="text-[10px] text-slate-500 uppercase font-bold tracking-tight">Body Font</p>
+<span class="text-[10px] text-primary font-bold">Inter</span>
+</div>
+<p class="text-sm text-slate-300 leading-relaxed mb-1">General body text for paragraphs and descriptions.</p>
+<p class="text-[10px] text-slate-500">Optimized for high-readability at 14px.</p>
+</div>
+</div>
+</div>
+<div>
+<h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Color Tokens</h3>
+<div class="grid grid-cols-2 gap-3">
+<button class="p-3 bg-primary/10 rounded-xl border-2 border-primary flex flex-col items-center text-center transition-all">
+<div class="size-6 rounded bg-primary mb-2 shadow-sm"></div>
+<p class="text-[10px] text-white font-bold">Rounded</p>
+<p class="text-[10px] text-primary/70">Default (4px)</p>
+</button>
+<button class="p-3 bg-slate-800/50 rounded-xl border border-slate-700 hover:border-slate-500 flex flex-col items-center text-center transition-all">
+<div class="size-6 border border-slate-500 border-dashed mb-2 rounded-sm"></div>
+<p class="text-[10px] text-slate-300 font-bold">Sharp</p>
+<p class="text-[10px] text-slate-500">Industrial Look</p>
+</button>
+<button class="p-3 bg-slate-800/50 rounded-xl border border-slate-700 hover:border-slate-500 flex flex-col items-center text-center transition-all col-span-2">
+<div class="flex gap-2 items-center mb-2">
+<div class="size-5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-lg"></div>
+<div class="size-3 rounded-full bg-primary/40"></div>
+</div>
+<p class="text-[10px] text-slate-300 font-bold">Glassmorphism Effects</p>
+<p class="text-[10px] text-slate-500">Enabled (Background Blur &amp; Frosting)</p>
+</button>
+</div>
+</div>
+<div class="pt-4 border-t border-slate-800"><h3 class="text-xs font-bold text-rose-400 uppercase tracking-widest mb-4 flex items-center gap-2"><span class="material-symbols-outlined text-sm">warning</span> Theme Debt</h3><div class="bg-rose-500/10 border border-rose-500/20 rounded-xl p-4"><div class="flex justify-between items-center mb-3"><p class="text-[10px] text-rose-200 font-medium">Hardcoded Styles</p><span class="px-2 py-0.5 bg-rose-500/20 text-rose-300 text-[10px] rounded-full font-bold">14 Found</span></div><div class="space-y-2"><div class="flex justify-between text-[10px]"><span class="text-slate-400">#FFFFFF (Hex)</span><span class="text-rose-400 font-mono">8 instances</span></div><div class="flex justify-between text-[10px]"><span class="text-slate-400">font-size: 13px</span><span class="text-rose-400 font-mono">6 instances</span></div></div><button class="w-full mt-4 py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-[10px] font-bold rounded-lg transition-colors">Auto-Remap to Tokens</button></div></div></div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

@@ -1,0 +1,101 @@
+{
+  "kind": "collectionType",
+  "collectionName": "studio_import_masters",
+  "info": {
+    "singularName": "studio-import-master",
+    "pluralName": "studio-import-masters",
+    "displayName": "Studio Import Master"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "importKey": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "sourceType": {
+      "type": "enumeration",
+      "enum": ["stitch_section", "stitch_full_page", "figma_section", "figma_full_page", "url", "raw_html"],
+      "required": true
+    },
+    "sourceRef": {
+      "type": "string"
+    },
+    "sourceTitle": {
+      "type": "string"
+    },
+    "sourceSummary": {
+      "type": "text"
+    },
+    "sourceHtml": {
+      "type": "text"
+    },
+    "sourceRawMarkupPreview": {
+      "type": "text"
+    },
+    "sourceBaseUrl": {
+      "type": "string"
+    },
+    "sourceAssetBases": {
+      "type": "json"
+    },
+    "sourceAssetManifest": {
+      "type": "json"
+    },
+    "sourceStyleProfile": {
+      "type": "json"
+    },
+    "sourceThemeCharacteristics": {
+      "type": "json"
+    },
+    "sourceShellCharacteristics": {
+      "type": "json"
+    },
+    "referencePreviewHtml": {
+      "type": "text"
+    },
+    "targetPreviewHtml": {
+      "type": "text"
+    },
+    "selectedThemeKey": {
+      "type": "string"
+    },
+    "selectedShellKey": {
+      "type": "string"
+    },
+    "importMode": {
+      "type": "enumeration",
+      "enum": ["blocks", "page"],
+      "default": "blocks"
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["processed", "imported_blocks", "imported_page", "failed"],
+      "required": true,
+      "default": "processed"
+    },
+    "lifecycle": {
+      "type": "enumeration",
+      "enum": ["draft", "active", "archived"],
+      "required": true,
+      "default": "draft"
+    },
+    "extractionSummary": {
+      "type": "json"
+    },
+    "proposalSummary": {
+      "type": "json"
+    },
+    "warnings": {
+      "type": "json"
+    },
+    "uploadSummary": {
+      "type": "json"
+    },
+    "processedAt": {
+      "type": "datetime"
+    }
+  }
+}

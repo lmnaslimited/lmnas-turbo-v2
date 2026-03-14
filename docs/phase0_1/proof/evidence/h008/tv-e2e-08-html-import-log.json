@@ -1,0 +1,1110 @@
+{
+  "fixturePath": "/Users/arunkumar.ganesan/lmnas-turbo-v2/docs/testing-artifacts/code.html",
+  "resetPayload": {
+    "ok": true,
+    "data": {
+      "canonicalCollectionsReset": 5,
+      "canonicalSterile": true
+    },
+    "source": "strapi",
+    "canonical": {
+      "executedAt": "2026-03-12T11:14:50.784Z",
+      "collections": [
+        {
+          "key": "themes",
+          "endpoint": "/api/studio-themes",
+          "before": 1,
+          "deleted": 1,
+          "seeded": 1,
+          "after": 1
+        },
+        {
+          "key": "shells",
+          "endpoint": "/api/studio-shells",
+          "before": 2,
+          "deleted": 2,
+          "seeded": 2,
+          "after": 2
+        },
+        {
+          "key": "blocks",
+          "endpoint": "/api/studio-blocks",
+          "before": 4,
+          "deleted": 4,
+          "seeded": 4,
+          "after": 4
+        },
+        {
+          "key": "widgets",
+          "endpoint": "/api/studio-widgets",
+          "before": 1,
+          "deleted": 1,
+          "seeded": 1,
+          "after": 1
+        },
+        {
+          "key": "pages",
+          "endpoint": "/api/studio-pages",
+          "before": 3,
+          "deleted": 3,
+          "seeded": 3,
+          "after": 3
+        }
+      ],
+      "sterile": true
+    }
+  },
+  "processPayload": {
+    "ok": true,
+    "analysis": {
+      "intake": {
+        "sourceType": "raw_html",
+        "sourceValue": "<!DOCTYPE html>\n<html class=\"dark\" lang=\"en\"><head>\n<meta charset=\"utf-8\"/>\n<meta content=\"width=device-width, initial-scale=1.0\" name=\"viewport\"/>\n<!-- <script src=\"https://cdn.tailwindcss.com?plugins=forms,container-queries\"></script> -->\n <script src=\"https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4\"></script>\n<link href=\"https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap\" rel=\"stylesheet\"/>\n<link href=\"https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap\" rel=\"stylesheet\"/>\n<script id=\"tailwind-config\">\n        tailwind.config = {\n            darkMode: \"class\",\n            theme: {\n                extend: {\n                    colors: {\n                        \"primary\": \"#135bec\",\n                        \"background-light\": \"#f6f6f8\",\n                        \"background-dark\": \"#101622\",\n                    },\n                    fontFamily: {\n                        \"display\": [\"Manrope\", \"sans-serif\"]\n                    },\n                    borderRadius: {\n                        \"DEFAULT\": \"0.25rem\",\n                        \"lg\": \"0.5rem\",\n                        \"xl\": \"0.75rem\",\n                        \"full\": \"9999px\"\n                    },\n                },\n            },\n        }\n    </script>\n<title>TransformerCorp - Refined Authority Testimonials</title>\n</head>\n<body class=\"bg-background-light dark:bg-background-dark font-display antialiased\">\n<div class=\"relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark group/design-root overflow-x-hidden\">\n<div class=\"layout-container flex h-full grow flex-col\">\n<header class=\"flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-800 px-6 md:px-20 lg:px-40 py-4 bg-background-light dark:bg-background-dark\">\n<div class=\"flex items-center gap-4 text-slate-900 dark:text-white\">\n<div class=\"size-6 text-primary\">\n<span class=\"material-symbols-outlined text-3xl\">offline_bolt</span>\n</div>\n<h2 class=\"text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]\">TransformerCorp</h2>\n</div>\n<div class=\"flex flex-1 justify-end gap-8\">\n<div class=\"hidden md:flex items-center gap-9\">\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Products</a>\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Solutions</a>\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Case Studies</a>\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">About</a>\n</div>\n<button class=\"flex min-w-[100px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-5 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:brightness-110 transition-all\">\n<span class=\"truncate\">Contact Us</span>\n</button>\n</div>\n</header>\n<main class=\"flex-1\">\n<section class=\"flex flex-col items-center justify-center px-6 py-16 md:py-24 bg-background-light dark:bg-background-dark\">\n<div class=\"max-w-[1000px] w-full flex flex-col items-center\">\n<h2 class=\"text-slate-400 dark:text-slate-500 text-sm font-bold tracking-[0.2em] uppercase mb-4 text-center\">\n                            Industry Leadership\n                        </h2>\n<h1 class=\"text-slate-900 dark:text-white tracking-tight text-2xl md:text-4xl font-bold leading-tight text-center pb-12 max-w-2xl\">\n                            Trusted by European transformer manufacturers\n                        </h1>\n<div class=\"flex flex-col items-center text-center max-w-2xl mx-auto\">\n<div class=\"relative mb-6\">\n<div class=\"bg-center bg-no-repeat aspect-square bg-cover rounded-full h-16 w-16 border border-slate-200 dark:border-slate-800 grayscale hover:grayscale-0 transition-all duration-500\" data-alt=\"Maribel C. Ibrahim\" style='background-image: url(\"https://lh3.googleusercontent.com/aida-public/AB6AXuBxHVdItcGEUoOlt36co7OO3EEnUYiiaZ8rhi6_Xg3Z4bHyyr3k2Kv9zD-I4DxG8UBkyjc8APgC7o35U-9fQTYJWDKI0VCXByTTwYjq7S3HVZPmh3QOVBfF9BCztTzCA6AfawhwCGtGxbXwKVQfvdfsyRKsEDxaJ5l1wPF_13ryu9c30imjN5atSULGPkkJ1PdVMl6Lm8eZP6-5B-Fv76d-RtUPaEhsSPdoiLpPZEAJwLnFgqT9kHrM7jfwnvUO58iUgfF7m-LC4VI\");'>\n</div>\n<div class=\"absolute -bottom-1 -right-1 bg-primary text-white rounded-full p-0.5 border-2 border-background-dark flex items-center justify-center\">\n<span class=\"material-symbols-outlined text-[10px] block\" style=\"font-variation-settings: 'FILL' 1\">verified</span>\n</div>\n</div>\n<div class=\"mb-6\">\n<p class=\"text-slate-900 dark:text-white text-base font-bold leading-none mb-1\">Maribel C. Ibrahim</p>\n<p class=\"text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-widest\">Chief Operations Officer</p>\n</div>\n<blockquote class=\"text-slate-800 dark:text-slate-200 text-lg md:text-2xl font-light italic leading-relaxed mb-12 line-clamp-3\">\n                                \"Finally LENS AI Revenue Platform helped us to Quote in a single day. The impact on our manufacturing lead times has been transformative for our European operations.\"\n                            </blockquote>\n</div>\n<div class=\"flex flex-col items-center gap-8 w-full border-t border-slate-200 dark:border-slate-800 pt-12\">\n<p class=\"text-slate-700 dark:text-slate-300 text-lg md:text-xl font-medium text-center\">\n                                Proven in complex transformer manufacturing environments\n                            </p>\n<a class=\"inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-white rounded-lg font-bold text-sm tracking-wide hover:brightness-110 hover:shadow-lg hover:shadow-primary/20 transition-all group\" href=\"#\">\n                                Read Customer Stories\n                                <span class=\"material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform\">arrow_right_alt</span>\n</a>\n</div>\n</div>\n</section>\n<section class=\"border-t border-slate-200 dark:border-slate-800 py-12 px-6\">\n<div class=\"max-w-[1200px] mx-auto flex flex-wrap justify-center gap-8 md:gap-16 opacity-30 grayscale\">\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">precision_manufacturing</span> EUROGRID\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">electric_bolt</span> VOLT-IND\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">settings_input_component</span> CORETRANS\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">factory</span> ALPHASTACK\n                        </div>\n</div>\n</section>\n</main>\n<footer class=\"mt-auto border-t border-slate-200 dark:border-slate-800 px-6 py-8\">\n<div class=\"flex flex-col md:flex-row items-center justify-between gap-4 max-w-[1200px] mx-auto\">\n<p class=\"text-slate-500 dark:text-slate-500 text-xs\">\n                        © 2024 TransformerCorp AI Solutions. All rights reserved.\n                    </p>\n<div class=\"flex gap-6\">\n<a class=\"text-slate-500 hover:text-primary text-xs transition-colors\" href=\"#\">Privacy Policy</a>\n<a class=\"text-slate-500 hover:text-primary text-xs transition-colors\" href=\"#\">Terms of Service</a>\n</div>\n</div>\n</footer>\n</div>\n</div>\n\n</body></html>",
+        "slug": "import-source",
+        "locale": "en",
+        "themeKey": "default"
+      },
+      "source": {
+        "sourceRef": "raw-html",
+        "title": "TransformerCorp - Refined Authority Testimonials",
+        "referencePreviewHtml": "<!DOCTYPE html>\n<html class=\"dark\" lang=\"en\"><head><style>.lmnas-source-item{outline:2px solid transparent;outline-offset:2px;cursor:pointer;transition:outline-color .15s ease;}.lmnas-source-item:hover{outline-color:#5aa2ff;}.lmnas-source-item-active{outline-color:#0b66ff !important;box-shadow:0 0 0 2px rgba(11,102,255,.2);}</style>\n<meta charset=\"utf-8\"/>\n<meta content=\"width=device-width, initial-scale=1.0\" name=\"viewport\"/>\n<!--  -->\n <script src=\"https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4\"></script>\n<link href=\"https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap\" rel=\"stylesheet\"/>\n<link href=\"https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap\" rel=\"stylesheet\"/>\n\n<title>TransformerCorp - Refined Authority Testimonials</title>\n</head>\n<body class=\"bg-background-light dark:bg-background-dark font-display antialiased theme-default\">\n<div class=\"relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark group/design-root overflow-x-hidden\">\n<div class=\"layout-container flex h-full grow flex-col\">\n<header class=\"flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-800 px-6 md:px-20 lg:px-40 py-4 bg-background-light dark:bg-background-dark\">\n<div class=\"flex items-center gap-4 text-slate-900 dark:text-white\">\n<div class=\"size-6 text-primary\">\n<span class=\"material-symbols-outlined text-3xl\">offline_bolt</span>\n</div>\n<h2 class=\"text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]\">TransformerCorp</h2>\n</div>\n<div class=\"flex flex-1 justify-end gap-8\">\n<div class=\"hidden md:flex items-center gap-9\">\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Products</a>\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Solutions</a>\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Case Studies</a>\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">About</a>\n</div>\n<button class=\"flex min-w-[100px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-5 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:brightness-110 transition-all\">\n<span class=\"truncate\">Contact Us</span>\n</button>\n</div>\n</header>\n<main class=\"flex-1\">\n<section class=\"flex flex-col items-center justify-center px-6 py-16 md:py-24 bg-background-light dark:bg-background-dark\">\n<div class=\"max-w-[1000px] w-full flex flex-col items-center\">\n<h2 class=\"text-slate-400 dark:text-slate-500 text-sm font-bold tracking-[0.2em] uppercase mb-4 text-center\">\n                            Industry Leadership\n                        </h2>\n<h1 class=\"text-slate-900 dark:text-white tracking-tight text-2xl md:text-4xl font-bold leading-tight text-center pb-12 max-w-2xl\">\n                            Trusted by European transformer manufacturers\n                        </h1>\n<div class=\"flex flex-col items-center text-center max-w-2xl mx-auto\">\n<div class=\"relative mb-6\">\n<div class=\"bg-center bg-no-repeat aspect-square bg-cover rounded-full h-16 w-16 border border-slate-200 dark:border-slate-800 grayscale hover:grayscale-0 transition-all duration-500\" data-alt=\"Maribel C. Ibrahim\" style='background-image: url(\"https://lh3.googleusercontent.com/aida-public/AB6AXuBxHVdItcGEUoOlt36co7OO3EEnUYiiaZ8rhi6_Xg3Z4bHyyr3k2Kv9zD-I4DxG8UBkyjc8APgC7o35U-9fQTYJWDKI0VCXByTTwYjq7S3HVZPmh3QOVBfF9BCztTzCA6AfawhwCGtGxbXwKVQfvdfsyRKsEDxaJ5l1wPF_13ryu9c30imjN5atSULGPkkJ1PdVMl6Lm8eZP6-5B-Fv76d-RtUPaEhsSPdoiLpPZEAJwLnFgqT9kHrM7jfwnvUO58iUgfF7m-LC4VI\");'>\n</div>\n<div class=\"absolute -bottom-1 -right-1 bg-primary text-white rounded-full p-0.5 border-2 border-background-dark flex items-center justify-center\">\n<span class=\"material-symbols-outlined text-[10px] block\" style=\"font-variation-settings: 'FILL' 1\">verified</span>\n</div>\n</div>\n<div class=\"mb-6\">\n<p class=\"text-slate-900 dark:text-white text-base font-bold leading-none mb-1\">Maribel C. Ibrahim</p>\n<p class=\"text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-widest\">Chief Operations Officer</p>\n</div>\n<blockquote class=\"text-slate-800 dark:text-slate-200 text-lg md:text-2xl font-light italic leading-relaxed mb-12 line-clamp-3\">\n                                \"Finally LENS AI Revenue Platform helped us to Quote in a single day. The impact on our manufacturing lead times has been transformative for our European operations.\"\n                            </blockquote>\n</div>\n<div class=\"flex flex-col items-center gap-8 w-full border-t border-slate-200 dark:border-slate-800 pt-12\">\n<p class=\"text-slate-700 dark:text-slate-300 text-lg md:text-xl font-medium text-center\">\n                                Proven in complex transformer manufacturing environments\n                            </p>\n<a class=\"inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-white rounded-lg font-bold text-sm tracking-wide hover:brightness-110 hover:shadow-lg hover:shadow-primary/20 transition-all group\" href=\"#\">\n                                Read Customer Stories\n                                <span class=\"material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform\">arrow_right_alt</span>\n</a>\n</div>\n</div>\n</section>\n<section class=\"border-t border-slate-200 dark:border-slate-800 py-12 px-6\">\n<div class=\"max-w-[1200px] mx-auto flex flex-wrap justify-center gap-8 md:gap-16 opacity-30 grayscale\">\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">precision_manufacturing</span> EUROGRID\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">electric_bolt</span> VOLT-IND\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">settings_input_component</span> CORETRANS\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">factory</span> ALPHASTACK\n                        </div>\n</div>\n</section>\n</main>\n<footer class=\"mt-auto border-t border-slate-200 dark:border-slate-800 px-6 py-8\">\n<div class=\"flex flex-col md:flex-row items-center justify-between gap-4 max-w-[1200px] mx-auto\">\n<p class=\"text-slate-500 dark:text-slate-500 text-xs\">\n                        © 2024 TransformerCorp AI Solutions. All rights reserved.\n                    </p>\n<div class=\"flex gap-6\">\n<a class=\"text-slate-500 hover:text-primary text-xs transition-colors\" href=\"#\">Privacy Policy</a>\n<a class=\"text-slate-500 hover:text-primary text-xs transition-colors\" href=\"#\">Terms of Service</a>\n</div>\n</div>\n</footer>\n</div>\n</div>\n\n</body></html>",
+        "productionPreviewHtml": "<!DOCTYPE html>\n<html class=\"dark\" lang=\"en\"><head><style>.lmnas-source-item{outline:2px solid transparent;outline-offset:2px;cursor:pointer;transition:outline-color .15s ease;}.lmnas-source-item:hover{outline-color:#5aa2ff;}.lmnas-source-item-active{outline-color:#0b66ff !important;box-shadow:0 0 0 2px rgba(11,102,255,.2);}</style>\n<meta charset=\"utf-8\"/>\n<meta content=\"width=device-width, initial-scale=1.0\" name=\"viewport\"/>\n<!--  -->\n <script src=\"https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4\"></script>\n<link href=\"https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap\" rel=\"stylesheet\"/>\n<link href=\"https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap\" rel=\"stylesheet\"/>\n\n<title>TransformerCorp - Refined Authority Testimonials</title>\n</head>\n<body class=\"bg-background-light dark:bg-background-dark font-display antialiased theme-default\">\n<div class=\"relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark group/design-root overflow-x-hidden\">\n<div class=\"layout-container flex h-full grow flex-col\">\n<header class=\"flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-800 px-6 md:px-20 lg:px-40 py-4 bg-background-light dark:bg-background-dark\">\n<div class=\"flex items-center gap-4 text-slate-900 dark:text-white\">\n<div class=\"size-6 text-primary\">\n<span class=\"material-symbols-outlined text-3xl\">offline_bolt</span>\n</div>\n<h2 class=\"text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]\">TransformerCorp</h2>\n</div>\n<div class=\"flex flex-1 justify-end gap-8\">\n<div class=\"hidden md:flex items-center gap-9\">\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Products</a>\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Solutions</a>\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Case Studies</a>\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">About</a>\n</div>\n<button class=\"flex min-w-[100px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-5 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:brightness-110 transition-all\">\n<span class=\"truncate\">Contact Us</span>\n</button>\n</div>\n</header>\n<main class=\"flex-1\">\n<section class=\"flex flex-col items-center justify-center px-6 py-16 md:py-24 bg-background-light dark:bg-background-dark\">\n<div class=\"max-w-[1000px] w-full flex flex-col items-center\">\n<h2 class=\"text-slate-400 dark:text-slate-500 text-sm font-bold tracking-[0.2em] uppercase mb-4 text-center\">\n                            Industry Leadership\n                        </h2>\n<h1 class=\"text-slate-900 dark:text-white tracking-tight text-2xl md:text-4xl font-bold leading-tight text-center pb-12 max-w-2xl\">\n                            Trusted by European transformer manufacturers\n                        </h1>\n<div class=\"flex flex-col items-center text-center max-w-2xl mx-auto\">\n<div class=\"relative mb-6\">\n<div class=\"bg-center bg-no-repeat aspect-square bg-cover rounded-full h-16 w-16 border border-slate-200 dark:border-slate-800 grayscale hover:grayscale-0 transition-all duration-500\" data-alt=\"Maribel C. Ibrahim\" style='background-image: url(\"https://lh3.googleusercontent.com/aida-public/AB6AXuBxHVdItcGEUoOlt36co7OO3EEnUYiiaZ8rhi6_Xg3Z4bHyyr3k2Kv9zD-I4DxG8UBkyjc8APgC7o35U-9fQTYJWDKI0VCXByTTwYjq7S3HVZPmh3QOVBfF9BCztTzCA6AfawhwCGtGxbXwKVQfvdfsyRKsEDxaJ5l1wPF_13ryu9c30imjN5atSULGPkkJ1PdVMl6Lm8eZP6-5B-Fv76d-RtUPaEhsSPdoiLpPZEAJwLnFgqT9kHrM7jfwnvUO58iUgfF7m-LC4VI\");'>\n</div>\n<div class=\"absolute -bottom-1 -right-1 bg-primary text-white rounded-full p-0.5 border-2 border-background-dark flex items-center justify-center\">\n<span class=\"material-symbols-outlined text-[10px] block\" style=\"font-variation-settings: 'FILL' 1\">verified</span>\n</div>\n</div>\n<div class=\"mb-6\">\n<p class=\"text-slate-900 dark:text-white text-base font-bold leading-none mb-1\">Maribel C. Ibrahim</p>\n<p class=\"text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-widest\">Chief Operations Officer</p>\n</div>\n<blockquote class=\"text-slate-800 dark:text-slate-200 text-lg md:text-2xl font-light italic leading-relaxed mb-12 line-clamp-3\">\n                                \"Finally LENS AI Revenue Platform helped us to Quote in a single day. The impact on our manufacturing lead times has been transformative for our European operations.\"\n                            </blockquote>\n</div>\n<div class=\"flex flex-col items-center gap-8 w-full border-t border-slate-200 dark:border-slate-800 pt-12\">\n<p class=\"text-slate-700 dark:text-slate-300 text-lg md:text-xl font-medium text-center\">\n                                Proven in complex transformer manufacturing environments\n                            </p>\n<a class=\"inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-white rounded-lg font-bold text-sm tracking-wide hover:brightness-110 hover:shadow-lg hover:shadow-primary/20 transition-all group\" href=\"#\">\n                                Read Customer Stories\n                                <span class=\"material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform\">arrow_right_alt</span>\n</a>\n</div>\n</div>\n</section>\n<section class=\"border-t border-slate-200 dark:border-slate-800 py-12 px-6\">\n<div class=\"max-w-[1200px] mx-auto flex flex-wrap justify-center gap-8 md:gap-16 opacity-30 grayscale\">\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">precision_manufacturing</span> EUROGRID\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">electric_bolt</span> VOLT-IND\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">settings_input_component</span> CORETRANS\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">factory</span> ALPHASTACK\n                        </div>\n</div>\n</section>\n</main>\n<footer class=\"mt-auto border-t border-slate-200 dark:border-slate-800 px-6 py-8\">\n<div class=\"flex flex-col md:flex-row items-center justify-between gap-4 max-w-[1200px] mx-auto\">\n<p class=\"text-slate-500 dark:text-slate-500 text-xs\">\n                        © 2024 TransformerCorp AI Solutions. All rights reserved.\n                    </p>\n<div class=\"flex gap-6\">\n<a class=\"text-slate-500 hover:text-primary text-xs transition-colors\" href=\"#\">Privacy Policy</a>\n<a class=\"text-slate-500 hover:text-primary text-xs transition-colors\" href=\"#\">Terms of Service</a>\n</div>\n</div>\n</footer>\n</div>\n</div>\n\n</body></html>",
+        "rawMarkupPreview": "<!DOCTYPE html>\n<html class=\"dark\" lang=\"en\"><head>\n<meta charset=\"utf-8\"/>\n<meta content=\"width=device-width, initial-scale=1.0\" name=\"viewport\"/>\n<!--  -->\n <script src=\"https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4\"></script>\n<link href=\"https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap\" rel=\"stylesheet\"/>\n<link href=\"https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap\" rel=\"stylesheet\"/>\n\n<title>TransformerCorp - Refined Authority Testimonials</title>\n</head>\n<body class=\"bg-background-light dark:bg-background-dark font-display antialiased\">\n<div class=\"relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark group/design-root overflow-x-hidden\">\n<div class=\"layout-container flex h-full grow flex-col\">\n<header class=\"flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-800 px-6 md:px-20 lg:px-40 py-4 bg-background-light dark:bg-background-dark\">\n<div class=\"flex items-center gap-4 text-slate-900 dark:text-white\">\n<div class=\"size-6 text-primary\">\n<span class=\"material-symbols-outlined text-3xl\">offline_bolt</span>\n</div>\n<h2 class=\"text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]\">TransformerCorp</h2>\n</div>\n<div class=\"flex flex-1 justify-end gap-8\">\n<div class=\"hidden md:flex items-center gap-9\">\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Products</a>\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Solutions</a>\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Case Studies</a>\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">About</a>\n</div>\n<button class=\"flex min-w-[100px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-5 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:brightness-110 transition-all\">\n<span class=\"truncate\">Contact Us</span>\n</button>\n</div>\n</header>\n<main class=\"flex-1\">\n<section class=\"flex flex-col items-center justify-center px-6 py-16 md:py-24 bg-background-light dark:bg-background-dark\">\n<div class=\"max-w-[1000px] w-full flex flex-col items-center\">\n<h2 class=\"text-slate-400 dark:text-slate-500 text-sm font-bold tracking-[0.2em] uppercase mb-4 text-center\">\n                            Industry Leadership\n                        </h2>\n<h1 class=\"text-slate-900 dark:text-white tracking-tight text-2xl md:text-4xl font-bold leading-tight text-center pb-12 max-w-2xl\">\n                            Trusted by European transformer manufacturers\n                        </h1>\n<div class=\"flex flex-col items-center text-center max-w-2xl mx-auto\">\n<div class=\"relative mb-6\">\n<div class=\"bg-center bg-no-repeat aspect-square bg-cover rounded-full h-16 w-16 border border-slate-200 dark:border-slate-800 grayscale hover:grayscale-0 transition-all duration-500\" data-alt=\"Maribel C. Ibrahim\" style='background-image: url(\"https://lh3.googleusercontent.com/aida-public/AB6AXuBxHVdItcGEUoOlt36co7OO3EEnUYiiaZ8rhi6_Xg3Z4bHyyr3k2Kv9zD-I4DxG8UBkyjc8APgC7o35U-9fQTYJWDKI0VCXByTTwYjq7S3HVZPmh3QOVBfF9BCztTzCA6AfawhwCGtGxbXwKVQfvdfsyRKsEDxaJ5l1wPF_13ryu9c30imjN5atSULGPkkJ1PdVMl6Lm8eZP6-5B-Fv76d-RtUPaEhsSPdoiLpPZEAJwLnFgqT9kHrM7jfwnvUO58iUgfF7m-LC4VI\");'>\n</div>\n<div class=\"absolute -bottom-1 -right-1 bg-primary text-white rounded-full p-0.5 border-2 border-background-dark flex items-center justify-center\">\n<span class=\"material-symbols-outlined text-[10px] block\" style=\"font-variation-settings: 'FILL' 1\">verified</span>\n</div>\n</div>\n<div class=\"mb-6\">\n<p class=\"text-slate-900 dark:text-white text-base font-bold leading-none mb-1\">Maribel C. Ibrahim</p>\n<p class=\"text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-widest\">Chief Operations Officer</p>\n</div>\n<blockquote class=\"text-slate-800 dark:text-slate-200 text-lg md:text-2xl font-light italic leading-relaxed mb-12 line-clamp-3\">\n                                \"Finally LENS AI Revenue Platform helped us to Quote in a single day. The impact on our manufacturing lead times has been transformative for our European operations.\"\n                            </blockquote>\n</div>\n<div class=\"flex flex-col items-center gap-8 w-full border-t border-slate-200 dark:border-slate-800 pt-12\">\n<p class=\"text-slate-700 dark:text-slate-300 text-lg md:text-xl font-medium text-center\">\n                                Proven in complex transformer manufacturing environments\n                            </p>\n<a class=\"inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-white rounded-lg font-bold text-sm tracking-wide hover:brightness-110 hover:shadow-lg hover:shadow-primary/20 transition-all group\" href=\"#\">\n                                Read Customer Stories\n                                <span class=\"material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform\">arrow_right_alt</span>\n</a>\n</div>\n</div>\n</section>\n<section class=\"border-t border-slate-200 dark:border-slate-800 py-12 px-6\">\n<div class=\"max-w-[1200px] mx-auto flex flex-wrap justify-center gap-8 md:gap-16 opacity-30 grayscale\">\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">precision_manufacturing</span> EUROGRID\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">electric_bolt</span> VOLT-IND\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">settings_input_component</span> CORETRANS\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">factory</span> ALPHASTACK\n                        </div>\n</div>\n</section>\n</main>\n<footer class=\"mt-auto border-t border-slate-200 dark:border-slate-800 px-6 py-8\">\n<div class=\"flex flex-col md:flex-row items-center justify-between gap-4 max-w-[1200px] mx-auto\">\n<p class=\"text-slate-500 dark:text-slate-500 text-xs\">\n                        © 2024 TransformerCorp AI Solutions. All rights reserved.\n                    </p>\n<div class=\"flex gap-6\">\n<a class=\"text-slate-500 hover:text-primary text-xs transition-colors\" href=\"#\">Privacy Policy</a>\n<a class=\"text-slate-500 hover:text-primary text-xs transition-colors\" href=\"#\">Terms of Service</a>\n</div>\n</div>\n</footer>\n</div>\n</div>\n\n</body></html>",
+        "themeScopeClass": "theme-default",
+        "styleProfile": {
+          "appliedStrategy": "source_document",
+          "inlineStyleTagCount": 0,
+          "linkedStylesheetCount": 2,
+          "unresolvedStylesheetCount": 0,
+          "fidelityNotes": [
+            "Source uses Tailwind utility classes. Using project's Tailwind setup for preview.",
+            "2 Google Font(s) detected and preserved."
+          ]
+        }
+      },
+      "shellCandidates": [
+        {
+          "id": "navbar-header-1",
+          "displayName": "Header Nav 1",
+          "type": "navbar",
+          "selectorHint": "<header>",
+          "previewSelector": "header:nth-of-type(1)",
+          "confidence": 0.72,
+          "menuItems": [
+            {
+              "label": "Products",
+              "destination": {
+                "type": "internal",
+                "value": "#"
+              },
+              "children": []
+            },
+            {
+              "label": "Solutions",
+              "destination": {
+                "type": "internal",
+                "value": "#"
+              },
+              "children": []
+            },
+            {
+              "label": "Case Studies",
+              "destination": {
+                "type": "internal",
+                "value": "#"
+              },
+              "children": []
+            },
+            {
+              "label": "About",
+              "destination": {
+                "type": "internal",
+                "value": "#"
+              },
+              "children": []
+            }
+          ],
+          "editableFields": [
+            "navItemLabel",
+            "navDestination"
+          ],
+          "ctaLabels": [
+            "Products",
+            "Solutions",
+            "Case Studies",
+            "About"
+          ],
+          "sourceSnippet": "<header class=\"flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-800 px-6 md:px-20 lg:px-40 py-4 bg-background-light dark:bg-background-dark\">\n<div class=\"flex items-center gap-4 text-slate-900 dark:text-white\">\n<div class=\"size-6 text-primary\">\n<span class=\"material-symbols-outlined text-3xl\">offline_bolt</span>\n</div>\n<h2 class=\"text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]\">TransformerCorp</h2>\n</div>\n<div class=\"flex flex-1 justify-end gap-8\">\n<div class=\"hidden md:flex items-center gap-9\">\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Products</a>\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Solutions</a>\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Case Studies</a>\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">About</a>\n</div>\n<button class=\"flex min-w-[100px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-5 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:brightness-110 transition-all\">\n<span class=\"truncate\">Contact Us</span>\n</button>\n</div>\n</header>",
+          "previewHtml": "<header class=\"flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-800 px-6 md:px-20 lg:px-40 py-4 bg-background-light dark:bg-background-dark\">\n<div class=\"flex items-center gap-4 text-slate-900 dark:text-white\">\n<div class=\"size-6 text-primary\">\n<span class=\"material-symbols-outlined text-3xl\">offline_bolt</span>\n</div>\n<h2 class=\"text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]\">TransformerCorp</h2>\n</div>\n<div class=\"flex flex-1 justify-end gap-8\">\n<div class=\"hidden md:flex items-center gap-9\">\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Products</a>\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Solutions</a>\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Case Studies</a>\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">About</a>\n</div>\n<button class=\"flex min-w-[100px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-5 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:brightness-110 transition-all\">\n<span class=\"truncate\">Contact Us</span>\n</button>\n</div>\n</header>"
+        },
+        {
+          "id": "footer-candidate-1",
+          "displayName": "Footer 1",
+          "type": "footer",
+          "selectorHint": "<footer>",
+          "previewSelector": "footer:nth-of-type(1)",
+          "confidence": 0.9,
+          "menuItems": [
+            {
+              "label": "Privacy Policy",
+              "destination": {
+                "type": "internal",
+                "value": "#"
+              },
+              "children": []
+            },
+            {
+              "label": "Terms of Service",
+              "destination": {
+                "type": "internal",
+                "value": "#"
+              },
+              "children": []
+            }
+          ],
+          "editableFields": [
+            "navItemLabel",
+            "navDestination"
+          ],
+          "ctaLabels": [
+            "Privacy Policy",
+            "Terms of Service"
+          ],
+          "sourceSnippet": "<footer class=\"mt-auto border-t border-slate-200 dark:border-slate-800 px-6 py-8\">\n<div class=\"flex flex-col md:flex-row items-center justify-between gap-4 max-w-[1200px] mx-auto\">\n<p class=\"text-slate-500 dark:text-slate-500 text-xs\">\n                        © 2024 TransformerCorp AI Solutions. All rights reserved.\n                    </p>\n<div class=\"flex gap-6\">\n<a class=\"text-slate-500 hover:text-primary text-xs transition-colors\" href=\"#\">Privacy Policy</a>\n<a class=\"text-slate-500 hover:text-primary text-xs transition-colors\" href=\"#\">Terms of Service</a>\n</div>\n</div>\n</footer>",
+          "previewHtml": "<footer class=\"mt-auto border-t border-slate-200 dark:border-slate-800 px-6 py-8\">\n<div class=\"flex flex-col md:flex-row items-center justify-between gap-4 max-w-[1200px] mx-auto\">\n<p class=\"text-slate-500 dark:text-slate-500 text-xs\">\n                        © 2024 TransformerCorp AI Solutions. All rights reserved.\n                    </p>\n<div class=\"flex gap-6\">\n<a class=\"text-slate-500 hover:text-primary text-xs transition-colors\" href=\"#\">Privacy Policy</a>\n<a class=\"text-slate-500 hover:text-primary text-xs transition-colors\" href=\"#\">Terms of Service</a>\n</div>\n</div>\n</footer>"
+        }
+      ],
+      "blockProposals": [
+        {
+          "id": "block-1",
+          "displayName": "Block 1",
+          "family": "logo_wall",
+          "selectorHint": "section:nth-of-type(1)",
+          "previewSelector": "section:nth-of-type(1)",
+          "confidence": 0.6,
+          "editableFields": [
+            "eyebrow",
+            "heading",
+            "subheading",
+            "richText",
+            "buttonText",
+            "buttonUrl",
+            "stats"
+          ],
+          "ctaLabels": [
+            "Read Customer Stories arrow_right_alt"
+          ],
+          "actionIds": [
+            "action_read_customer_stories_arrow_right_alt_5"
+          ],
+          "segmentation": "keep",
+          "rawHtmlSnippet": "<section class=\"flex flex-col items-center justify-center px-6 py-16 md:py-24 bg-background-light dark:bg-background-dark\">\n<div class=\"max-w-[1000px] w-full flex flex-col items-center\">\n<h2 class=\"text-slate-400 dark:text-slate-500 text-sm font-bold tracking-[0.2em] uppercase mb-4 text-center\">\n                            Industry Leadership\n                        </h2>\n<h1 class=\"text-slate-900 dark:text-white tracking-tight text-2xl md:text-4xl font-bold leading-tight text-center pb-12 max-w-2xl\">\n                            Trusted by European transformer manufacturers\n                        </h1>\n<div class=\"flex flex-col items-center text-center max-w-2xl mx-auto\">\n<div class=\"relative mb-6\">\n<div class=\"bg-center bg-no-repeat aspect-square bg-cover rounded-full h-16 w-16 border border-slate-200 dark:border-slate-800 grayscale hover:grayscale-0 transition-all duration-500\" data-alt=\"Maribel C. Ibrahim\" style='background-image: url(\"https://lh3.googleusercontent.com/aida-public/AB6AXuBxHVdItcGEUoOlt36co7OO3EEnUYiiaZ8rhi6_Xg3Z4bHyyr3k2Kv9zD-I4DxG8UBkyjc8APgC7o35U-9fQTYJWDKI0VCXByTTwYjq7S3HVZPmh3QOVBfF9BCztTzCA6AfawhwCGtGxbXwKVQfvdfsyRKsEDxaJ5l1wPF_13ryu9c30imjN5atSULGPkkJ1PdVMl6Lm8eZP6-5B-Fv76d-RtUPaEhsSPdoiLpPZEAJwLnFgqT9kHrM7jfwnvUO58iUgfF7m-LC4VI\");'>\n</div>\n<div class=\"absolute -bottom-1 -right-1 bg-primary text-white rounded-full p-0.5 border-2 border-background-dark flex items-center justify-center\">\n<span class=\"material-symbols-outlined text-[10px] block\" style=\"font-variation-settings: 'FILL' 1\">verified</span>\n</div>\n</div>\n<div class=\"mb-6\">\n<p class=\"text-slate-900 dark:text-white text-base font-bold leading-none mb-1\">Maribel C. Ibrahim</p>\n<p class=\"text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-widest\">Chief Operations Officer</p>\n</div>\n<blockquote class=\"text-slate-800 dark:text-slate-200 text-lg md:text-2xl font-light italic leading-relaxed mb-12 line-clamp-3\">\n                                \"Finally LENS AI Revenue Platform helped us to Quote in a single day. The impact on our manufacturing lead times has been transformative for our European operations.\"\n                            </blockquote>\n</div>\n<div class=\"flex flex-col items-center gap-8 w-full border-t border-slate-200 dark:border-slate-800 pt-12\">\n<p class=\"text-slate-700 dark:text-slate-300 text-lg md:text-xl font-medium text-center\">\n                                Proven in complex transformer manufacturing environments\n                            </p>\n<a class=\"inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-white rounded-lg font-bold text-sm tracking-wide hover:brightness-110 hover:shadow-lg hover:shadow-primary/20 transition-all group\" href=\"#\">\n                                Read Customer Stories\n                                <span class=\"material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform\">arrow_right_alt</span>\n</a>\n</div>\n</div>\n</section>",
+          "sourceSnippet": "<section class=\"flex flex-col items-center justify-center px-6 py-16 md:py-24 bg-background-light dark:bg-background-dark\">\n<div class=\"max-w-[1000px] w-full flex flex-col items-center\">\n<h2 class=\"text-slate-400 dark:text-slate-500 text-sm font-bold tracking-[0.2em] uppercase mb-4 text-center\">\n                            Industry Leadership\n                        </h2>\n<h1 class=\"text-slate-900 dark:text-white tracking-tight text-2xl md:text-4xl font-bold leading-tight text-center pb-12 max-w-2xl\">\n                            Trusted by European transformer manufacturers\n                        </h1>\n<div class=\"flex flex-col items-center text-center max-w-2xl mx-auto\">\n<div class=\"relative mb-6\">\n<div class=\"bg-center bg-no-repeat aspect-square bg-cover rounded-full h-16 w-16 border border-slate-200 dark:border-slate-800 grayscale hover:grayscale-0 transition-all duration-500\" data-alt=\"Maribel C. Ibrahim\" style='background-image: url(\"https://lh3.googleusercontent.com/aida-public/AB6AXuBxHVdItcGEUoOlt36co7OO3EEnUYiiaZ8rhi6_Xg3Z4bHyyr3k2Kv9zD-I4DxG8UBkyjc8APgC7o35U-9fQTYJWDKI0VCXByTTwYjq7S3HVZPmh3QOVBfF9BCztTzCA6AfawhwCGtGxbXwKVQfvdfsyRKsEDxaJ5l1wPF_13ryu9c30imjN5atSULGPkkJ1PdVMl6Lm8eZP6-5B-Fv76d-RtUPaEhsSPdoiLpPZEAJwLnFgqT9kHrM7jfwnvUO58iUgfF7m-LC4VI\");'>\n</div>\n<div class=\"absolute -bottom-1 -right-1 bg-primary text-white rounded-full p-0.5 border-2 border-background-dark flex items-center justify-center\">\n<span class=\"material-symbols-outlined text-[10px] block\" style=\"font-variation-settings: 'FILL' 1\">verified</span>\n</div>\n</div>\n<div class=\"mb-6\">\n<p class=\"text-slate-900 dark:text-white text-base font-bold leading-none mb-1\">Maribel C. Ibrahim</p>\n<p class=\"text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-widest\">Chief Operations Officer</p>\n</div>\n<blockquote class=\"text-slate-800 dark:text-slate-200 text-lg md:text-2xl font-light italic leading-relaxed mb-12 line-clamp-3\">\n                                \"Finally LENS AI Revenue Platform helped us to Quote in a single day. The impact on our manufacturing lead times has been transformative for our European operations.\"\n                            </blockquote>\n</div>\n<div class=\"flex flex-col items-center gap-8 w-full border-t border-slate-200 dark:border-slate-800 pt-12\">\n<p class=\"text-slate-700 dark:text-slate-300 text-lg md:text-xl font-medium text-center\">\n                                Proven in complex transformer manufacturing environments\n                            </p>\n<a class=\"inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-white rounded-lg font-bold text-sm tracking-wide hover:brightness-110 hover:shadow-lg hover:shadow-primary/20 transition-all group\" href=\"#\">\n                                Read Customer Stories\n                                <span class=\"material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform\">arrow_right_alt</span>\n</a>\n</div>\n</div>\n</section>",
+          "previewHtml": "<section class=\"flex flex-col items-center justify-center px-6 py-16 md:py-24 bg-background-light dark:bg-background-dark\">\n<div class=\"max-w-[1000px] w-full flex flex-col items-center\">\n<h2 class=\"text-slate-400 dark:text-slate-500 text-sm font-bold tracking-[0.2em] uppercase mb-4 text-center\">\n                            Industry Leadership\n                        </h2>\n<h1 class=\"text-slate-900 dark:text-white tracking-tight text-2xl md:text-4xl font-bold leading-tight text-center pb-12 max-w-2xl\">\n                            Trusted by European transformer manufacturers\n                        </h1>\n<div class=\"flex flex-col items-center text-center max-w-2xl mx-auto\">\n<div class=\"relative mb-6\">\n<div class=\"bg-center bg-no-repeat aspect-square bg-cover rounded-full h-16 w-16 border border-slate-200 dark:border-slate-800 grayscale hover:grayscale-0 transition-all duration-500\" data-alt=\"Maribel C. Ibrahim\" style='background-image: url(\"https://lh3.googleusercontent.com/aida-public/AB6AXuBxHVdItcGEUoOlt36co7OO3EEnUYiiaZ8rhi6_Xg3Z4bHyyr3k2Kv9zD-I4DxG8UBkyjc8APgC7o35U-9fQTYJWDKI0VCXByTTwYjq7S3HVZPmh3QOVBfF9BCztTzCA6AfawhwCGtGxbXwKVQfvdfsyRKsEDxaJ5l1wPF_13ryu9c30imjN5atSULGPkkJ1PdVMl6Lm8eZP6-5B-Fv76d-RtUPaEhsSPdoiLpPZEAJwLnFgqT9kHrM7jfwnvUO58iUgfF7m-LC4VI\");'>\n</div>\n<div class=\"absolute -bottom-1 -right-1 bg-primary text-white rounded-full p-0.5 border-2 border-background-dark flex items-center justify-center\">\n<span class=\"material-symbols-outlined text-[10px] block\" style=\"font-variation-settings: 'FILL' 1\">verified</span>\n</div>\n</div>\n<div class=\"mb-6\">\n<p class=\"text-slate-900 dark:text-white text-base font-bold leading-none mb-1\">Maribel C. Ibrahim</p>\n<p class=\"text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-widest\">Chief Operations Officer</p>\n</div>\n<blockquote class=\"text-slate-800 dark:text-slate-200 text-lg md:text-2xl font-light italic leading-relaxed mb-12 line-clamp-3\">\n                                \"Finally LENS AI Revenue Platform helped us to Quote in a single day. The impact on our manufacturing lead times has been transformative for our European operations.\"\n                            </blockquote>\n</div>\n<div class=\"flex flex-col items-center gap-8 w-full border-t border-slate-200 dark:border-slate-800 pt-12\">\n<p class=\"text-slate-700 dark:text-slate-300 text-lg md:text-xl font-medium text-center\">\n                                Proven in complex transformer manufacturing environments\n                            </p>\n<a class=\"inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-white rounded-lg font-bold text-sm tracking-wide hover:brightness-110 hover:shadow-lg hover:shadow-primary/20 transition-all group\" href=\"#\">\n                                Read Customer Stories\n                                <span class=\"material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform\">arrow_right_alt</span>\n</a>\n</div>\n</div>\n</section>"
+        },
+        {
+          "id": "block-2",
+          "displayName": "Block 2",
+          "family": "form_section",
+          "selectorHint": "section:nth-of-type(2)",
+          "previewSelector": "section:nth-of-type(2)",
+          "confidence": 0.6,
+          "editableFields": [
+            "eyebrow"
+          ],
+          "ctaLabels": [],
+          "actionIds": [],
+          "segmentation": "keep",
+          "rawHtmlSnippet": "<section class=\"border-t border-slate-200 dark:border-slate-800 py-12 px-6\">\n<div class=\"max-w-[1200px] mx-auto flex flex-wrap justify-center gap-8 md:gap-16 opacity-30 grayscale\">\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">precision_manufacturing</span> EUROGRID\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">electric_bolt</span> VOLT-IND\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">settings_input_component</span> CORETRANS\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">factory</span> ALPHASTACK\n                        </div>\n</div>\n</section>",
+          "sourceSnippet": "<section class=\"border-t border-slate-200 dark:border-slate-800 py-12 px-6\">\n<div class=\"max-w-[1200px] mx-auto flex flex-wrap justify-center gap-8 md:gap-16 opacity-30 grayscale\">\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">precision_manufacturing</span> EUROGRID\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">electric_bolt</span> VOLT-IND\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">settings_input_component</span> CORETRANS\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">factory</span> ALPHASTACK\n                        </div>\n</div>\n</section>",
+          "previewHtml": "<section class=\"border-t border-slate-200 dark:border-slate-800 py-12 px-6\">\n<div class=\"max-w-[1200px] mx-auto flex flex-wrap justify-center gap-8 md:gap-16 opacity-30 grayscale\">\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">precision_manufacturing</span> EUROGRID\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">electric_bolt</span> VOLT-IND\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">settings_input_component</span> CORETRANS\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">factory</span> ALPHASTACK\n                        </div>\n</div>\n</section>"
+        }
+      ],
+      "widgetProposals": [
+        {
+          "id": "widget_contact_drawer",
+          "name": "Contact Drawer",
+          "displayName": "Contact Drawer",
+          "widgetType": "drawer",
+          "selectorHint": "fallback:widget",
+          "previewSelector": "body",
+          "confidence": 0.32,
+          "editableFields": [
+            "heading",
+            "buttonText"
+          ],
+          "triggerLabels": [],
+          "associatedActionIds": [],
+          "sourceSnippet": "fallback",
+          "previewHtml": "<div>No explicit widget detected. You can still create one in mapping.</div>"
+        }
+      ],
+      "actionProposals": [
+        {
+          "id": "action_products_1",
+          "label": "Products",
+          "displayName": "Products",
+          "selectorHint": "a[href='#']",
+          "previewSelector": "a[href='#']",
+          "confidence": 0.86,
+          "actionType": "link_url",
+          "sourceSurface": "shell",
+          "sourceItemId": "navbar-header-1",
+          "sourceItemLabel": "Header Nav 1",
+          "ctaKind": "anchor",
+          "ctaHref": "#",
+          "destination": {
+            "kind": "url",
+            "value": "#"
+          },
+          "summary": "Navigate to page/URL",
+          "sourceSnippet": "<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Products</a>",
+          "previewHtml": "<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Products</a>"
+        },
+        {
+          "id": "action_solutions_2",
+          "label": "Solutions",
+          "displayName": "Solutions",
+          "selectorHint": "a[href='#']",
+          "previewSelector": "a[href='#']",
+          "confidence": 0.86,
+          "actionType": "link_url",
+          "sourceSurface": "shell",
+          "sourceItemId": "navbar-header-1",
+          "sourceItemLabel": "Header Nav 1",
+          "ctaKind": "anchor",
+          "ctaHref": "#",
+          "destination": {
+            "kind": "url",
+            "value": "#"
+          },
+          "summary": "Navigate to page/URL",
+          "sourceSnippet": "<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Solutions</a>",
+          "previewHtml": "<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Solutions</a>"
+        },
+        {
+          "id": "action_case_studies_3",
+          "label": "Case Studies",
+          "displayName": "Case Studies",
+          "selectorHint": "a[href='#']",
+          "previewSelector": "a[href='#']",
+          "confidence": 0.86,
+          "actionType": "link_url",
+          "sourceSurface": "shell",
+          "sourceItemId": "navbar-header-1",
+          "sourceItemLabel": "Header Nav 1",
+          "ctaKind": "anchor",
+          "ctaHref": "#",
+          "destination": {
+            "kind": "url",
+            "value": "#"
+          },
+          "summary": "Navigate to page/URL",
+          "sourceSnippet": "<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Case Studies</a>",
+          "previewHtml": "<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Case Studies</a>"
+        },
+        {
+          "id": "action_about_4",
+          "label": "About",
+          "displayName": "About",
+          "selectorHint": "a[href='#']",
+          "previewSelector": "a[href='#']",
+          "confidence": 0.86,
+          "actionType": "link_url",
+          "sourceSurface": "shell",
+          "sourceItemId": "navbar-header-1",
+          "sourceItemLabel": "Header Nav 1",
+          "ctaKind": "anchor",
+          "ctaHref": "#",
+          "destination": {
+            "kind": "url",
+            "value": "#"
+          },
+          "summary": "Navigate to page/URL",
+          "sourceSnippet": "<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">About</a>",
+          "previewHtml": "<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">About</a>"
+        },
+        {
+          "id": "action_read_customer_stories_arrow_right_alt_5",
+          "label": "Read Customer Stories arrow_right_alt",
+          "displayName": "Read Customer Stories arrow_right_alt",
+          "selectorHint": "a[href='#']",
+          "previewSelector": "a[href='#']",
+          "confidence": 0.86,
+          "actionType": "link_url",
+          "sourceSurface": "block",
+          "sourceItemId": "block-1",
+          "sourceItemLabel": "Block 1",
+          "ctaKind": "anchor",
+          "ctaHref": "#",
+          "destination": {
+            "kind": "url",
+            "value": "#"
+          },
+          "summary": "Navigate to page/URL",
+          "sourceSnippet": "<a class=\"inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-white rounded-lg font-bold text-sm tracking-wide hover:brightness-110 hover:shadow-lg hover:shadow-primary/20 transition-all group\" href=\"#\">\n                                Read Customer Stories\n                                <span class=\"material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform\">arrow_right_alt</span>\n</a>",
+          "previewHtml": "<a class=\"inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-white rounded-lg font-bold text-sm tracking-wide hover:brightness-110 hover:shadow-lg hover:shadow-primary/20 transition-all group\" href=\"#\">\n                                Read Customer Stories\n                                <span class=\"material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform\">arrow_right_alt</span>\n</a>"
+        },
+        {
+          "id": "action_privacy_policy_6",
+          "label": "Privacy Policy",
+          "displayName": "Privacy Policy",
+          "selectorHint": "a[href='#']",
+          "previewSelector": "a[href='#']",
+          "confidence": 0.86,
+          "actionType": "link_url",
+          "sourceSurface": "shell",
+          "sourceItemId": "footer-candidate-1",
+          "sourceItemLabel": "Footer 1",
+          "ctaKind": "anchor",
+          "ctaHref": "#",
+          "destination": {
+            "kind": "url",
+            "value": "#"
+          },
+          "summary": "Navigate to page/URL",
+          "sourceSnippet": "<a class=\"text-slate-500 hover:text-primary text-xs transition-colors\" href=\"#\">Privacy Policy</a>",
+          "previewHtml": "<a class=\"text-slate-500 hover:text-primary text-xs transition-colors\" href=\"#\">Privacy Policy</a>"
+        },
+        {
+          "id": "action_terms_of_service_7",
+          "label": "Terms of Service",
+          "displayName": "Terms of Service",
+          "selectorHint": "a[href='#']",
+          "previewSelector": "a[href='#']",
+          "confidence": 0.86,
+          "actionType": "link_url",
+          "sourceSurface": "shell",
+          "sourceItemId": "footer-candidate-1",
+          "sourceItemLabel": "Footer 1",
+          "ctaKind": "anchor",
+          "ctaHref": "#",
+          "destination": {
+            "kind": "url",
+            "value": "#"
+          },
+          "summary": "Navigate to page/URL",
+          "sourceSnippet": "<a class=\"text-slate-500 hover:text-primary text-xs transition-colors\" href=\"#\">Terms of Service</a>",
+          "previewHtml": "<a class=\"text-slate-500 hover:text-primary text-xs transition-colors\" href=\"#\">Terms of Service</a>"
+        },
+        {
+          "id": "action_contact_us_button_1",
+          "label": "Contact Us",
+          "displayName": "Contact Us",
+          "selectorHint": "button:nth-of-type(1)",
+          "previewSelector": "button:nth-of-type(1)",
+          "confidence": 0.76,
+          "actionType": "workflow",
+          "sourceSurface": "shell",
+          "sourceItemId": "navbar-header-1",
+          "sourceItemLabel": "Header Nav 1",
+          "ctaKind": "button",
+          "ctaButtonType": "button",
+          "destination": {
+            "kind": "exit",
+            "value": "contact_us_workflow"
+          },
+          "suggestedExitId": "contact_us_workflow",
+          "summary": "Trigger backend workflow",
+          "sourceSnippet": "<button class=\"flex min-w-[100px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-5 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:brightness-110 transition-all\">\n<span class=\"truncate\">Contact Us</span>\n</button>",
+          "previewHtml": "<button class=\"flex min-w-[100px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-5 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:brightness-110 transition-all\">\n<span class=\"truncate\">Contact Us</span>\n</button>"
+        }
+      ],
+      "exitProposals": [
+        {
+          "id": "contact_us_workflow",
+          "name": "Contact Us",
+          "eventName": "exit_contact_us_workflow_triggered",
+          "selectorHint": "button:nth-of-type(1)",
+          "confidence": 0.76,
+          "state": "active",
+          "frontendAdapterType": "none",
+          "backendAdapterType": "n8n_webhook",
+          "workflowTarget": {
+            "kind": "n8n_webhook",
+            "value": "n8n://workflow/contact_us"
+          },
+          "sourceActionId": "action_contact_us_button_1",
+          "suggestedBinding": {
+            "locationType": "page",
+            "locationId": "navbar-header-1"
+          }
+        },
+        {
+          "id": "book_appointment_primary",
+          "name": "Book Appointment",
+          "eventName": "exit_book_appointment_primary_triggered",
+          "selectorHint": "fallback:book-appointment",
+          "confidence": 0.35,
+          "state": "inactive",
+          "frontendAdapterType": "modal",
+          "backendAdapterType": "n8n_webhook",
+          "workflowTarget": {
+            "kind": "n8n_webhook",
+            "value": "n8n://workflow/book_appointment"
+          },
+          "suggestedBinding": {
+            "locationType": "page",
+            "locationId": "page-root"
+          }
+        }
+      ],
+      "theme": {
+        "themeKey": "default",
+        "tokenFirstMatchRatio": 0.35064935064935066,
+        "arbitraryValueCount": 8,
+        "themeDebtSummary": "8 arbitrary class values detected; convert to platform tokens where possible.",
+        "hasDarkModeTrigger": true,
+        "extractedFonts": [
+          "Manrope",
+          "Material Symbols Outlined"
+        ],
+        "extractedColors": {
+          "primary": "#135bec",
+          "background-light": "#f6f6f8",
+          "background-dark": "#101622"
+        },
+        "utilityClassUsages": [
+          "dark",
+          "bg-background-light",
+          "dark:bg-background-dark",
+          "font-display",
+          "antialiased",
+          "relative",
+          "flex",
+          "h-auto",
+          "min-h-screen",
+          "w-full",
+          "flex-col",
+          "group/design-root",
+          "overflow-x-hidden",
+          "layout-container",
+          "h-full",
+          "grow",
+          "items-center",
+          "justify-between",
+          "whitespace-nowrap",
+          "border-b",
+          "border-solid",
+          "border-slate-200",
+          "dark:border-slate-800",
+          "px-6",
+          "md:px-20",
+          "lg:px-40",
+          "py-4",
+          "gap-4",
+          "text-slate-900",
+          "dark:text-white",
+          "size-6",
+          "text-primary",
+          "material-symbols-outlined",
+          "text-3xl",
+          "text-lg",
+          "font-bold",
+          "leading-tight",
+          "tracking-[-0.015em]",
+          "flex-1",
+          "justify-end",
+          "gap-8",
+          "hidden",
+          "md:flex",
+          "gap-9",
+          "text-slate-700",
+          "dark:text-slate-200",
+          "text-sm",
+          "font-medium",
+          "leading-normal",
+          "hover:text-primary",
+          "transition-colors",
+          "min-w-[100px]",
+          "cursor-pointer",
+          "justify-center",
+          "overflow-hidden",
+          "rounded-lg",
+          "h-10",
+          "px-5",
+          "bg-primary",
+          "text-white",
+          "tracking-[0.015em]",
+          "hover:brightness-110",
+          "transition-all",
+          "truncate",
+          "py-16",
+          "md:py-24",
+          "max-w-[1000px]",
+          "text-slate-400",
+          "dark:text-slate-500",
+          "tracking-[0.2em]",
+          "uppercase",
+          "mb-4",
+          "text-center",
+          "tracking-tight",
+          "text-2xl",
+          "md:text-4xl",
+          "pb-12",
+          "max-w-2xl",
+          "mx-auto",
+          "mb-6",
+          "bg-center",
+          "bg-no-repeat",
+          "aspect-square",
+          "bg-cover",
+          "rounded-full",
+          "h-16",
+          "w-16",
+          "border",
+          "grayscale",
+          "hover:grayscale-0",
+          "duration-500",
+          "absolute",
+          "-bottom-1",
+          "-right-1",
+          "p-0.5",
+          "border-2",
+          "border-background-dark",
+          "text-[10px]",
+          "block",
+          "text-base",
+          "leading-none",
+          "mb-1",
+          "text-slate-500",
+          "dark:text-slate-400",
+          "text-xs",
+          "tracking-widest",
+          "text-slate-800",
+          "md:text-2xl",
+          "font-light",
+          "italic",
+          "leading-relaxed",
+          "mb-12",
+          "line-clamp-3",
+          "border-t",
+          "pt-12",
+          "dark:text-slate-300",
+          "md:text-xl",
+          "inline-flex",
+          "gap-2",
+          "px-8",
+          "tracking-wide",
+          "hover:shadow-lg",
+          "hover:shadow-primary/20",
+          "group",
+          "text-xl",
+          "group-hover:translate-x-1",
+          "transition-transform",
+          "py-12",
+          "max-w-[1200px]",
+          "flex-wrap",
+          "md:gap-16",
+          "opacity-30",
+          "tracking-tighter",
+          "mt-auto",
+          "py-8",
+          "md:flex-row",
+          "gap-6"
+        ]
+      },
+      "fidelityWarnings": [
+        {
+          "code": "widgets.low_confidence",
+          "message": "1 widget candidate(s) need confirmation before publish.",
+          "severity": "warning"
+        },
+        {
+          "code": "actions.workflow_review",
+          "message": "1 CTA action(s) require workflow mapping review.",
+          "severity": "info"
+        },
+        {
+          "code": "theme.arbitrary_values",
+          "message": "8 arbitrary class values detected; convert to platform tokens where possible.",
+          "severity": "info"
+        },
+        {
+          "code": "preview.structural_match",
+          "message": "Source sections=2, mapped blocks=2, structural match=100.0%",
+          "severity": "info"
+        },
+        {
+          "code": "preview.fidelity_note_1",
+          "message": "Source uses Tailwind utility classes. Using project's Tailwind setup for preview.",
+          "severity": "warning"
+        },
+        {
+          "code": "preview.fidelity_note_2",
+          "message": "2 Google Font(s) detected and preserved.",
+          "severity": "warning"
+        }
+      ]
+    },
+    "persistence": {
+      "source": "strapi",
+      "schemaSource": "canonical",
+      "proposalsPersisted": 2,
+      "proposalBlocks": [
+        {
+          "proposalId": "block-1",
+          "blockKey": "import-source-block-1-01",
+          "schemaStatus": "warning",
+          "status": "draft"
+        },
+        {
+          "proposalId": "block-2",
+          "blockKey": "import-source-block-2-02",
+          "schemaStatus": "warning",
+          "status": "draft"
+        }
+      ],
+      "warnings": []
+    }
+  },
+  "publishPayload": {
+    "ok": true,
+    "result": {
+      "mode": "apply",
+      "applied": true,
+      "applyReadiness": {
+        "canApply": true,
+        "missingEnvKeys": [],
+        "operatorMessage": "Ready to publish to Strapi.",
+        "developerMessage": "Required Strapi env keys are present."
+      },
+      "summary": {
+        "shellsToCreate": 1,
+        "blocksToCreate": 2,
+        "widgetsToCreate": 1,
+        "actionsToCreate": 8,
+        "exitsRequired": 2,
+        "editableFieldsCreated": 10,
+        "warningsCount": 6
+      },
+      "previewLinks": [
+        "/en/import-source",
+        "/import-source",
+        "/platform/onboarding?slug=import-source"
+      ],
+      "warnings": [
+        {
+          "code": "widgets.low_confidence",
+          "message": "1 widget candidate(s) need confirmation before publish.",
+          "severity": "warning"
+        },
+        {
+          "code": "actions.workflow_review",
+          "message": "1 CTA action(s) require workflow mapping review.",
+          "severity": "info"
+        },
+        {
+          "code": "theme.arbitrary_values",
+          "message": "8 arbitrary class values detected; convert to platform tokens where possible.",
+          "severity": "info"
+        },
+        {
+          "code": "preview.structural_match",
+          "message": "Source sections=2, mapped blocks=2, structural match=100.0%",
+          "severity": "info"
+        },
+        {
+          "code": "preview.fidelity_note_1",
+          "message": "Source uses Tailwind utility classes. Using project's Tailwind setup for preview.",
+          "severity": "warning"
+        },
+        {
+          "code": "preview.fidelity_note_2",
+          "message": "2 Google Font(s) detected and preserved.",
+          "severity": "warning"
+        }
+      ],
+      "assemblyPreviewHtml": "<!doctype html><html class=\"dark\"><head><meta charset='utf-8'/><meta name='viewport' content='width=device-width, initial-scale=1'/><link href=\"https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap\" rel=\"stylesheet\"/><link href=\"https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap\" rel=\"stylesheet\"/><link href=\"https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap\" rel=\"stylesheet\"/><link href=\"https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap\" rel=\"stylesheet\"/><style>.lmnas-source-item{outline:2px solid transparent;outline-offset:2px;cursor:pointer;transition:outline-color .15s ease;}.lmnas-source-item:hover{outline-color:#5aa2ff;}.lmnas-source-item-active{outline-color:#0b66ff !important;box-shadow:0 0 0 2px rgba(11,102,255,.2);}</style><style>body{margin:0;padding:0;font-family:Manrope,Segoe UI,sans-serif;}.lmnas-preview-root{min-height:100%;}.lmnas-preview-thumbnail{padding:8px;}.lmnas-source-item{outline:2px solid transparent;outline-offset:2px;cursor:pointer;transition:outline-color .15s ease;}.lmnas-source-item:hover{outline-color:#5aa2ff;}.lmnas-source-item-active{outline-color:#0b66ff !important;box-shadow:0 0 0 2px rgba(11,102,255,.2);}</style></head><body class=\"theme-default\"><div class='lmnas-preview-root'><div class='lmnas-assembly-root'><header class=\"flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-800 px-6 md:px-20 lg:px-40 py-4 bg-background-light dark:bg-background-dark\">\n<div class=\"flex items-center gap-4 text-slate-900 dark:text-white\">\n<div class=\"size-6 text-primary\">\n<span class=\"material-symbols-outlined text-3xl\">offline_bolt</span>\n</div>\n<h2 class=\"text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]\">TransformerCorp</h2>\n</div>\n<div class=\"flex flex-1 justify-end gap-8\">\n<div class=\"hidden md:flex items-center gap-9\">\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Products</a>\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Solutions</a>\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">Case Studies</a>\n<a class=\"text-slate-700 dark:text-slate-200 text-sm font-medium leading-normal hover:text-primary transition-colors\" href=\"#\">About</a>\n</div>\n<button class=\"flex min-w-[100px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-5 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:brightness-110 transition-all\">\n<span class=\"truncate\">Contact Us</span>\n</button>\n</div>\n</header><main class='lmnas-assembly-main'><section class='lmnas-assembly-block'><div class='lmnas-assembly-block-meta'>Block 1 (logo_wall)</div><section class=\"flex flex-col items-center justify-center px-6 py-16 md:py-24 bg-background-light dark:bg-background-dark\">\n<div class=\"max-w-[1000px] w-full flex flex-col items-center\">\n<h2 class=\"text-slate-400 dark:text-slate-500 text-sm font-bold tracking-[0.2em] uppercase mb-4 text-center\">\n                            Industry Leadership\n                        </h2>\n<h1 class=\"text-slate-900 dark:text-white tracking-tight text-2xl md:text-4xl font-bold leading-tight text-center pb-12 max-w-2xl\">\n                            Trusted by European transformer manufacturers\n                        </h1>\n<div class=\"flex flex-col items-center text-center max-w-2xl mx-auto\">\n<div class=\"relative mb-6\">\n<div class=\"bg-center bg-no-repeat aspect-square bg-cover rounded-full h-16 w-16 border border-slate-200 dark:border-slate-800 grayscale hover:grayscale-0 transition-all duration-500\" data-alt=\"Maribel C. Ibrahim\" style='background-image: url(\"https://lh3.googleusercontent.com/aida-public/AB6AXuBxHVdItcGEUoOlt36co7OO3EEnUYiiaZ8rhi6_Xg3Z4bHyyr3k2Kv9zD-I4DxG8UBkyjc8APgC7o35U-9fQTYJWDKI0VCXByTTwYjq7S3HVZPmh3QOVBfF9BCztTzCA6AfawhwCGtGxbXwKVQfvdfsyRKsEDxaJ5l1wPF_13ryu9c30imjN5atSULGPkkJ1PdVMl6Lm8eZP6-5B-Fv76d-RtUPaEhsSPdoiLpPZEAJwLnFgqT9kHrM7jfwnvUO58iUgfF7m-LC4VI\");'>\n</div>\n<div class=\"absolute -bottom-1 -right-1 bg-primary text-white rounded-full p-0.5 border-2 border-background-dark flex items-center justify-center\">\n<span class=\"material-symbols-outlined text-[10px] block\" style=\"font-variation-settings: 'FILL' 1\">verified</span>\n</div>\n</div>\n<div class=\"mb-6\">\n<p class=\"text-slate-900 dark:text-white text-base font-bold leading-none mb-1\">Maribel C. Ibrahim</p>\n<p class=\"text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-widest\">Chief Operations Officer</p>\n</div>\n<blockquote class=\"text-slate-800 dark:text-slate-200 text-lg md:text-2xl font-light italic leading-relaxed mb-12 line-clamp-3\">\n                                \"Finally LENS AI Revenue Platform helped us to Quote in a single day. The impact on our manufacturing lead times has been transformative for our European operations.\"\n                            </blockquote>\n</div>\n<div class=\"flex flex-col items-center gap-8 w-full border-t border-slate-200 dark:border-slate-800 pt-12\">\n<p class=\"text-slate-700 dark:text-slate-300 text-lg md:text-xl font-medium text-center\">\n                                Proven in complex transformer manufacturing environments\n                            </p>\n<a class=\"inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-white rounded-lg font-bold text-sm tracking-wide hover:brightness-110 hover:shadow-lg hover:shadow-primary/20 transition-all group\" href=\"#\">\n                                Read Customer Stories\n                                <span class=\"material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform\">arrow_right_alt</span>\n</a>\n</div>\n</div>\n</section></section><section class='lmnas-assembly-block'><div class='lmnas-assembly-block-meta'>Block 2 (form_section)</div><section class=\"border-t border-slate-200 dark:border-slate-800 py-12 px-6\">\n<div class=\"max-w-[1200px] mx-auto flex flex-wrap justify-center gap-8 md:gap-16 opacity-30 grayscale\">\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">precision_manufacturing</span> EUROGRID\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">electric_bolt</span> VOLT-IND\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">settings_input_component</span> CORETRANS\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">factory</span> ALPHASTACK\n                        </div>\n</div>\n</section></section></main><aside class='lmnas-assembly-widgets'><h4>Widgets</h4><ul><li><strong>Contact Drawer</strong> <span>(drawer)</span></li></ul></aside><aside class='lmnas-assembly-actions'><h4>Actions</h4><ul><li><strong>Products</strong>: Navigate to page/URL (link_url)</li><li><strong>Solutions</strong>: Navigate to page/URL (link_url)</li><li><strong>Case Studies</strong>: Navigate to page/URL (link_url)</li><li><strong>About</strong>: Navigate to page/URL (link_url)</li><li><strong>Read Customer Stories arrow_right_alt</strong>: Navigate to page/URL (link_url)</li><li><strong>Privacy Policy</strong>: Navigate to page/URL (link_url)</li><li><strong>Terms of Service</strong>: Navigate to page/URL (link_url)</li><li><strong>Contact Us</strong>: Trigger backend workflow (workflow)</li></ul></aside><footer class=\"mt-auto border-t border-slate-200 dark:border-slate-800 px-6 py-8\">\n<div class=\"flex flex-col md:flex-row items-center justify-between gap-4 max-w-[1200px] mx-auto\">\n<p class=\"text-slate-500 dark:text-slate-500 text-xs\">\n                        © 2024 TransformerCorp AI Solutions. All rights reserved.\n                    </p>\n<div class=\"flex gap-6\">\n<a class=\"text-slate-500 hover:text-primary text-xs transition-colors\" href=\"#\">Privacy Policy</a>\n<a class=\"text-slate-500 hover:text-primary text-xs transition-colors\" href=\"#\">Terms of Service</a>\n</div>\n</div>\n</footer></div></div></body></html>",
+      "strapiPayload": {
+        "shellVariants": [
+          {
+            "id": "shell-import-source",
+            "name": "Imported Shell",
+            "navbarVariantId": "navbar-import-source",
+            "footerVariantId": "footer-import-source",
+            "description": "Generated from onboarding shell detector"
+          }
+        ],
+        "navbarVariants": [
+          {
+            "id": "navbar-import-source",
+            "name": "Imported Navbar",
+            "menuId": "menu-import-source",
+            "sticky": true,
+            "mobileBehavior": "drawer",
+            "ctaSlotLabel": "Primary CTA",
+            "utilityBarEnabled": false
+          }
+        ],
+        "footerVariants": [
+          {
+            "id": "footer-import-source",
+            "name": "Imported Footer",
+            "columns": [
+              {
+                "id": "footer-col-import-source",
+                "heading": "Links",
+                "links": [
+                  {
+                    "label": "Privacy Policy",
+                    "destination": {
+                      "type": "internal",
+                      "value": "#"
+                    },
+                    "children": []
+                  },
+                  {
+                    "label": "Terms of Service",
+                    "destination": {
+                      "type": "internal",
+                      "value": "#"
+                    },
+                    "children": []
+                  }
+                ]
+              }
+            ],
+            "legalStrip": {
+              "copyrightText": "© LMNAs",
+              "legalLinks": []
+            }
+          }
+        ],
+        "menus": [
+          {
+            "id": "menu-import-source",
+            "name": "Primary menu for import-source",
+            "items": [
+              {
+                "label": "Products",
+                "destination": {
+                  "type": "internal",
+                  "value": "#"
+                },
+                "children": []
+              },
+              {
+                "label": "Solutions",
+                "destination": {
+                  "type": "internal",
+                  "value": "#"
+                },
+                "children": []
+              },
+              {
+                "label": "Case Studies",
+                "destination": {
+                  "type": "internal",
+                  "value": "#"
+                },
+                "children": []
+              },
+              {
+                "label": "About",
+                "destination": {
+                  "type": "internal",
+                  "value": "#"
+                },
+                "children": []
+              }
+            ],
+            "groups": []
+          },
+          {
+            "id": "footer-menu-import-source",
+            "name": "Footer menu for import-source",
+            "items": [
+              {
+                "label": "Privacy Policy",
+                "destination": {
+                  "type": "internal",
+                  "value": "#"
+                },
+                "children": []
+              },
+              {
+                "label": "Terms of Service",
+                "destination": {
+                  "type": "internal",
+                  "value": "#"
+                },
+                "children": []
+              }
+            ],
+            "groups": []
+          }
+        ],
+        "blockInstances": [
+          {
+            "id": "import-source-block-1-01",
+            "displayName": "Block 1",
+            "family": "logo_wall",
+            "selectorHint": "section:nth-of-type(1)",
+            "previewSelector": "section:nth-of-type(1)",
+            "confidence": 0.6,
+            "editableFields": [
+              "eyebrow",
+              "heading",
+              "subheading",
+              "richText",
+              "buttonText",
+              "buttonUrl",
+              "stats"
+            ],
+            "ctaLabels": [
+              "Read Customer Stories arrow_right_alt"
+            ],
+            "actionIds": [
+              "action_read_customer_stories_arrow_right_alt_5"
+            ],
+            "segmentation": "keep",
+            "rawHtmlSnippet": "<section class=\"flex flex-col items-center justify-center px-6 py-16 md:py-24 bg-background-light dark:bg-background-dark\">\n<div class=\"max-w-[1000px] w-full flex flex-col items-center\">\n<h2 class=\"text-slate-400 dark:text-slate-500 text-sm font-bold tracking-[0.2em] uppercase mb-4 text-center\">\n                            Industry Leadership\n                        </h2>\n<h1 class=\"text-slate-900 dark:text-white tracking-tight text-2xl md:text-4xl font-bold leading-tight text-center pb-12 max-w-2xl\">\n                            Trusted by European transformer manufacturers\n                        </h1>\n<div class=\"flex flex-col items-center text-center max-w-2xl mx-auto\">\n<div class=\"relative mb-6\">\n<div class=\"bg-center bg-no-repeat aspect-square bg-cover rounded-full h-16 w-16 border border-slate-200 dark:border-slate-800 grayscale hover:grayscale-0 transition-all duration-500\" data-alt=\"Maribel C. Ibrahim\" style='background-image: url(\"https://lh3.googleusercontent.com/aida-public/AB6AXuBxHVdItcGEUoOlt36co7OO3EEnUYiiaZ8rhi6_Xg3Z4bHyyr3k2Kv9zD-I4DxG8UBkyjc8APgC7o35U-9fQTYJWDKI0VCXByTTwYjq7S3HVZPmh3QOVBfF9BCztTzCA6AfawhwCGtGxbXwKVQfvdfsyRKsEDxaJ5l1wPF_13ryu9c30imjN5atSULGPkkJ1PdVMl6Lm8eZP6-5B-Fv76d-RtUPaEhsSPdoiLpPZEAJwLnFgqT9kHrM7jfwnvUO58iUgfF7m-LC4VI\");'>\n</div>\n<div class=\"absolute -bottom-1 -right-1 bg-primary text-white rounded-full p-0.5 border-2 border-background-dark flex items-center justify-center\">\n<span class=\"material-symbols-outlined text-[10px] block\" style=\"font-variation-settings: 'FILL' 1\">verified</span>\n</div>\n</div>\n<div class=\"mb-6\">\n<p class=\"text-slate-900 dark:text-white text-base font-bold leading-none mb-1\">Maribel C. Ibrahim</p>\n<p class=\"text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-widest\">Chief Operations Officer</p>\n</div>\n<blockquote class=\"text-slate-800 dark:text-slate-200 text-lg md:text-2xl font-light italic leading-relaxed mb-12 line-clamp-3\">\n                                \"Finally LENS AI Revenue Platform helped us to Quote in a single day. The impact on our manufacturing lead times has been transformative for our European operations.\"\n                            </blockquote>\n</div>\n<div class=\"flex flex-col items-center gap-8 w-full border-t border-slate-200 dark:border-slate-800 pt-12\">\n<p class=\"text-slate-700 dark:text-slate-300 text-lg md:text-xl font-medium text-center\">\n                                Proven in complex transformer manufacturing environments\n                            </p>\n<a class=\"inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-white rounded-lg font-bold text-sm tracking-wide hover:brightness-110 hover:shadow-lg hover:shadow-primary/20 transition-all group\" href=\"#\">\n                                Read Customer Stories\n                                <span class=\"material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform\">arrow_right_alt</span>\n</a>\n</div>\n</div>\n</section>",
+            "sourceSnippet": "<section class=\"flex flex-col items-center justify-center px-6 py-16 md:py-24 bg-background-light dark:bg-background-dark\">\n<div class=\"max-w-[1000px] w-full flex flex-col items-center\">\n<h2 class=\"text-slate-400 dark:text-slate-500 text-sm font-bold tracking-[0.2em] uppercase mb-4 text-center\">\n                            Industry Leadership\n                        </h2>\n<h1 class=\"text-slate-900 dark:text-white tracking-tight text-2xl md:text-4xl font-bold leading-tight text-center pb-12 max-w-2xl\">\n                            Trusted by European transformer manufacturers\n                        </h1>\n<div class=\"flex flex-col items-center text-center max-w-2xl mx-auto\">\n<div class=\"relative mb-6\">\n<div class=\"bg-center bg-no-repeat aspect-square bg-cover rounded-full h-16 w-16 border border-slate-200 dark:border-slate-800 grayscale hover:grayscale-0 transition-all duration-500\" data-alt=\"Maribel C. Ibrahim\" style='background-image: url(\"https://lh3.googleusercontent.com/aida-public/AB6AXuBxHVdItcGEUoOlt36co7OO3EEnUYiiaZ8rhi6_Xg3Z4bHyyr3k2Kv9zD-I4DxG8UBkyjc8APgC7o35U-9fQTYJWDKI0VCXByTTwYjq7S3HVZPmh3QOVBfF9BCztTzCA6AfawhwCGtGxbXwKVQfvdfsyRKsEDxaJ5l1wPF_13ryu9c30imjN5atSULGPkkJ1PdVMl6Lm8eZP6-5B-Fv76d-RtUPaEhsSPdoiLpPZEAJwLnFgqT9kHrM7jfwnvUO58iUgfF7m-LC4VI\");'>\n</div>\n<div class=\"absolute -bottom-1 -right-1 bg-primary text-white rounded-full p-0.5 border-2 border-background-dark flex items-center justify-center\">\n<span class=\"material-symbols-outlined text-[10px] block\" style=\"font-variation-settings: 'FILL' 1\">verified</span>\n</div>\n</div>\n<div class=\"mb-6\">\n<p class=\"text-slate-900 dark:text-white text-base font-bold leading-none mb-1\">Maribel C. Ibrahim</p>\n<p class=\"text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-widest\">Chief Operations Officer</p>\n</div>\n<blockquote class=\"text-slate-800 dark:text-slate-200 text-lg md:text-2xl font-light italic leading-relaxed mb-12 line-clamp-3\">\n                                \"Finally LENS AI Revenue Platform helped us to Quote in a single day. The impact on our manufacturing lead times has been transformative for our European operations.\"\n                            </blockquote>\n</div>\n<div class=\"flex flex-col items-center gap-8 w-full border-t border-slate-200 dark:border-slate-800 pt-12\">\n<p class=\"text-slate-700 dark:text-slate-300 text-lg md:text-xl font-medium text-center\">\n                                Proven in complex transformer manufacturing environments\n                            </p>\n<a class=\"inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-white rounded-lg font-bold text-sm tracking-wide hover:brightness-110 hover:shadow-lg hover:shadow-primary/20 transition-all group\" href=\"#\">\n                                Read Customer Stories\n                                <span class=\"material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform\">arrow_right_alt</span>\n</a>\n</div>\n</div>\n</section>",
+            "previewHtml": "<section class=\"flex flex-col items-center justify-center px-6 py-16 md:py-24 bg-background-light dark:bg-background-dark\">\n<div class=\"max-w-[1000px] w-full flex flex-col items-center\">\n<h2 class=\"text-slate-400 dark:text-slate-500 text-sm font-bold tracking-[0.2em] uppercase mb-4 text-center\">\n                            Industry Leadership\n                        </h2>\n<h1 class=\"text-slate-900 dark:text-white tracking-tight text-2xl md:text-4xl font-bold leading-tight text-center pb-12 max-w-2xl\">\n                            Trusted by European transformer manufacturers\n                        </h1>\n<div class=\"flex flex-col items-center text-center max-w-2xl mx-auto\">\n<div class=\"relative mb-6\">\n<div class=\"bg-center bg-no-repeat aspect-square bg-cover rounded-full h-16 w-16 border border-slate-200 dark:border-slate-800 grayscale hover:grayscale-0 transition-all duration-500\" data-alt=\"Maribel C. Ibrahim\" style='background-image: url(\"https://lh3.googleusercontent.com/aida-public/AB6AXuBxHVdItcGEUoOlt36co7OO3EEnUYiiaZ8rhi6_Xg3Z4bHyyr3k2Kv9zD-I4DxG8UBkyjc8APgC7o35U-9fQTYJWDKI0VCXByTTwYjq7S3HVZPmh3QOVBfF9BCztTzCA6AfawhwCGtGxbXwKVQfvdfsyRKsEDxaJ5l1wPF_13ryu9c30imjN5atSULGPkkJ1PdVMl6Lm8eZP6-5B-Fv76d-RtUPaEhsSPdoiLpPZEAJwLnFgqT9kHrM7jfwnvUO58iUgfF7m-LC4VI\");'>\n</div>\n<div class=\"absolute -bottom-1 -right-1 bg-primary text-white rounded-full p-0.5 border-2 border-background-dark flex items-center justify-center\">\n<span class=\"material-symbols-outlined text-[10px] block\" style=\"font-variation-settings: 'FILL' 1\">verified</span>\n</div>\n</div>\n<div class=\"mb-6\">\n<p class=\"text-slate-900 dark:text-white text-base font-bold leading-none mb-1\">Maribel C. Ibrahim</p>\n<p class=\"text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-widest\">Chief Operations Officer</p>\n</div>\n<blockquote class=\"text-slate-800 dark:text-slate-200 text-lg md:text-2xl font-light italic leading-relaxed mb-12 line-clamp-3\">\n                                \"Finally LENS AI Revenue Platform helped us to Quote in a single day. The impact on our manufacturing lead times has been transformative for our European operations.\"\n                            </blockquote>\n</div>\n<div class=\"flex flex-col items-center gap-8 w-full border-t border-slate-200 dark:border-slate-800 pt-12\">\n<p class=\"text-slate-700 dark:text-slate-300 text-lg md:text-xl font-medium text-center\">\n                                Proven in complex transformer manufacturing environments\n                            </p>\n<a class=\"inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-white rounded-lg font-bold text-sm tracking-wide hover:brightness-110 hover:shadow-lg hover:shadow-primary/20 transition-all group\" href=\"#\">\n                                Read Customer Stories\n                                <span class=\"material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform\">arrow_right_alt</span>\n</a>\n</div>\n</div>\n</section>"
+          },
+          {
+            "id": "import-source-block-2-02",
+            "displayName": "Block 2",
+            "family": "form_section",
+            "selectorHint": "section:nth-of-type(2)",
+            "previewSelector": "section:nth-of-type(2)",
+            "confidence": 0.6,
+            "editableFields": [
+              "eyebrow"
+            ],
+            "ctaLabels": [],
+            "actionIds": [],
+            "segmentation": "keep",
+            "rawHtmlSnippet": "<section class=\"border-t border-slate-200 dark:border-slate-800 py-12 px-6\">\n<div class=\"max-w-[1200px] mx-auto flex flex-wrap justify-center gap-8 md:gap-16 opacity-30 grayscale\">\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">precision_manufacturing</span> EUROGRID\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">electric_bolt</span> VOLT-IND\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">settings_input_component</span> CORETRANS\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">factory</span> ALPHASTACK\n                        </div>\n</div>\n</section>",
+            "sourceSnippet": "<section class=\"border-t border-slate-200 dark:border-slate-800 py-12 px-6\">\n<div class=\"max-w-[1200px] mx-auto flex flex-wrap justify-center gap-8 md:gap-16 opacity-30 grayscale\">\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">precision_manufacturing</span> EUROGRID\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">electric_bolt</span> VOLT-IND\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">settings_input_component</span> CORETRANS\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">factory</span> ALPHASTACK\n                        </div>\n</div>\n</section>",
+            "previewHtml": "<section class=\"border-t border-slate-200 dark:border-slate-800 py-12 px-6\">\n<div class=\"max-w-[1200px] mx-auto flex flex-wrap justify-center gap-8 md:gap-16 opacity-30 grayscale\">\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">precision_manufacturing</span> EUROGRID\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">electric_bolt</span> VOLT-IND\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">settings_input_component</span> CORETRANS\n                        </div>\n<div class=\"flex items-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-lg tracking-tighter\">\n<span class=\"material-symbols-outlined\">factory</span> ALPHASTACK\n                        </div>\n</div>\n</section>"
+          }
+        ],
+        "widgetDefinitions": [
+          {
+            "id": "widget_contact_drawer",
+            "name": "Contact Drawer",
+            "widgetType": "drawer",
+            "state": "active",
+            "description": "Imported from fallback:widget",
+            "editableFields": [
+              "heading",
+              "buttonText"
+            ]
+          }
+        ],
+        "widgetVariants": [
+          {
+            "id": "widget_contact_drawer_default",
+            "widgetId": "widget_contact_drawer",
+            "name": "Contact Drawer Default",
+            "surface": "drawer",
+            "config": {}
+          }
+        ],
+        "actionBindings": [
+          {
+            "id": "action-binding-action_products_1",
+            "label": "Products",
+            "actionType": "link_url",
+            "locationType": "navbar",
+            "locationId": "navbar-header-1",
+            "targetUrl": "#",
+            "openInNewTab": false
+          },
+          {
+            "id": "action-binding-action_solutions_2",
+            "label": "Solutions",
+            "actionType": "link_url",
+            "locationType": "navbar",
+            "locationId": "navbar-header-1",
+            "targetUrl": "#",
+            "openInNewTab": false
+          },
+          {
+            "id": "action-binding-action_case_studies_3",
+            "label": "Case Studies",
+            "actionType": "link_url",
+            "locationType": "navbar",
+            "locationId": "navbar-header-1",
+            "targetUrl": "#",
+            "openInNewTab": false
+          },
+          {
+            "id": "action-binding-action_about_4",
+            "label": "About",
+            "actionType": "link_url",
+            "locationType": "navbar",
+            "locationId": "navbar-header-1",
+            "targetUrl": "#",
+            "openInNewTab": false
+          },
+          {
+            "id": "action-binding-action_read_customer_stories_arrow_right_alt_5",
+            "label": "Read Customer Stories arrow_right_alt",
+            "actionType": "link_url",
+            "locationType": "block",
+            "locationId": "block-1",
+            "targetUrl": "#",
+            "openInNewTab": false
+          },
+          {
+            "id": "action-binding-action_privacy_policy_6",
+            "label": "Privacy Policy",
+            "actionType": "link_url",
+            "locationType": "navbar",
+            "locationId": "footer-candidate-1",
+            "targetUrl": "#",
+            "openInNewTab": false
+          },
+          {
+            "id": "action-binding-action_terms_of_service_7",
+            "label": "Terms of Service",
+            "actionType": "link_url",
+            "locationType": "navbar",
+            "locationId": "footer-candidate-1",
+            "targetUrl": "#",
+            "openInNewTab": false
+          },
+          {
+            "id": "action-binding-action_contact_us_button_1",
+            "label": "Contact Us",
+            "actionType": "workflow",
+            "locationType": "navbar",
+            "locationId": "navbar-header-1",
+            "exitId": "contact_us_workflow",
+            "openInNewTab": false
+          }
+        ],
+        "exitDefinitions": [
+          {
+            "id": "contact_us_workflow",
+            "name": "Contact Us",
+            "state": "active",
+            "eventName": "exit_contact_us_workflow_triggered",
+            "payloadSchema": {
+              "format": "json-schema",
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            },
+            "frontendAdapterType": "none",
+            "backendAdapterType": "n8n_webhook",
+            "workflowTarget": {
+              "kind": "n8n_webhook",
+              "value": "n8n://workflow/contact_us"
+            },
+            "fallbackBehavior": "show_fallback_contact",
+            "successBehavior": "show_success_message",
+            "failureBehavior": "show_error_message",
+            "analyticsMapping": {
+              "click": "exit_contact_us_workflow_triggered"
+            },
+            "policy": {
+              "environmentAllowlist": [],
+              "roleAllowlist": []
+            }
+          },
+          {
+            "id": "book_appointment_primary",
+            "name": "Book Appointment",
+            "state": "inactive",
+            "eventName": "exit_book_appointment_primary_triggered",
+            "payloadSchema": {
+              "format": "json-schema",
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            },
+            "frontendAdapterType": "modal",
+            "backendAdapterType": "n8n_webhook",
+            "workflowTarget": {
+              "kind": "n8n_webhook",
+              "value": "n8n://workflow/book_appointment"
+            },
+            "fallbackBehavior": "show_fallback_contact",
+            "successBehavior": "show_success_message",
+            "failureBehavior": "show_error_message",
+            "analyticsMapping": {
+              "click": "exit_book_appointment_primary_triggered"
+            },
+            "policy": {
+              "environmentAllowlist": [],
+              "roleAllowlist": []
+            }
+          }
+        ],
+        "exitBindings": [
+          {
+            "id": "binding-contact_us_workflow",
+            "exitId": "contact_us_workflow",
+            "locationType": "page",
+            "locationId": "navbar-header-1",
+            "label": "Contact Us"
+          },
+          {
+            "id": "binding-book_appointment_primary",
+            "exitId": "book_appointment_primary",
+            "locationType": "page",
+            "locationId": "page-root",
+            "label": "Book Appointment"
+          },
+          {
+            "id": "binding-import-source-action-binding-action_contact_us_button_1",
+            "exitId": "contact_us_workflow",
+            "locationType": "navbar",
+            "locationId": "navbar-header-1",
+            "label": "Contact Us"
+          }
+        ],
+        "pageAssembly": {
+          "slug": "import-source",
+          "locale": "en",
+          "shellAssignment": {
+            "scope": "page",
+            "shellVariantId": "shell-import-source",
+            "pageSlug": "import-source",
+            "navbarVariantId": "navbar-import-source",
+            "footerVariantId": "footer-import-source"
+          },
+          "blockOrder": [
+            "import-source-block-1-01",
+            "import-source-block-2-02"
+          ],
+          "widgetOrder": [
+            "widget_contact_drawer"
+          ],
+          "actionBindingIds": [
+            "action-binding-action_products_1",
+            "action-binding-action_solutions_2",
+            "action-binding-action_case_studies_3",
+            "action-binding-action_about_4",
+            "action-binding-action_read_customer_stories_arrow_right_alt_5",
+            "action-binding-action_privacy_policy_6",
+            "action-binding-action_terms_of_service_7",
+            "action-binding-action_contact_us_button_1"
+          ],
+          "footerVariantId": "footer-import-source",
+          "navbarVariantId": "navbar-import-source"
+        }
+      }
+    },
+    "source": "strapi"
+  },
+  "persistedBlockKeys": [
+    "import-source-block-1-01",
+    "import-source-block-2-02"
+  ],
+  "canonicalBlocksSummary": {
+    "source": "strapi",
+    "schemaSource": "canonical",
+    "count": 2,
+    "keys": [
+      "import-source-block-2-02",
+      "import-source-block-1-01"
+    ]
+  }
+}

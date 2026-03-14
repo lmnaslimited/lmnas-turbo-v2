@@ -1,0 +1,229 @@
+{
+  "createdTheme": {
+    "id": "bp13j2b2ssyjtzgsm5ihrk09",
+    "themeKey": "e2e-imported-theme-1773387033187-33275",
+    "name": "E2E Imported Theme 1773387033187",
+    "status": "active",
+    "sourceRef": "raw-html",
+    "createdAt": "2026-03-13",
+    "updatedAt": "2026-03-13",
+    "tokenCoverage": 0.35,
+    "themeDebt": "8 arbitrary class values detected; convert to platform tokens where possible.",
+    "darkMode": true,
+    "tokens": [
+      {
+        "key": "color.primary",
+        "label": "primary",
+        "category": "color",
+        "value": "#135bec",
+        "cssVariable": "--color-primary",
+        "mapped": true
+      },
+      {
+        "key": "color.background-light",
+        "label": "background-light",
+        "category": "color",
+        "value": "#f6f6f8",
+        "cssVariable": "--color-background-light",
+        "mapped": true
+      },
+      {
+        "key": "color.background-dark",
+        "label": "background-dark",
+        "category": "color",
+        "value": "#101622",
+        "cssVariable": "--color-background-dark",
+        "mapped": true
+      },
+      {
+        "key": "typography.font.1",
+        "label": "Font 1",
+        "category": "typography",
+        "value": "Manrope",
+        "cssVariable": "--font-1",
+        "mapped": true
+      },
+      {
+        "key": "typography.font.2",
+        "label": "Font 2",
+        "category": "typography",
+        "value": "Material Symbols Outlined",
+        "cssVariable": "--font-2",
+        "mapped": true
+      }
+    ]
+  },
+  "alternateTheme": {
+    "id": "y9gjrhtyhbymojvstu8kziz4",
+    "themeKey": "default",
+    "name": "LMNAs Default",
+    "status": "inactive",
+    "sourceRef": "globals.css",
+    "createdAt": "2026-03-13",
+    "updatedAt": "2026-03-13",
+    "tokenCoverage": 0.92,
+    "themeDebt": "3 arbitrary color values detected outside token system",
+    "darkMode": true,
+    "tokens": [
+      {
+        "key": "bg",
+        "label": "Background",
+        "category": "color",
+        "value": "#0b1120",
+        "cssVariable": "--color-lmnas-bg",
+        "mapped": true
+      },
+      {
+        "key": "text",
+        "label": "Primary Text",
+        "category": "color",
+        "value": "#f1f5f9",
+        "cssVariable": "--color-lmnas-text",
+        "mapped": true
+      },
+      {
+        "key": "font-display",
+        "label": "Display Font",
+        "category": "typography",
+        "value": "Manrope, sans-serif",
+        "cssVariable": "--font-display",
+        "mapped": true
+      }
+    ]
+  },
+  "importTargetChanged": true,
+  "blocksPreviewChanged": true,
+  "publishPayload": {
+    "ok": true,
+    "data": {
+      "mode": "apply",
+      "applied": true,
+      "blocked": false,
+      "blockedBy": {
+        "fidelity": false,
+        "governance": false
+      },
+      "source": "strapi",
+      "fidelityMode": "allow-below-threshold",
+      "warnings": [
+        {
+          "code": "publish.fidelity_dark_media_detected",
+          "message": "Source includes @media(dark) or prefers-color-scheme dark rules.",
+          "severity": "info"
+        },
+        {
+          "code": "publish.fidelity_typography_mismatch",
+          "message": "Typography mismatch 1.000 exceeds threshold 0.250.",
+          "severity": "warning"
+        }
+      ],
+      "activeTheme": {
+        "id": "theme-1773387036661",
+        "themeKey": "default",
+        "name": "LMNAs Default",
+        "darkMode": true,
+        "status": "active"
+      },
+      "ignoredPreviewSwatchThemeId": null,
+      "rejectionReason": null,
+      "fidelity": {
+        "threshold": 0.25,
+        "hasDarkMediaQuery": true,
+        "darkModeMismatchRatio": 0,
+        "typographyMismatchRatio": 1,
+        "highestMismatchRatio": 1,
+        "exceedsThreshold": true
+      },
+      "governance": {
+        "ready": true,
+        "page": {
+          "id": "ei39eq54ydtoc3ave42g54om",
+          "name": "E2E Publish Page",
+          "slug": "publish-e2e-1773387036229"
+        },
+        "checks": [
+          {
+            "id": "preview-valid",
+            "label": "Preview valid",
+            "pass": true
+          },
+          {
+            "id": "block-schema-valid",
+            "label": "Block schema valid",
+            "pass": true
+          },
+          {
+            "id": "product-mapped",
+            "label": "Product mapped",
+            "pass": true
+          },
+          {
+            "id": "industry-mapped",
+            "label": "Industry mapped",
+            "pass": true
+          },
+          {
+            "id": "primary-cta-set",
+            "label": "Primary CTA set",
+            "pass": true
+          },
+          {
+            "id": "conversion-present",
+            "label": "Conversion configuration present",
+            "pass": true
+          },
+          {
+            "id": "campaign-present",
+            "label": "Campaign / UTM strategy present",
+            "pass": true
+          },
+          {
+            "id": "taxonomy-valid",
+            "label": "Taxonomy valid",
+            "pass": true
+          },
+          {
+            "id": "seo-metadata-valid",
+            "label": "SEO metadata valid",
+            "pass": true
+          },
+          {
+            "id": "seo-jsonld-valid",
+            "label": "SEO / JSON-LD valid",
+            "pass": true
+          }
+        ],
+        "source": "strapi"
+      },
+      "payload": {
+        "generatedAt": "2026-03-13T07:30:36.689Z",
+        "mode": "apply",
+        "activeTheme": {
+          "id": "theme-1773387036661",
+          "themeKey": "default",
+          "name": "LMNAs Default",
+          "darkMode": true,
+          "status": "active"
+        },
+        "sourceHtml": "<style>\n@media(dark) {\n  body { background: #020617; color: #f8fafc; }\n}\nbody { font-family: 'Comic Sans MS', cursive; }\n</style>\n<main><h1>Publish Fidelity Probe</h1><p>Inspect fidelity before commit.</p></main>",
+        "governancePageId": "ei39eq54ydtoc3ave42g54om",
+        "fidelity": {
+          "mode": "allow-below-threshold",
+          "threshold": 0.25,
+          "report": {
+            "hasDarkMediaQuery": true,
+            "darkModeMismatchRatio": 0,
+            "typographyMismatchRatio": 1,
+            "highestMismatchRatio": 1,
+            "exceedsThreshold": true
+          }
+        }
+      },
+      "persistence": {
+        "source": "strapi",
+        "mutated": true,
+        "pageId": "ei39eq54ydtoc3ave42g54om"
+      }
+    }
+  }
+}
