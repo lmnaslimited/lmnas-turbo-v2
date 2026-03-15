@@ -103,8 +103,7 @@ test.describe("visual onboarding studio workflows", () => {
           status: "inactive",
           updatedAt: new Date().toISOString().slice(0, 10),
           menuItems: [],
-          actions: [],
-          previewHtml: "<nav><strong>E2E Shell</strong></nav>"
+          actions: []
         }
       }
     });

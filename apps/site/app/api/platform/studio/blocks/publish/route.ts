@@ -104,9 +104,7 @@ async function upsertBlockInCollection(
     confidence: number;
     editableFields: string[];
     actions: Array<{ id: string; label: string; type: StudioActionType; target: string }>;
-    previewHtml: string;
-    sourcePreviewHtml?: string;
-    targetPreviewHtml?: string;
+    rawHtmlSnippet?: string;
     importMasterId?: string;
     importProposalId?: string;
     inUseCount: number;
@@ -120,7 +118,7 @@ async function upsertBlockInCollection(
   const existingId = existing ? resolveEntityMutationId(existing) : null;
   const usageCount = template.inUseCount;
   const snapshot = createCanonicalBlockSnapshot({
-    html: template.targetPreviewHtml ?? template.previewHtml,
+    html: template.rawHtmlSnippet ?? "",
     sourceUrl: template.sourceRef,
     themeScopeClass: `theme-${template.themeKey}`,
     stylesheetRef: "/studio-runtime.css"
@@ -151,9 +149,6 @@ async function upsertBlockInCollection(
           confidence: template.confidence,
           editableFields: template.editableFields,
           actions: template.actions,
-          sourcePreviewHtml: "",
-          targetPreviewHtml: "",
-          previewHtml: "",
           importMaster:
             template.importMasterId ??
             (existingEntity &&
@@ -182,14 +177,9 @@ async function upsertBlockInCollection(
           confidence: template.confidence,
           editableFields: template.editableFields,
           actions: template.actions,
-          previewHtml: template.previewHtml,
           inUseCount: usageCount
         };
-  const nextPreviewHtml =
-    template.targetPreviewHtml ??
-    template.previewHtml ??
-    (typeof existingEntity?.previewHtml === "string" ? existingEntity.previewHtml : "<section></section>");
-  const nextPublishedContentHtml = template.targetPreviewHtml ?? template.previewHtml ?? "";
+
   const matchedBlockKey =
     keyField === "blockKey"
       ? template.key
@@ -202,15 +192,8 @@ async function upsertBlockInCollection(
     matchedBlockKey,
     matchedBlockId: existingId,
     nameChanged: existingId !== null ? String(existingEntity?.name ?? "").trim() !== template.name.trim() : false,
-    previewChanged:
-      existingId !== null
-        ? normalizeHtmlComparison(existingEntity?.previewHtml) !== normalizeHtmlComparison(nextPreviewHtml)
-        : true,
-    publishedContentChanged:
-      existingId !== null
-        ? normalizeHtmlComparison(existingEntity?.targetPreviewHtml ?? existingEntity?.previewHtml) !==
-          normalizeHtmlComparison(nextPublishedContentHtml)
-        : true
+    previewChanged: false,
+    publishedContentChanged: false
   };
 
   if (existingId !== null) {
@@ -245,9 +228,7 @@ async function upsertBlockTemplateInStrapi(template: {
   confidence: number;
   editableFields: string[];
   actions: Array<{ id: string; label: string; type: StudioActionType; target: string }>;
-  previewHtml: string;
-  sourcePreviewHtml?: string;
-  targetPreviewHtml?: string;
+  rawHtmlSnippet?: string;
   importMasterId?: string;
   importProposalId?: string;
   inUseCount: number;
@@ -265,7 +246,7 @@ function upsertBlockTemplateInFallback(template: {
   confidence: number;
   editableFields: string[];
   actions: Array<{ id: string; label: string; type: StudioActionType; target: string }>;
-  previewHtml: string;
+  rawHtmlSnippet?: string;
   importProposalId?: string;
 }): PublishedBlockMatch {
   const store = getStudioStore();
@@ -288,7 +269,7 @@ function upsertBlockTemplateInFallback(template: {
     sourceType: template.sourceType,
     sourceRef: template.sourceRef,
     ...createCanonicalBlockSnapshot({
-      html: template.previewHtml,
+      html: template.rawHtmlSnippet ?? "",
       sourceUrl: template.sourceRef,
       themeScopeClass: `theme-${template.themeKey}`,
       stylesheetRef: "/studio-runtime.css"
@@ -296,7 +277,6 @@ function upsertBlockTemplateInFallback(template: {
     confidence: template.confidence,
     editableFields: template.editableFields,
     actions: template.actions,
-    previewHtml: "",
     inUseCount: index >= 0 ? blocks[index].inUseCount : 0,
     usageCount: index >= 0 ? (blocks[index].usageCount ?? blocks[index].inUseCount) : 0,
     createdAt: index >= 0 ? blocks[index].createdAt : now,
@@ -319,9 +299,8 @@ function upsertBlockTemplateInFallback(template: {
     matchedBlockKey: template.key,
     matchedBlockId: existing?.id ?? template.key,
     nameChanged: existing ? existing.name.trim() !== template.name.trim() : false,
-    previewChanged: existing ? normalizeHtmlComparison(existing.previewHtml) !== normalizeHtmlComparison(template.previewHtml) : true,
-    publishedContentChanged:
-      existing ? normalizeHtmlComparison(existing.previewHtml) !== normalizeHtmlComparison(template.previewHtml) : true
+    previewChanged: false,
+    publishedContentChanged: false
   };
 }
 
@@ -435,9 +414,7 @@ export async function POST(request: Request): Promise<Response> {
             confidence: block.confidence,
             editableFields: block.editableFields,
             actions: blockActions,
-            previewHtml: block.previewHtml ?? block.rawHtmlSnippet ?? "<section></section>",
-            sourcePreviewHtml: undefined,
-            targetPreviewHtml: undefined,
+            rawHtmlSnippet: block.rawHtmlSnippet ?? "<section></section>",
             importMasterId,
             importProposalId: block.id,
             inUseCount: 0
@@ -476,7 +453,7 @@ export async function POST(request: Request): Promise<Response> {
             confidence: block.confidence,
             editableFields: block.editableFields,
             actions: blockActions,
-            previewHtml: block.previewHtml ?? block.rawHtmlSnippet ?? "<section></section>",
+            rawHtmlSnippet: block.rawHtmlSnippet ?? "<section></section>",
             importProposalId: block.id
           });
           matchedBlocks.push(match);

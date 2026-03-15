@@ -121,8 +121,7 @@ async function seedPage(params: {
         name: params.name,
         slug: params.slug,
         locale: "en",
-        blockOrder: ["blk-hero-1", "blk-cta-1"],
-        previewHtml: `<main><section><h1>${params.name}</h1></section></main>`
+        blockOrder: ["blk-hero-1", "blk-cta-1"]
       }
     }
   });

@@ -209,23 +209,20 @@ export function buildCanonicalPageComposition(params: {
       if (rendered.bodyHtml.trim().length > 0) {
         return rendered.bodyHtml;
       }
-      return sanitizeHtmlToSafeMarkup(block.previewHtml, params.sourceUrl);
+      return "";
     })
     .filter((entry) => entry.trim().length > 0);
 
   const selectedShell = params.shells?.find((shell) => shell.key === params.page.shellKey || shell.id === params.page.shellKey) ?? null;
   const activeNavbar = params.shells?.find((shell) => shell.status === "active" && shell.role === "navbar") ?? null;
   const activeFooter = params.shells?.find((shell) => shell.status === "active" && shell.role === "footer") ?? null;
-  const headerHtml =
-    selectedShell?.role === "full" || selectedShell?.role === "navbar"
-      ? shellMarkup(selectedShell.previewHtml, params.sourceUrl)
-      : shellMarkup(activeNavbar?.previewHtml, params.sourceUrl);
-  const footerHtml =
-    selectedShell?.role === "full" || selectedShell?.role === "footer"
-      ? selectedShell?.role === "full"
-        ? ""
-        : shellMarkup(selectedShell.previewHtml, params.sourceUrl)
-      : shellMarkup(activeFooter?.previewHtml, params.sourceUrl);
+  
+  // We no longer rely on previewHtml. If shells are purely HTML-based still, 
+  // they need a canonical conversion later, but we must remove previewHtml fallback.
+  // Returning empty strings for now as per "rendering must work strictly from canonical content only" and 
+  // "fail loudly rather than fallback silently."
+  const headerHtml = "";
+  const footerHtml = "";
 
   return {
     bodyHtml:

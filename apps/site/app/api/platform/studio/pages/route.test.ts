@@ -75,8 +75,6 @@ describe("studio pages route import guards", () => {
           seoJsonLdValid: false,
           blockSchemaValid: true,
           previewValid: false,
-          previewHtml: "<main><section>Draft</section></main>",
-          publishedPreviewHtml: "<main><section>Draft</section></main>",
           updatedAt: "2026-03-13"
         },
         {
@@ -100,8 +98,6 @@ describe("studio pages route import guards", () => {
           seoJsonLdValid: true,
           blockSchemaValid: true,
           previewValid: true,
-          previewHtml: "<main><section>Draft</section></main>",
-          publishedPreviewHtml: "<main><section>Published</section></main>",
           updatedAt: "2026-03-12"
         }
       ]
@@ -113,7 +109,7 @@ describe("studio pages route import guards", () => {
     const payload = (await response.json()) as {
       ok: boolean;
       source: string;
-      data: Array<{ status: string; previewValid: boolean; seoJsonLdValid: boolean; publishedPreviewHtml: string }>;
+      data: Array<{ status: string; previewValid: boolean; seoJsonLdValid: boolean }>;
     };
     expect(payload.ok).toBe(true);
     expect(payload.source).toBe("strapi");
@@ -121,7 +117,6 @@ describe("studio pages route import guards", () => {
     expect(payload.data[0]?.status).toBe("published");
     expect(payload.data[0]?.previewValid).toBe(true);
     expect(payload.data[0]?.seoJsonLdValid).toBe(true);
-    expect(payload.data[0]?.publishedPreviewHtml).toContain("Published");
   });
 
   it("hard fails instead of degrading to fallback pages when canonical read fails", async () => {
@@ -267,8 +262,7 @@ describe("studio pages route import guards", () => {
         documentId: string;
         blockKey: string;
         name: string;
-        previewHtml?: string;
-        targetPreviewHtml?: string;
+        domJson?: unknown;
       }
     >();
 
@@ -295,8 +289,7 @@ describe("studio pages route import guards", () => {
           documentId: `doc-${blockKey}`,
           blockKey,
           name: String(init.body?.name ?? blockKey),
-          previewHtml: String(init.body?.previewHtml ?? ""),
-          targetPreviewHtml: String(init.body?.targetPreviewHtml ?? init.body?.previewHtml ?? "")
+          domJson: init.body?.domJson
         };
         storedBlocks.set(blockKey, row);
         return Promise.resolve({ data: row });
@@ -311,8 +304,7 @@ describe("studio pages route import guards", () => {
         const updated = {
           ...existing,
           name: String(init.body?.name ?? existing.name),
-          previewHtml: String(init.body?.previewHtml ?? existing.previewHtml ?? ""),
-          targetPreviewHtml: String(init.body?.targetPreviewHtml ?? init.body?.previewHtml ?? existing.targetPreviewHtml ?? "")
+          domJson: init.body?.domJson ?? existing.domJson
         };
         storedBlocks.set(existing.blockKey, updated);
         return Promise.resolve({ data: updated });
@@ -420,7 +412,6 @@ describe("studio pages route import guards", () => {
           seoJsonLdValid: false,
           blockSchemaValid: true,
           previewValid: false,
-          previewHtml: "<main><section>Preview</section></main>",
           status: "draft",
           lifecycle: "draft",
           updatedAt: "2026-03-13"
@@ -451,7 +442,6 @@ describe("studio pages route import guards", () => {
           seoJsonLdValid: true,
           blockSchemaValid: true,
           previewValid: true,
-          previewHtml: "<main><section>Preview</section></main>",
           status: "draft",
           lifecycle: "draft",
           updatedAt: "2026-03-13"
@@ -540,7 +530,6 @@ describe("studio pages route import guards", () => {
               seoJsonLdValid: false,
               blockSchemaValid: true,
               previewValid: true,
-              previewHtml: "<main><section>Imported</section></main>",
               updatedAt: "2026-03-12"
             }
           ]
@@ -605,7 +594,6 @@ describe("studio pages route import guards", () => {
           seoJsonLdValid: false,
           blockSchemaValid: true,
           previewValid: true,
-          previewHtml: "<main><section>Imported</section></main>",
           updatedAt: "2026-03-12"
         }
       })
@@ -672,8 +660,7 @@ describe("studio pages route import guards", () => {
           },
           seoJsonLdValid: true,
           blockSchemaValid: true,
-          previewValid: true,
-          previewHtml: "<main><section>Broken Save</section></main>"
+          previewValid: true
         }
       })
     );

@@ -41,8 +41,8 @@ type AnalyzeResponse = {
       name: string;
       importMasterId: string;
       importMasterKey: string;
-      sourcePreviewHtml: string;
-      targetPreviewHtml: string;
+      renderedSourceDocument: string;
+      renderedTargetDocument: string;
     }>;
     importMaster?: {
       id: string;
@@ -77,8 +77,8 @@ type PersistedProposalMeta = {
   name: string;
   importMasterId: string;
   importMasterKey: string;
-  sourcePreviewHtml: string;
-  targetPreviewHtml: string;
+  renderedSourceDocument: string;
+  renderedTargetDocument: string;
 };
 
 const ZIP_MAGIC_SIGNATURES = new Set(["PK\u0003\u0004", "PK\u0005\u0006", "PK\u0007\u0008"]);
@@ -205,13 +205,13 @@ function readManifestAssetList(manifest: unknown, key: "stylesheets" | "scripts"
 }
 
 function buildSourcePreviewWithImportContext(params: {
-  previewHtml: string;
+  sourceDocumentHtml: string;
   importMaster: StudioImportMaster | null;
 }): {
   srcDoc: string;
   missingSourceCss: boolean;
 } {
-  const documentHtml = ensureHtmlDocument(params.previewHtml);
+  const documentHtml = ensureHtmlDocument(params.sourceDocumentHtml);
   const importMasterManifest = params.importMaster?.sourceAssetManifest;
   const baseUrl = params.importMaster?.sourceBaseUrl;
 
@@ -307,14 +307,14 @@ function buildExtractedThemeTokens(analysis: OnboardingAnalysis): StudioTheme["t
   return tokens;
 }
 
-function resolveProposalTargetPreviewHtml(params: {
+function resolveProposalRenderedTarget(params: {
   proposalHtml: string;
   persistedMeta: PersistedProposalMeta | null;
   theme: StudioTheme | null;
   hostAssets: ReturnType<typeof usePlatformPreviewAssets>;
 }): string {
   return buildPlatformBlockPreviewDocument({
-    proposalHtml: params.proposalHtml || params.persistedMeta?.targetPreviewHtml || "<section></section>",
+    proposalHtml: params.proposalHtml || params.persistedMeta?.renderedTargetDocument || "<section></section>",
     theme: params.theme,
     hostAssets: params.hostAssets
   });
@@ -389,13 +389,13 @@ export default function ImportWorkflowPage(): React.ReactElement {
     () => shells.find((shell) => shell.key === selectedShellKey) ?? shells.find((shell) => shell.status === "active") ?? null,
     [shells, selectedShellKey]
   );
-  const focusedTargetPreviewHtml = useMemo(() => {
+  const focusedRenderedTarget = useMemo(() => {
     if (!focusedProposal) {
       return null;
     }
 
-    return resolveProposalTargetPreviewHtml({
-      proposalHtml: focusedProposal.previewHtml ?? focusedProposal.rawHtmlSnippet ?? "<section></section>",
+    return resolveProposalRenderedTarget({
+      proposalHtml: focusedProposal.rawHtmlSnippet ?? "<section></section>",
       persistedMeta: focusedProposalMeta,
       theme: compareTheme,
       hostAssets: platformPreviewAssets
@@ -416,10 +416,10 @@ export default function ImportWorkflowPage(): React.ReactElement {
   }, [importMaster?.sourceAssetManifest]);
 
   const sourceComparisonPreview = useMemo(() => {
-    const fallbackHtml = importMaster?.referencePreviewHtml || analysis?.source.referencePreviewHtml || "<section></section>";
+    const fallbackHtml = "<section></section>";
     const focusedFallbackHtml =
-      focusedProposal?.rawHtmlSnippet || focusedProposal?.previewHtml || "<section></section>";
-    const rawSourceHtml = focusedProposalMeta?.sourcePreviewHtml || focusedFallbackHtml || fallbackHtml;
+      focusedProposal?.rawHtmlSnippet || "<section></section>";
+    const rawSourceHtml = focusedProposalMeta?.renderedSourceDocument || focusedFallbackHtml || fallbackHtml;
     const matchesFocusedImportMaster =
       !focusedProposalMeta ||
       !importMaster ||
@@ -428,7 +428,7 @@ export default function ImportWorkflowPage(): React.ReactElement {
 
     const scopedImportMaster = matchesFocusedImportMaster ? importMaster : null;
     return buildSourcePreviewWithImportContext({
-      previewHtml: rawSourceHtml,
+      sourceDocumentHtml: rawSourceHtml,
       importMaster: scopedImportMaster
     });
   }, [analysis?.source.referencePreviewHtml, focusedProposal, focusedProposalMeta, importMaster]);
@@ -729,7 +729,7 @@ export default function ImportWorkflowPage(): React.ReactElement {
               actions: [],
               navbarBlocks: [],
               footerBlocks: [],
-              previewHtml: "<div>No shell preview configured yet.</div>"
+              rawHtmlSnippet: "<div>No shell preview configured yet.</div>"
             }
           })
         },
@@ -798,9 +798,9 @@ export default function ImportWorkflowPage(): React.ReactElement {
               importMasterId: meta.importMasterId,
               importMasterKey: meta.importMasterKey,
               importProposalId: proposalId,
-              sourcePreviewHtml: meta.sourcePreviewHtml,
-              targetPreviewHtml: meta.targetPreviewHtml,
-              previewHtml: meta.targetPreviewHtml || block.previewHtml || block.rawHtmlSnippet || "<section></section>",
+              renderedSourceDocument: meta.renderedSourceDocument,
+              renderedTargetDocument: meta.renderedTargetDocument,
+              rawHtmlSnippet: meta.renderedTargetDocument || block.rawHtmlSnippet || "<section></section>",
               confidence: block.confidence,
               editableFields: block.editableFields,
               actions: [],
@@ -909,7 +909,7 @@ export default function ImportWorkflowPage(): React.ReactElement {
               sourceType: payload.persistence.importMaster.sourceType,
               sourceRef: payload.analysis.source.sourceRef,
               referencePreviewHtml: payload.analysis.source.referencePreviewHtml,
-              targetPreviewHtml: payload.analysis.source.productionPreviewHtml,
+              renderedTargetDocument: payload.analysis.source.productionPreviewHtml,
               selectedThemeKey: payload.persistence.importMaster.selectedThemeKey,
               selectedShellKey: payload.persistence.importMaster.selectedShellKey,
               importMode: payload.persistence.importMaster.importMode,
@@ -944,8 +944,8 @@ export default function ImportWorkflowPage(): React.ReactElement {
           name: entry.name,
           importMasterId: entry.importMasterId,
           importMasterKey: entry.importMasterKey,
-          sourcePreviewHtml: entry.sourcePreviewHtml,
-          targetPreviewHtml: entry.targetPreviewHtml
+          renderedSourceDocument: entry.renderedSourceDocument,
+          renderedTargetDocument: entry.renderedTargetDocument
         };
       });
       setPersistedProposalMeta(nextMeta);
@@ -1135,7 +1135,6 @@ export default function ImportWorkflowPage(): React.ReactElement {
                 seoJsonLdValid: false,
                 blockSchemaValid: selectedBlockKeys.length > 0,
                 previewValid: Boolean(analysis.source.productionPreviewHtml),
-                previewHtml: analysis.source.productionPreviewHtml,
                 updatedAt: new Date().toISOString().slice(0, 10)
               }
             })
@@ -1558,9 +1557,9 @@ export default function ImportWorkflowPage(): React.ReactElement {
                 {blockProposals.map((block, index) => {
                   const included = selectedBlocks[block.id] !== false;
                   const persistedMeta = persistedProposalMeta[block.id] ?? null;
-                  const proposalHtml = block.previewHtml ?? block.rawHtmlSnippet ?? "<section></section>";
-                  const sourcePreviewHtml = persistedMeta?.sourcePreviewHtml ?? proposalHtml;
-                  const targetPreviewHtml = resolveProposalTargetPreviewHtml({
+                  const proposalHtml = block.rawHtmlSnippet ?? "<section></section>";
+                  const renderedSourceDocument = persistedMeta?.renderedSourceDocument ?? proposalHtml;
+                  const renderedTargetDocument = resolveProposalRenderedTarget({
                     proposalHtml,
                     persistedMeta,
                     theme: compareTheme,
@@ -1581,11 +1580,11 @@ export default function ImportWorkflowPage(): React.ReactElement {
                       className={`rounded-lg border p-2 ${included ? "border-blue-500/30 bg-blue-500/[0.06]" : "border-white/[0.08] bg-white/[0.02]"}`}
                     >
                       <div className="mb-2 h-24 overflow-hidden rounded border border-white/[0.08] bg-[#020617]">
-                        {targetPreviewHtml.trim().length > 0 ? (
+                        {renderedTargetDocument.trim().length > 0 ? (
                           <iframe
                             title={`${block.id}-preview`}
                             className="h-full w-full"
-                            srcDoc={buildPreviewThumbnailDocument(targetPreviewHtml)}
+                            srcDoc={buildPreviewThumbnailDocument(renderedTargetDocument)}
                             sandbox="allow-scripts allow-same-origin"
                           />
                         ) : (
@@ -1673,7 +1672,7 @@ export default function ImportWorkflowPage(): React.ReactElement {
                       {isRenamingProposal === block.id ? (
                         <p className="mt-1 text-[10px] text-blue-300">Persisting rename…</p>
                       ) : null}
-                      {sourcePreviewHtml.trim().length === 0 ? (
+                      {renderedSourceDocument.trim().length === 0 ? (
                         <p className="mt-1 text-[10px] text-amber-300">Source preview unavailable for this proposal.</p>
                       ) : null}
                     </article>
@@ -1742,7 +1741,7 @@ export default function ImportWorkflowPage(): React.ReactElement {
                   badge="target"
                   srcDoc={
                     focusedProposal
-                      ? focusedTargetPreviewHtml ?? "<!doctype html><html><head></head><body></body></html>"
+                      ? focusedRenderedTarget ?? "<!doctype html><html><head></head><body></body></html>"
                       : buildPlatformBlockPreviewDocument({
                           proposalHtml: analysis.source.productionPreviewHtml,
                           theme: compareTheme,

@@ -14,6 +14,7 @@ import { subscribePagePreviewAcceptance } from "../_lib/page-preview-acceptance-
 import { invalidatePageValidationOnEdit } from "../_lib/page-validation";
 import { readPreviewSwatchThemeId, setPreviewSwatchThemeId, subscribePreviewSwatchThemeId } from "../_lib/preview-swatch-state";
 import type { StudioBlockTemplate, StudioPageDocument, StudioShell, StudioTheme } from "../_lib/studio-types";
+import { renderCanonicalBlockMarkup } from "../../../../lib/studio-canonical";
 
 type PreviewMode = "draft" | "production";
 type PageFocusMode = "default" | "page-focus" | "full-screen";
@@ -141,7 +142,6 @@ function createDraftPage(name: string, seed: number, existingPages: StudioPageDo
     seoJsonLdValid: false,
     blockSchemaValid: true,
     previewValid: false,
-    previewHtml: "",
     updatedAt: new Date().toISOString().slice(0, 10)
   };
 }
@@ -624,7 +624,6 @@ export default function PagesWorkflowPage(): React.ReactElement {
         ...selectedPage,
         slug: sanitizeSlug(selectedPage.slug),
         blockOrder: canonicalizeBlockOrder(selectedPage.blockOrder, blocks),
-        previewHtml: draftCanvasHtml,
         updatedAt: new Date().toISOString().slice(0, 10)
       };
 
@@ -997,10 +996,11 @@ export default function PagesWorkflowPage(): React.ReactElement {
           {selectedPage ? (
             selectedPage.blockOrder.map((blockKey, index) => {
               const block = findBlockByReference(blocks, blockKey);
-              const previewHtml =
-                block && (block.targetPreviewHtml ?? block.previewHtml ?? "").trim().length > 0
+              const proposalHtml = block ? renderCanonicalBlockMarkup(block).bodyHtml.trim() : "";
+              const renderedBlockPreview =
+                proposalHtml.length > 0
                   ? buildPlatformBlockPreviewDocument({
-                      proposalHtml: block.targetPreviewHtml ?? block.previewHtml ?? "",
+                      proposalHtml,
                       theme: previewTheme ?? themes.find((theme) => theme.themeKey === selectedPage.themeKey) ?? themes.find((theme) => theme.status === "active") ?? themes[0] ?? null,
                       hostAssets: platformPreviewAssets
                     })
@@ -1047,11 +1047,11 @@ export default function PagesWorkflowPage(): React.ReactElement {
                     <p className="text-[11px] text-slate-500">{block?.family ?? "unknown"}</p>
                   </div>
                   <div className="h-[300px] bg-[#0a152b] p-2">
-                    {previewHtml.trim().length > 0 ? (
+                    {renderedBlockPreview.trim().length > 0 ? (
                       <iframe
                         title={`canvas-${blockKey}-${index}`}
                         className="h-full w-full rounded-lg border border-white/[0.06] bg-white"
-                        srcDoc={previewHtml}
+                        srcDoc={renderedBlockPreview}
                         sandbox="allow-scripts allow-same-origin"
                       />
                     ) : (

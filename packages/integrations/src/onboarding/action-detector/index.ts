@@ -222,8 +222,7 @@ export function detectActionProposals(params: {
       destination: classification.destination,
       suggestedExitId: classification.suggestedExitId,
       summary: classification.summary,
-      sourceSnippet: anchor.htmlSnippet,
-      previewHtml: anchor.htmlSnippet
+      sourceSnippet: anchor.htmlSnippet
     });
   });
 
@@ -259,8 +258,7 @@ export function detectActionProposals(params: {
       destination: classification.destination,
       suggestedExitId: classification.suggestedExitId,
       summary: classification.summary,
-      sourceSnippet: button.htmlSnippet,
-      previewHtml: button.htmlSnippet
+      sourceSnippet: button.htmlSnippet
     });
   });
 
@@ -281,8 +279,7 @@ export function detectActionProposals(params: {
       },
       suggestedExitId: "book_appointment_primary",
       summary: "Open booking widget",
-      sourceSnippet: "Book Appointment",
-      previewHtml: "<button>Book Appointment</button>"
+      sourceSnippet: "Book Appointment"
     });
   }
 

@@ -1,5 +1,5 @@
 import type { CanonicalBlockFamily, OnboardingBlockProposal } from "@lmnas/contracts";
-import { extractAnchors, extractSections, includesAny, sanitizePreviewHtml, stripTags } from "../shared/html";
+import { extractAnchors, extractSections, includesAny, stripTags } from "../shared/html";
 
 type FamilyRule = {
   family: CanonicalBlockFamily;
@@ -84,8 +84,7 @@ export function detectBlockProposals(html: string): OnboardingBlockProposal[] {
       actionIds: [],
       segmentation: "keep",
       rawHtmlSnippet: segment,
-      sourceSnippet: segment,
-      previewHtml: sanitizePreviewHtml(segment)
+      sourceSnippet: segment
     };
   });
 }

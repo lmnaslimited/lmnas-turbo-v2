@@ -68,8 +68,7 @@ function buildAnalysis(): OnboardingAnalysis {
         ctaLabels: [],
         actionIds: [],
         segmentation: "keep",
-        rawHtmlSnippet: "<section class='hero'><h1>Hero</h1></section>",
-        previewHtml: "<section class='hero'><h1>Hero</h1></section>"
+        rawHtmlSnippet: "<section class='hero'><h1>Hero</h1></section>"
       }
     ],
     widgetProposals: [],
@@ -171,9 +170,7 @@ describe("studio block publish route", () => {
             {
               documentId: "block-doc-1",
               blockKey: "import-source-hero-1-01",
-              name: "Imported Hero",
-              previewHtml: "<section class='hero'><h1>Hero</h1></section>",
-              targetPreviewHtml: "<section class='hero'><h1>Hero</h1></section>"
+              name: "Imported Hero"
             }
           ]
         });

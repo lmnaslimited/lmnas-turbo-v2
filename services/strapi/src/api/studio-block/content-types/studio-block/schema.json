@@ -78,14 +78,6 @@
     "fidelityMetadata": {
       "type": "json"
     },
-    "sourcePreviewHtml": {
-      "type": "text",
-      "description": "Disposable comparison preview cache. Never canonical block content."
-    },
-    "targetPreviewHtml": {
-      "type": "text",
-      "description": "Disposable target preview cache. Regenerated from canonical block snapshot plus theme."
-    },
     "sourceAssetContext": {
       "type": "json"
     },
@@ -105,10 +97,6 @@
     },
     "actions": {
       "type": "json"
-    },
-    "previewHtml": {
-      "type": "text",
-      "description": "Disposable preview cache. Canonical rendering comes from domJson/classMap/stylesheetRef."
     },
     "usageCount": {
       "type": "integer",

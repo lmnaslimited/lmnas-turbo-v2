@@ -61,7 +61,6 @@ describe("studio blocks route delete guard", () => {
               confidence: 1,
               editableFields: [],
               actions: [],
-              previewHtml: "<section />",
               usageCount: 0
             }
           ]
@@ -120,7 +119,6 @@ describe("studio blocks route delete guard", () => {
                 confidence: 1,
                 editableFields: [],
                 actions: [],
-                previewHtml: "<section />",
                 usageCount: 0
               }
             ]
@@ -180,7 +178,6 @@ describe("studio blocks route delete guard", () => {
                 confidence: 1,
                 editableFields: ["name"],
                 actions: [],
-                previewHtml: "<section />",
                 usageCount: 0
               }
             ]
@@ -212,7 +209,6 @@ describe("studio blocks route delete guard", () => {
           confidence: 1,
           editableFields: ["name"],
           actions: [],
-          previewHtml: "<section />",
           inUseCount: 0,
           usageCount: 0,
           createdAt: "2026-03-13",

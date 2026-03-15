@@ -303,8 +303,7 @@ export const onboardingShellCandidateSchema = z.object({
   menuItems: z.array(navigationItemSchema).default([]),
   editableFields: z.array(z.string().min(1)).default([]),
   ctaLabels: z.array(z.string().min(1)).default([]),
-  sourceSnippet: z.string().min(1).optional(),
-  previewHtml: z.string().min(1).optional()
+  sourceSnippet: z.string().min(1).optional()
 });
 
 export const onboardingBlockProposalSchema = z.object({
@@ -319,8 +318,7 @@ export const onboardingBlockProposalSchema = z.object({
   actionIds: z.array(z.string().min(1)).default([]),
   segmentation: segmentationModeSchema.default("keep"),
   rawHtmlSnippet: z.string().min(1).optional(),
-  sourceSnippet: z.string().min(1).optional(),
-  previewHtml: z.string().min(1).optional()
+  sourceSnippet: z.string().min(1).optional()
 });
 
 export const onboardingWidgetProposalSchema = z.object({
@@ -334,8 +332,7 @@ export const onboardingWidgetProposalSchema = z.object({
   editableFields: z.array(z.string().min(1)).default([]),
   triggerLabels: z.array(z.string().min(1)).default([]),
   associatedActionIds: z.array(z.string().min(1)).default([]),
-  sourceSnippet: z.string().min(1).optional(),
-  previewHtml: z.string().min(1).optional()
+  sourceSnippet: z.string().min(1).optional()
 });
 
 export const actionDestinationSchema = z.object({

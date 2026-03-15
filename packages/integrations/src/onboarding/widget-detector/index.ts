@@ -1,5 +1,5 @@
 import type { OnboardingWidgetProposal, WidgetType } from "@lmnas/contracts";
-import { extractAnchors, extractButtons, includesAny, sanitizePreviewHtml, slugify } from "../shared/html";
+import { extractAnchors, extractButtons, includesAny, slugify } from "../shared/html";
 
 const WIDGET_RULES: Array<{ type: WidgetType; terms: string[]; confidence: number; defaultName: string }> = [
   {
@@ -96,8 +96,7 @@ function detectWidgetsFromClassAndId(html: string): OnboardingWidgetProposal[] {
       editableFields: ["heading", "body", "buttonText"],
       triggerLabels: [],
       associatedActionIds: [],
-      sourceSnippet: block,
-      previewHtml: sanitizePreviewHtml(block)
+      sourceSnippet: block
     });
   }
 
@@ -134,8 +133,7 @@ function detectWidgetsFromCallsToAction(html: string): OnboardingWidgetProposal[
       editableFields: ["heading", "body", "buttonText"],
       triggerLabels: [label],
       associatedActionIds: [],
-      sourceSnippet: clickable.label,
-      previewHtml: `<div><strong>${label}</strong></div>`
+      sourceSnippet: clickable.label
     });
   }
 
@@ -163,8 +161,7 @@ export function detectWidgetProposals(html: string): OnboardingWidgetProposal[] 
       editableFields: ["heading", "buttonText"],
       triggerLabels: [],
       associatedActionIds: [],
-      sourceSnippet: "fallback",
-      previewHtml: "<div>No explicit widget detected. You can still create one in mapping.</div>"
+      sourceSnippet: "fallback"
     });
   }
 

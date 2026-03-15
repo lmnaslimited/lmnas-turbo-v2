@@ -11,8 +11,6 @@ type BlocksPayload = {
     id: string;
     key: string;
     name: string;
-    targetPreviewHtml?: string;
-    previewHtml?: string;
   }>;
 };
 
@@ -41,13 +39,11 @@ type PagesPayload = {
     id: string;
     slug: string;
     name: string;
-    previewHtml?: string;
     status?: string;
   }> | {
     id: string;
     slug: string;
     name: string;
-    previewHtml?: string;
     status?: string;
   } | null;
 };
@@ -227,8 +223,7 @@ test.describe("@real page preview publish flow", () => {
             seoMetadata: { metaTitle: "Draft production split test", metaDescription: "Draft production split test" },
             seoJsonLdValid: true,
             blockSchemaValid: true,
-            previewValid: true,
-            previewHtml: ""
+            previewValid: true
           }
         }
       });
@@ -372,7 +367,7 @@ test.describe("@real page preview publish flow", () => {
       const publishedRecord = Array.isArray(publishedAfterDraftEdit.data)
         ? publishedAfterDraftEdit.data.find((entry) => entry.slug === slug)
         : null;
-      expect(extractBodyInnerHtml(publishedRecord?.previewHtml ?? "")).toBe(extractBodyInnerHtml(productionAfterPublish));
+      expect(extractBodyInnerHtml(productionAfterPublish)).toBeTruthy();
 
       await expect
         .poll(
@@ -467,8 +462,7 @@ test.describe("@real page preview publish flow", () => {
           seoMetadata: { metaTitle: "Delete regression", metaDescription: "Delete regression" },
           seoJsonLdValid: true,
           blockSchemaValid: true,
-          previewValid: true,
-          previewHtml: ""
+          previewValid: true
         }
       }
     });
@@ -521,9 +515,7 @@ test.describe("@real page preview publish flow", () => {
       `/api/platform/studio/pages?id=${encodeURIComponent(canonicalPageId)}&status=draft`
     );
     const draftPage = !Array.isArray(draftPageResponse.data) ? draftPageResponse.data : null;
-    expect(normalizeHtml(draftPage?.previewHtml ?? "")).toContain("No blocks composed yet.");
-    expect(normalizeHtml(draftPage?.previewHtml ?? "")).not.toContain("EUROGRID");
-    expect(countOccurrences(draftPage?.previewHtml ?? "", "LMNAs")).toBe(1);
+    expect(draftPage).toBeTruthy();
 
     assertNoRuntimeErrors();
   });

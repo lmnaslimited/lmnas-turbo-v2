@@ -664,7 +664,6 @@ export interface ApiShellVariantShellVariant
       'api::shell-variant.shell-variant'
     > &
       Schema.Attribute.Private;
-    previewHtml: Schema.Attribute.Text;
     publishedAt: Schema.Attribute.DateTime;
     role: Schema.Attribute.Enumeration<['navbar', 'footer', 'full']> &
       Schema.Attribute.Required &
@@ -728,7 +727,6 @@ export interface ApiStudioBlockStudioBlock extends Struct.CollectionTypeSchema {
     > &
       Schema.Attribute.Private;
     name: Schema.Attribute.String & Schema.Attribute.Required;
-    previewHtml: Schema.Attribute.Text;
     productMapping: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
     schemaStatus: Schema.Attribute.Enumeration<
@@ -740,14 +738,12 @@ export interface ApiStudioBlockStudioBlock extends Struct.CollectionTypeSchema {
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'global'>;
     sourceAssetContext: Schema.Attribute.JSON;
-    sourcePreviewHtml: Schema.Attribute.Text;
     sourceRef: Schema.Attribute.String;
     sourceType: Schema.Attribute.String;
     status: Schema.Attribute.Enumeration<['active', 'inactive', 'draft']> &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'active'>;
     stylesheetRef: Schema.Attribute.String;
-    targetPreviewHtml: Schema.Attribute.Text;
     themeKey: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'default'>;
@@ -792,7 +788,6 @@ export interface ApiStudioImportMasterStudioImportMaster
     processedAt: Schema.Attribute.DateTime;
     proposalSummary: Schema.Attribute.JSON;
     publishedAt: Schema.Attribute.DateTime;
-    referencePreviewHtml: Schema.Attribute.Text;
     selectedShellKey: Schema.Attribute.String;
     selectedThemeKey: Schema.Attribute.String;
     sourceAssetBases: Schema.Attribute.JSON;
@@ -822,7 +817,6 @@ export interface ApiStudioImportMasterStudioImportMaster
     > &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'processed'>;
-    targetPreviewHtml: Schema.Attribute.Text;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -873,12 +867,10 @@ export interface ApiStudioPageStudioPage extends Struct.CollectionTypeSchema {
     pageKey: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.Unique;
-    previewHtml: Schema.Attribute.Text;
     previewValid: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     primaryCta: Schema.Attribute.JSON;
     productMapping: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
-    publishedPreviewHtml: Schema.Attribute.Text;
     seoJsonLdValid: Schema.Attribute.Boolean &
       Schema.Attribute.DefaultTo<false>;
     seoMetadata: Schema.Attribute.JSON;
@@ -963,7 +955,6 @@ export interface ApiStudioShellStudioShell extends Struct.CollectionTypeSchema {
     menuItems: Schema.Attribute.JSON;
     name: Schema.Attribute.String & Schema.Attribute.Required;
     navbarBlocks: Schema.Attribute.JSON;
-    previewHtml: Schema.Attribute.Text;
     publishedAt: Schema.Attribute.DateTime;
     role: Schema.Attribute.Enumeration<['navbar', 'footer', 'full']> &
       Schema.Attribute.Required &

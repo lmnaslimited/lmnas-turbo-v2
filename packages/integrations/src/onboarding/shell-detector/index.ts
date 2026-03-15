@@ -1,5 +1,5 @@
 import type { OnboardingShellCandidate } from "@lmnas/contracts";
-import { extractAnchors, includesAny, sanitizePreviewHtml } from "../shared/html";
+import { extractAnchors, includesAny } from "../shared/html";
 
 const NAV_TERMS = ["navbar", "navigation", "header", "menu"];
 const FOOTER_TERMS = ["footer", "legal", "copyright"];
@@ -42,8 +42,7 @@ function createShellCandidate(
     })),
     editableFields: ["navItemLabel", "navDestination"],
     ctaLabels: collectCtaLabels(htmlSnippet),
-    sourceSnippet: htmlSnippet,
-    previewHtml: sanitizePreviewHtml(htmlSnippet)
+    sourceSnippet: htmlSnippet
   };
 }
 
@@ -74,8 +73,7 @@ function detectAnnouncementBars(html: string): OnboardingShellCandidate[] {
       menuItems: [],
       editableFields: ["label", "buttonText", "buttonUrl"],
       ctaLabels: collectCtaLabels(matches[index][0]),
-      sourceSnippet: matches[index][0],
-      previewHtml: sanitizePreviewHtml(matches[index][0])
+      sourceSnippet: matches[index][0]
     });
   }
 
@@ -145,8 +143,7 @@ export function detectShellCandidates(html: string): OnboardingShellCandidate[] 
       menuItems: [],
       editableFields: ["navItemLabel", "navDestination"],
       ctaLabels: [],
-      sourceSnippet: "<body>",
-      previewHtml: "<div>No navigation detected</div>"
+      sourceSnippet: "<body>"
     });
     candidates.push({
       id: "footer-fallback-1",
@@ -158,8 +155,7 @@ export function detectShellCandidates(html: string): OnboardingShellCandidate[] 
       menuItems: [],
       editableFields: ["footerLinks", "legalText"],
       ctaLabels: [],
-      sourceSnippet: "<body>",
-      previewHtml: "<div>No footer detected</div>"
+      sourceSnippet: "<body>"
     });
   }
 

@@ -64,8 +64,7 @@ function buildAnalysis(): OnboardingAnalysis {
         ctaLabels: [],
         actionIds: [],
         segmentation: "keep",
-        rawHtmlSnippet: "<section class='hero'><h1>Hero</h1></section>",
-        previewHtml: "<section class='hero'><h1>Hero</h1></section>"
+        rawHtmlSnippet: "<section class='hero'><h1>Hero</h1></section>"
       }
     ],
     widgetProposals: [],
@@ -95,7 +94,7 @@ describe("studio import process route canonical persistence", () => {
         return Promise.resolve({ data: [{ id: "theme-1", themeKey: "default", name: "Default", darkMode: true, tokens: [] }] });
       }
       if (typeof path === "string" && path.startsWith("/api/studio-shells?")) {
-        return Promise.resolve({ data: [{ id: "shell-1", shellKey: "shell-main", name: "Main", role: "full", previewHtml: "<nav></nav>" }] });
+        return Promise.resolve({ data: [{ id: "shell-1", shellKey: "shell-main", name: "Main", role: "full", rawHtmlSnippet: "<nav></nav>" }] });
       }
       if (typeof path === "string" && path.startsWith("/api/studio-import-masters") && init?.method === "POST") {
         return Promise.resolve({ data: { id: "import-master-1", importKey: "import-source-1" } });
@@ -162,10 +161,7 @@ describe("studio import process route canonical persistence", () => {
         stylesheetRef: "/studio-runtime.css",
         themeMapping: expect.objectContaining({
           themeKey: "default"
-        }),
-        previewHtml: "",
-        sourcePreviewHtml: "",
-        targetPreviewHtml: ""
+        })
       })
     );
 

@@ -88,8 +88,6 @@ function normalizeTemplate(value: unknown): StudioBlockTemplate {
       row.fidelityMetadata && typeof row.fidelityMetadata === "object" && !Array.isArray(row.fidelityMetadata)
         ? (row.fidelityMetadata as StudioBlockTemplate["fidelityMetadata"])
         : undefined,
-    sourcePreviewHtml: typeof row.sourcePreviewHtml === "string" ? row.sourcePreviewHtml : undefined,
-    targetPreviewHtml: typeof row.targetPreviewHtml === "string" ? row.targetPreviewHtml : undefined,
     sourceAssetContext:
       row.sourceAssetContext && typeof row.sourceAssetContext === "object" && !Array.isArray(row.sourceAssetContext)
         ? (row.sourceAssetContext as StudioBlockTemplate["sourceAssetContext"])
@@ -123,7 +121,6 @@ function normalizeTemplate(value: unknown): StudioBlockTemplate {
           })
           .filter((action): action is StudioBlockTemplate["actions"][number] => action !== null)
       : [],
-    previewHtml: typeof row.previewHtml === "string" ? row.previewHtml : "<div>No preview available</div>",
     inUseCount: usageCount,
     usageCount,
     createdAt: typeof row.createdAt === "string" ? row.createdAt.slice(0, 10) : new Date().toISOString().slice(0, 10),
@@ -182,11 +179,7 @@ function ensureCanonicalSnapshot(template: StudioBlockTemplate): StudioBlockTemp
     return template;
   }
 
-  const sourceMarkup =
-    template.targetPreviewHtml?.trim() ||
-    template.previewHtml.trim() ||
-    template.sourcePreviewHtml?.trim() ||
-    "<section></section>";
+  const sourceMarkup = "<section></section>";
   const snapshot = createCanonicalBlockSnapshot({
     html: sourceMarkup,
     sourceUrl: template.sourceRef,
@@ -229,18 +222,9 @@ function hydrateBlockPreview(
         tokens: themeRecord.tokens
       }
     : null;
-  const previewHtml = buildPlatformBlockPreviewDocument({
-    proposalHtml: renderModel.bodyHtml,
-    theme,
-    hostAssets: PREVIEW_ASSETS,
-    additionalStylesheetHrefs: renderModel.stylesheetRefs
-  });
 
   return {
-    ...canonical,
-    previewHtml,
-    sourcePreviewHtml: previewHtml,
-    targetPreviewHtml: previewHtml
+    ...canonical
   };
 }
 
@@ -326,15 +310,12 @@ async function upsertInCollection(
           stylesheetRef: template.stylesheetRef,
           themeMapping: template.themeMapping,
           fidelityMetadata: template.fidelityMetadata,
-          sourcePreviewHtml: "",
-          targetPreviewHtml: "",
           sourceAssetContext: template.sourceAssetContext,
           importProposalId: template.importProposalId,
           importMaster: template.importMasterId,
           confidence: template.confidence,
           editableFields: template.editableFields,
           actions: template.actions,
-          previewHtml: "",
           usageCount
         }
       : {
@@ -348,7 +329,6 @@ async function upsertInCollection(
           confidence: template.confidence,
           editableFields: template.editableFields,
           actions: template.actions,
-          previewHtml: template.previewHtml,
           ...(includeLegacyInUseField ? { inUseCount: usageCount } : {})
         };
 
@@ -415,7 +395,6 @@ function mapPagesFromStrapi(rows: Array<Record<string, unknown>>): StudioPageDoc
       seoJsonLdValid: false,
       blockSchemaValid: false,
       previewValid: false,
-      previewHtml: "",
       updatedAt: new Date().toISOString().slice(0, 10)
     };
   });

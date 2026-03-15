@@ -40,7 +40,7 @@ type BlockTemplateUpsert = {
   confidence: number;
   editableFields: string[];
   actions: Array<{ id: string; label: string; type: StudioActionType; target: string }>;
-  previewHtml: string;
+  rawHtmlSnippet: string;
   inUseCount: number;
 };
 
@@ -114,7 +114,6 @@ function normalizePage(input: Partial<StudioPageDocument>): StudioPageDocument {
     slug,
     locale,
     publishedAt: typeof input.publishedAt === "string" ? input.publishedAt : undefined,
-    publishedPreviewHtml: typeof input.publishedPreviewHtml === "string" ? input.publishedPreviewHtml : undefined,
     importMasterId: typeof input.importMasterId === "string" ? input.importMasterId : undefined,
     lifecycle: input.lifecycle ?? "draft",
     status: input.status ?? "draft",
@@ -167,7 +166,6 @@ function normalizePage(input: Partial<StudioPageDocument>): StudioPageDocument {
     seoJsonLdValid: Boolean(input.seoJsonLdValid),
     blockSchemaValid: Boolean(input.blockSchemaValid),
     previewValid: Boolean(input.previewValid),
-    previewHtml: typeof input.previewHtml === "string" ? input.previewHtml : "",
     updatedAt: new Date().toISOString().slice(0, 10)
   };
 }
@@ -332,8 +330,6 @@ function mapStrapiPageToStudio(value: unknown): StudioPageDocument {
     seoJsonLdValid: Boolean(row.seoJsonLdValid),
     blockSchemaValid: Boolean(row.blockSchemaValid),
     previewValid: Boolean(row.previewValid),
-    previewHtml: coerceString(row.previewHtml),
-    publishedPreviewHtml: coerceString(row.publishedPreviewHtml),
     updatedAt: coerceString(row.updatedAt, new Date().toISOString())
   });
 }
@@ -401,8 +397,7 @@ function normalizeShellForPreview(value: unknown): StudioShell {
     menuItems: [],
     actions: [],
     navbarBlocks: [],
-    footerBlocks: [],
-    previewHtml: typeof row.previewHtml === "string" ? row.previewHtml : ""
+    footerBlocks: []
   };
 }
 
@@ -410,8 +405,6 @@ function normalizeBlockForPreview(value: unknown): StudioBlockTemplate {
   const row = (value ?? {}) as Record<string, unknown>;
   const idCandidate = row.documentId ?? row.id;
   const id = typeof idCandidate === "string" || typeof idCandidate === "number" ? String(idCandidate) : `block-${Date.now()}`;
-  const previewHtml = typeof row.previewHtml === "string" ? row.previewHtml : "";
-  const targetPreviewHtml = typeof row.targetPreviewHtml === "string" ? row.targetPreviewHtml : previewHtml;
   const snapshot =
     row.domJson && typeof row.domJson === "object" && !Array.isArray(row.domJson)
       ? {
@@ -424,7 +417,7 @@ function normalizeBlockForPreview(value: unknown): StudioBlockTemplate {
           stylesheetRef: typeof row.stylesheetRef === "string" && row.stylesheetRef.trim().length > 0 ? row.stylesheetRef.trim() : "/studio-runtime.css"
         }
       : createCanonicalBlockSnapshot({
-          html: targetPreviewHtml || previewHtml || "<section></section>",
+          html: "<section></section>",
           sourceUrl: typeof row.sourceRef === "string" ? row.sourceRef : "studio-preview",
           themeScopeClass:
             row.themeMapping && typeof row.themeMapping === "object" && !Array.isArray(row.themeMapping)
@@ -461,9 +454,6 @@ function normalizeBlockForPreview(value: unknown): StudioBlockTemplate {
     confidence: typeof row.confidence === "number" ? row.confidence : 0,
     editableFields: Array.isArray(row.editableFields) ? row.editableFields.filter((entry): entry is string => typeof entry === "string") : [],
     actions: [],
-    previewHtml,
-    sourcePreviewHtml: typeof row.sourcePreviewHtml === "string" ? row.sourcePreviewHtml : undefined,
-    targetPreviewHtml: typeof row.targetPreviewHtml === "string" ? row.targetPreviewHtml : undefined,
     inUseCount: typeof row.usageCount === "number" ? row.usageCount : 0,
     usageCount: typeof row.usageCount === "number" ? row.usageCount : 0,
     createdAt: toIsoDate(row.createdAt),
@@ -503,7 +493,7 @@ async function hydratePagesForPreview(params: {
       : [getStudioStore().blocks, getStudioStore().themes, getStudioStore().shells];
 
   return params.pages.map((page) => {
-    const previewHtml = buildPlatformPagePreviewDocument({
+    const renderedPreviewDocument = buildPlatformPagePreviewDocument({
       page,
       blocks,
       shells,
@@ -511,9 +501,7 @@ async function hydratePagesForPreview(params: {
       hostAssets: PREVIEW_ASSETS
     });
     return {
-      ...page,
-      previewHtml,
-      publishedPreviewHtml: previewHtml
+      ...page
     };
   });
 }
@@ -782,9 +770,7 @@ async function upsertStudioPageInStrapi(page: StudioPageDocument): Promise<void>
     seoMetadata: persistedPage.seoMetadata,
     seoJsonLdValid: persistedPage.seoJsonLdValid,
     blockSchemaValid: persistedPage.blockSchemaValid,
-    previewValid: persistedPage.previewValid,
-    previewHtml: "",
-    publishedPreviewHtml: ""
+    previewValid: persistedPage.previewValid
   };
 
   if (existingId) {
@@ -911,8 +897,6 @@ async function publishStudioPageDocument(pageId: string): Promise<void> {
         seoJsonLdValid: draftPage.seoJsonLdValid,
         blockSchemaValid: draftPage.blockSchemaValid,
         previewValid: draftPage.previewValid,
-        previewHtml: "",
-        publishedPreviewHtml: "",
         publishedAt
       }
     : null;
@@ -987,7 +971,7 @@ async function upsertBlockTemplateInStrapi(template: BlockTemplateUpsert): Promi
         : undefined;
 
   const snapshot = createCanonicalBlockSnapshot({
-    html: template.previewHtml,
+    html: template.rawHtmlSnippet,
     sourceUrl: template.sourceRef,
     stylesheetRef: "/studio-runtime.css"
   });
@@ -1006,12 +990,9 @@ async function upsertBlockTemplateInStrapi(template: BlockTemplateUpsert): Promi
     domJson: snapshot.domJson,
     classMap: snapshot.classMap,
     stylesheetRef: snapshot.stylesheetRef,
-    sourcePreviewHtml: "",
-    targetPreviewHtml: "",
     confidence: template.confidence,
     editableFields: template.editableFields,
     actions: template.actions,
-    previewHtml: "",
     usageCount: template.inUseCount
   };
   const matchResult: ImportedBlockMatch = {
@@ -1021,12 +1002,11 @@ async function upsertBlockTemplateInStrapi(template: BlockTemplateUpsert): Promi
     nameChanged: canonicalId !== undefined ? String(canonicalExistingEntity?.name ?? "").trim() !== template.name.trim() : false,
     previewChanged:
       canonicalId !== undefined
-        ? normalizeHtmlComparison(canonicalExistingEntity?.previewHtml) !== normalizeHtmlComparison(template.previewHtml)
+        ? normalizeHtmlComparison(canonicalExistingEntity?.domJson) !== normalizeHtmlComparison(snapshot.domJson)
         : true,
     publishedContentChanged:
       canonicalId !== undefined
-        ? normalizeHtmlComparison(canonicalExistingEntity?.targetPreviewHtml ?? canonicalExistingEntity?.previewHtml) !==
-          normalizeHtmlComparison(template.previewHtml)
+        ? normalizeHtmlComparison(canonicalExistingEntity?.domJson) !== normalizeHtmlComparison(snapshot.domJson)
         : true
   };
 
@@ -1062,7 +1042,7 @@ function upsertBlockTemplateInFallback(template: BlockTemplateUpsert): ImportedB
   const now = new Date().toISOString().slice(0, 10);
 
   const snapshot = createCanonicalBlockSnapshot({
-    html: template.previewHtml,
+    html: template.rawHtmlSnippet,
     sourceUrl: template.sourceRef,
     stylesheetRef: "/studio-runtime.css"
   });
@@ -1085,7 +1065,6 @@ function upsertBlockTemplateInFallback(template: BlockTemplateUpsert): ImportedB
     confidence: template.confidence,
     editableFields: template.editableFields,
     actions: template.actions,
-    previewHtml: "",
     inUseCount: index >= 0 ? blocks[index].inUseCount : template.inUseCount,
     usageCount: index >= 0 ? (blocks[index].usageCount ?? blocks[index].inUseCount) : template.inUseCount,
     createdAt: index >= 0 ? blocks[index].createdAt : now,
@@ -1107,9 +1086,8 @@ function upsertBlockTemplateInFallback(template: BlockTemplateUpsert): ImportedB
     matchedBlockKey: template.key,
     matchedBlockId: existing?.id ?? template.key,
     nameChanged: existing ? existing.name.trim() !== template.name.trim() : false,
-    previewChanged: existing ? normalizeHtmlComparison(existing.previewHtml) !== normalizeHtmlComparison(template.previewHtml) : true,
-    publishedContentChanged:
-      existing ? normalizeHtmlComparison(existing.previewHtml) !== normalizeHtmlComparison(template.previewHtml) : true
+    previewChanged: false,
+    publishedContentChanged: false
   };
 }
 
@@ -1219,7 +1197,7 @@ function buildImportedTemplates(payload: ImportNormalization): BlockTemplateUpse
       confidence: 0.75,
       editableFields: [],
       actions: inferActions(snippet, index),
-      previewHtml: snippet,
+      rawHtmlSnippet: snippet,
       inUseCount: 0
     };
   });
@@ -1506,7 +1484,7 @@ export async function POST(request: Request): Promise<Response> {
     const previewRoute = page.slug === "home" ? `/${page.locale}` : `/${page.locale}/${page.slug}`;
     const warnings: string[] = [];
     if (!isStrapiConfigured()) {
-      const persistedPage = normalizePage(savePageInFallback({ ...page, previewHtml: "", publishedPreviewHtml: "" }).find((candidate) => candidate.id === page.id) ?? page);
+      const persistedPage = normalizePage(savePageInFallback(page).find((candidate) => candidate.id === page.id) ?? page);
       const [hydratedPage] = await hydratePagesForPreview({
         pages: [persistedPage],
         source: "fallback"
@@ -1523,11 +1501,7 @@ export async function POST(request: Request): Promise<Response> {
       });
     }
 
-    let persistedPage: StudioPageDocument = normalizePage({
-      ...page,
-      previewHtml: "",
-      publishedPreviewHtml: ""
-    });
+    let persistedPage: StudioPageDocument = normalizePage(page);
     try {
       await upsertStudioPageInStrapi(page);
       const resolvedPage = await findStudioPageInStrapi({

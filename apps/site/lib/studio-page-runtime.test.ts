@@ -96,9 +96,7 @@ describe("loadStudioPageForRoute", () => {
             classMap: {
               "0": "theme-sunrise"
             },
-            stylesheetRef: "/studio-runtime.css",
-            previewHtml: "",
-            targetPreviewHtml: ""
+            stylesheetRef: "/studio-runtime.css"
           }
         ]);
       }
@@ -137,8 +135,7 @@ describe("loadStudioPageForRoute", () => {
             shellKey: "shell-main",
             name: "Main Shell",
             role: "full",
-            status: "active",
-            previewHtml: "<header><nav>Canonical Shell</nav></header>"
+            status: "active"
           }
         ]);
       }
@@ -203,9 +200,7 @@ describe("loadStudioPageForRoute", () => {
               metaDescription: "Preview Cache Deleted"
             },
             blockOrder: ["block-hero"],
-            themeKey: "sunrise",
-            previewHtml: "",
-            publishedPreviewHtml: ""
+            themeKey: "sunrise"
           }
         ]);
       }
@@ -237,9 +232,7 @@ describe("loadStudioPageForRoute", () => {
               ]
             },
             classMap: {},
-            stylesheetRef: "/studio-runtime.css",
-            previewHtml: "",
-            targetPreviewHtml: ""
+            stylesheetRef: "/studio-runtime.css"
           }
         ]);
       }
@@ -314,9 +307,7 @@ describe("loadStudioPageForRoute", () => {
               metaTitle: "",
               metaDescription: ""
             },
-            blockOrder: ["block-hero"],
-            previewHtml: "<main><section>Legacy snapshot should not govern runtime</section></main>",
-            publishedPreviewHtml: "<main><section>Legacy snapshot should not govern runtime</section></main>"
+            blockOrder: ["block-hero"]
           }
         ]);
       }

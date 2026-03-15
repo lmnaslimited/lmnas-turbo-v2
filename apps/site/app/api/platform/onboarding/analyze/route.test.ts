@@ -10,8 +10,7 @@ const { analyzeOnboardingSourceMock } = vi.hoisted(() => ({
       themeKey: "default"
     },
     source: {
-      sourceRef: "raw-html",
-      previewHtml: "<section></section>"
+      sourceRef: "raw-html"
     },
     shellCandidates: [],
     blockProposals: [],

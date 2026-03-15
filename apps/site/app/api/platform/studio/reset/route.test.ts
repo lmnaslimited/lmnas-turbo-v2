@@ -3,23 +3,14 @@ import { getStudioStore, replaceStore, resetStore } from "../_lib/store";
 
 const {
   isStrapiConfiguredMock,
-  isLegacyWipeEnabledMock,
-  wipeLegacyStudioEntriesMock,
   resetCanonicalStudioSchemaMock
 } = vi.hoisted(() => ({
   isStrapiConfiguredMock: vi.fn(() => false),
-  isLegacyWipeEnabledMock: vi.fn(() => false),
-  wipeLegacyStudioEntriesMock: vi.fn(),
   resetCanonicalStudioSchemaMock: vi.fn()
 }));
 
 vi.mock("../_lib/strapi", () => ({
   isStrapiConfigured: isStrapiConfiguredMock
-}));
-
-vi.mock("../_lib/legacy-cleanup", () => ({
-  isLegacyWipeEnabled: isLegacyWipeEnabledMock,
-  wipeLegacyStudioEntries: wipeLegacyStudioEntriesMock
 }));
 
 vi.mock("../_lib/canonical-isolation", () => ({
@@ -33,7 +24,6 @@ describe("studio reset route", () => {
     vi.clearAllMocks();
     resetStore();
     isStrapiConfiguredMock.mockReturnValue(false);
-    isLegacyWipeEnabledMock.mockReturnValue(false);
     resetCanonicalStudioSchemaMock.mockResolvedValue({
       executedAt: "2026-03-10T00:00:00.000Z",
       collections: [],
@@ -66,13 +56,11 @@ describe("studio reset route", () => {
     expect(payload.data.blocks).toBeGreaterThan(0);
     expect(payload.data.pages).toBeGreaterThan(0);
     expect(payload.data.widgets).toBeGreaterThan(0);
-    expect(wipeLegacyStudioEntriesMock).not.toHaveBeenCalled();
     expect(resetCanonicalStudioSchemaMock).not.toHaveBeenCalled();
   });
 
-  it("runs canonical reset and optional legacy cleanup when configured", async () => {
+  it("runs canonical reset when configured", async () => {
     isStrapiConfiguredMock.mockReturnValue(true);
-    isLegacyWipeEnabledMock.mockReturnValue(true);
     resetCanonicalStudioSchemaMock.mockResolvedValue({
       executedAt: "2026-03-10T00:00:00.000Z",
       collections: [
@@ -84,20 +72,6 @@ describe("studio reset route", () => {
       ],
       sterile: true
     });
-    wipeLegacyStudioEntriesMock.mockResolvedValue({
-      executedAt: "2026-03-10T00:00:00.000Z",
-      blockTemplates: {
-        before: [{ id: "1", templateKey: "legacy-hero", family: "hero" }],
-        deletedIds: ["1"],
-        after: []
-      },
-      pages: {
-        before: [{ id: "pg-1", slug: "home", locale: "en", totalBlocks: 2, legacyBlockCount: 1 }],
-        updated: [{ id: "pg-1", slug: "home", locale: "en", removedLegacyBlocks: 1, totalBlocksAfter: 1 }],
-        after: [{ id: "pg-1", slug: "home", locale: "en", totalBlocks: 1, legacyBlockCount: 0 }]
-      },
-      sterile: true
-    });
 
     const response = await POST();
     const payload = (await response.json()) as {
@@ -106,34 +80,20 @@ describe("studio reset route", () => {
       data: {
         canonicalCollectionsReset: number;
         canonicalSterile: boolean;
-        legacyBlockTemplatesBefore?: number;
-        legacyBlockTemplatesAfter?: number;
-        pagesWithLegacyBlocksBefore?: number;
-        pagesWithLegacyBlocksAfter?: number;
-        legacySterile?: boolean;
       };
       canonical: { sterile: boolean };
-      cleanup: { sterile: boolean };
     };
 
     expect(payload.ok).toBe(true);
     expect(payload.source).toBe("strapi");
     expect(payload.data.canonicalCollectionsReset).toBe(5);
     expect(payload.data.canonicalSterile).toBe(true);
-    expect(payload.data.legacyBlockTemplatesBefore).toBe(1);
-    expect(payload.data.legacyBlockTemplatesAfter).toBe(0);
-    expect(payload.data.pagesWithLegacyBlocksBefore).toBe(1);
-    expect(payload.data.pagesWithLegacyBlocksAfter).toBe(0);
-    expect(payload.data.legacySterile).toBe(true);
     expect(payload.canonical.sterile).toBe(true);
-    expect(payload.cleanup.sterile).toBe(true);
     expect(resetCanonicalStudioSchemaMock).toHaveBeenCalledTimes(1);
-    expect(wipeLegacyStudioEntriesMock).toHaveBeenCalledTimes(1);
   });
 
   it("hard fails when canonical reset throws in configured mode", async () => {
     isStrapiConfiguredMock.mockReturnValue(true);
-    isLegacyWipeEnabledMock.mockReturnValue(true);
     resetCanonicalStudioSchemaMock.mockRejectedValue(new Error("strapi_503: connection refused"));
 
     const response = await POST();

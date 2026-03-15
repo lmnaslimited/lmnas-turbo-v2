@@ -256,7 +256,7 @@ export default function ShellWorkflowPage(): React.ReactElement {
                 <iframe
                   className="w-full rounded-lg border border-white/[0.08] bg-white"
                   style={{ minHeight: "200px" }}
-                  srcDoc={selectedShell.previewHtml}
+                  srcDoc={""}
                   sandbox="allow-scripts allow-same-origin"
                   title={selectedShell.name}
                 />

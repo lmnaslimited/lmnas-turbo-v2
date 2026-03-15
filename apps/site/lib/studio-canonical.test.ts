@@ -59,7 +59,7 @@ describe("studio canonical model helpers", () => {
       confidence: 0.91,
       editableFields: [],
       actions: [],
-      previewHtml: "",
+
       inUseCount: 0,
       usageCount: 0,
       createdAt: "2026-03-14",
@@ -104,7 +104,7 @@ describe("studio canonical model helpers", () => {
       seoJsonLdValid: true,
       blockSchemaValid: true,
       previewValid: true,
-      previewHtml: "",
+
       updatedAt: "2026-03-14"
     };
     const theme: StudioTheme = {

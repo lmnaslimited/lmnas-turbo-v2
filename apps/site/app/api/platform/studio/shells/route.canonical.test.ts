@@ -41,8 +41,7 @@ describe("studio shells route canonical schema", () => {
           menuItems: [],
           actions: [],
           navbarBlocks: [],
-          footerBlocks: [],
-          previewHtml: "<div />"
+          footerBlocks: []
         }
       ]
     });
@@ -100,8 +99,7 @@ describe("studio shells route canonical schema", () => {
           menuItems: [],
           actions: [],
           navbarBlocks: [],
-          footerBlocks: [],
-          previewHtml: "<nav />"
+          footerBlocks: []
         }
       })
     );

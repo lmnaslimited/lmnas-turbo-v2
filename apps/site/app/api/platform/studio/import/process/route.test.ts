@@ -64,8 +64,7 @@ function buildAnalysis(): OnboardingAnalysis {
         ctaLabels: [],
         actionIds: [],
         segmentation: "keep",
-        rawHtmlSnippet: "<section class='hero'><h1>Hero</h1></section>",
-        previewHtml: "<section class='hero'><h1>Hero</h1></section>"
+        rawHtmlSnippet: "<section class='hero'><h1>Hero</h1></section>"
       }
     ],
     widgetProposals: [],
@@ -243,7 +242,7 @@ describe("studio import process route", () => {
         source: string;
         schemaSource: string;
         proposalsPersisted: number;
-        proposalBlocks: Array<{ proposalId: string; blockKey: string; schemaStatus: string; targetPreviewHtml: string }>;
+        proposalBlocks: Array<{ proposalId: string; blockKey: string; schemaStatus: string; renderedTargetDocument: string }>;
         upload?: { fileName: string; htmlEntry: string };
       };
     };
@@ -254,12 +253,12 @@ describe("studio import process route", () => {
     expect(payload.persistence.proposalsPersisted).toBe(1);
     expect(payload.persistence.proposalBlocks[0]?.proposalId).toBe("hero-1");
     expect(payload.persistence.proposalBlocks[0]?.schemaStatus).toBe("valid");
-    expect(payload.persistence.proposalBlocks[0]?.targetPreviewHtml).toContain("lmnas-preview-tailwind-config");
-    expect(payload.persistence.proposalBlocks[0]?.targetPreviewHtml).toContain("/studio-runtime.css");
-    expect(payload.persistence.proposalBlocks[0]?.targetPreviewHtml).not.toContain("LMNAs");
+    expect(payload.persistence.proposalBlocks[0]?.renderedTargetDocument).toContain("lmnas-preview-tailwind-config");
+    expect(payload.persistence.proposalBlocks[0]?.renderedTargetDocument).toContain("/studio-runtime.css");
+    expect(payload.persistence.proposalBlocks[0]?.renderedTargetDocument).not.toContain("LMNAs");
     expect(payload.persistence.upload?.fileName).toBe("stitch-export.zip");
     expect(payload.persistence.upload?.htmlEntry).toBe("index.html");
-    expect(payload.analysis.blockProposals[0]?.previewHtml?.length ?? 0).toBeGreaterThan(0);
+    expect(payload.analysis.blockProposals[0]?.rawHtmlSnippet?.length ?? 0).toBeGreaterThan(0);
 
     const afterBlocks = getStudioStore().blocks.length;
     expect(afterBlocks).toBe(beforeBlocks + 1);

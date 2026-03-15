@@ -102,8 +102,7 @@ function normalizeShellFromCanonical(value: unknown): StudioShell {
     menuItems: mapMenuItemsFromStrapi(row.menuItems),
     actions: mapShellActions(row.actions),
     navbarBlocks: normalizeBlockArray(row.navbarBlocks),
-    footerBlocks: normalizeBlockArray(row.footerBlocks),
-    previewHtml: typeof row.previewHtml === "string" ? row.previewHtml : "<div>No preview</div>"
+    footerBlocks: normalizeBlockArray(row.footerBlocks)
   };
 }
 

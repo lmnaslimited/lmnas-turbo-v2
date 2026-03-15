@@ -119,8 +119,7 @@ test.describe("H-002 matrix tests (TV-MTR)", () => {
           locale: "en",
           blockOrder: ["blk-hero-1"],
           fieldValues: {},
-          actionOverrides: {},
-          previewHtml: "<main>tv-mtr-03</main>"
+          actionOverrides: {}
         }
       }
     });
@@ -171,8 +170,6 @@ test.describe("H-002 matrix tests (TV-MTR)", () => {
           confidence: 0.9,
           editableFields: ["heading"],
           actions: [],
-          previewHtml:
-            "<script src='https://cdn.tailwindcss.com'></script><script id='tailwind-config'>window.tailwind={};</script><section class='p-8'><h2>Fallback Block</h2></section>",
           inUseCount: 0,
           createdAt: "2026-03-10",
           updatedAt: "2026-03-10"

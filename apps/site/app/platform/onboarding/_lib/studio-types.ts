@@ -110,7 +110,6 @@ export interface StudioShell {
   actions: StudioShellAction[];
   navbarBlocks: string[];
   footerBlocks: string[];
-  previewHtml: string;
 }
 
 export interface StudioBlockTemplateAction {
@@ -149,9 +148,6 @@ export interface StudioBlockTemplate {
   confidence: number;
   editableFields: string[];
   actions: StudioBlockTemplateAction[];
-  previewHtml: string;
-  sourcePreviewHtml?: string;
-  targetPreviewHtml?: string;
   sourceAssetContext?: {
     baseUrl?: string;
     importKey?: string;
@@ -204,7 +200,6 @@ export interface StudioPageDocument {
   slug: string;
   locale: string;
   publishedAt?: string;
-  publishedPreviewHtml?: string;
   importMasterId?: string;
   activeShellId?: string;
   shellId?: string;
@@ -235,7 +230,6 @@ export interface StudioPageDocument {
   seoJsonLdValid: boolean;
   blockSchemaValid: boolean;
   previewValid: boolean;
-  previewHtml: string;
   updatedAt: string;
 }
 
@@ -254,8 +248,6 @@ export interface StudioImportMaster {
   sourceStyleProfile?: Record<string, unknown>;
   sourceThemeCharacteristics?: Record<string, unknown>;
   sourceShellCharacteristics?: Array<Record<string, unknown>>;
-  referencePreviewHtml: string;
-  targetPreviewHtml: string;
   selectedThemeKey: string;
   selectedShellKey: string;
   importMode: "blocks" | "page";

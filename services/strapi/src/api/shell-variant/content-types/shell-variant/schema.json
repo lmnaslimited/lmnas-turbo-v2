@@ -31,10 +31,6 @@
       "type": "json",
       "required": false
     },
-    "previewHtml": {
-      "type": "text",
-      "required": false
-    },
     "shell": {
       "type": "component",
       "repeatable": false,

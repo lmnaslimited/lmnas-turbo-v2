@@ -58,8 +58,8 @@ type PersistedDraftBlock = {
   name: string;
   importMasterId: string;
   importMasterKey: string;
-  sourcePreviewHtml: string;
-  targetPreviewHtml: string;
+  renderedSourceDocument: string;
+  renderedTargetDocument: string;
 };
 
 type ProcessSourceResponse = {
@@ -97,7 +97,7 @@ type CanonicalShell = {
   shellKey: string;
   name: string;
   role: "navbar" | "footer" | "full";
-  previewHtml: string;
+  rawHtmlSnippet: string;
 };
 
 const CANONICAL_BLOCK_COLLECTION = "/api/studio-blocks";
@@ -333,8 +333,8 @@ function extractHtmlFromStitchZip(upload: StitchZipUpload): {
   };
 }
 
-function resolveSchemaStatus(confidence: number, previewHtml: string | undefined): "valid" | "warning" | "invalid" {
-  if (!previewHtml || previewHtml.trim().length === 0) {
+function resolveSchemaStatus(confidence: number, htmlSnippet: string | undefined): "valid" | "warning" | "invalid" {
+  if (!htmlSnippet || htmlSnippet.trim().length === 0) {
     return "invalid";
   }
   if (confidence >= 0.75) {
@@ -466,7 +466,7 @@ function buildSourceProposalPreview(params: {
   analysis: OnboardingAnalysis;
   sourceBaseUrl?: string;
 }): string {
-  const snippet = params.block.previewHtml ?? params.block.rawHtmlSnippet ?? "<section></section>";
+  const snippet = params.block.rawHtmlSnippet ?? "<section></section>";
   const styleTags = Array.from(params.analysis.source.referencePreviewHtml.matchAll(/<style[\s\S]*?<\/style>/gi))
     .map((entry) => entry[0])
     .slice(0, 24)
@@ -499,7 +499,7 @@ function buildTargetProposalPreview(params: {
   theme: CanonicalTheme | null;
 }): string {
   return buildPlatformBlockPreviewDocument({
-    proposalHtml: params.block.previewHtml ?? params.block.rawHtmlSnippet ?? "<section></section>",
+    proposalHtml: params.block.rawHtmlSnippet ?? "<section></section>",
     theme: mapCanonicalThemeToPreviewTheme(params.theme),
     hostAssets: createStaticPlatformPreviewAssets()
   });
@@ -513,7 +513,7 @@ function buildTargetComparisonPreview(params: {
 }): string {
   const blocksHtml = params.analysis.blockProposals
     .map((block, index) => {
-      const snippet = block.previewHtml ?? block.rawHtmlSnippet ?? "<section></section>";
+      const snippet = block.rawHtmlSnippet ?? "<section></section>";
       const label = block.displayName ?? block.family;
       return [
         `<section class="overflow-hidden rounded-xl border border-primary/20 bg-background-dark/20" data-index="${index + 1}">`,
@@ -531,7 +531,7 @@ function buildTargetComparisonPreview(params: {
     }</main>`,
     theme: mapCanonicalThemeToPreviewTheme(params.theme),
     hostAssets: createStaticPlatformPreviewAssets(),
-    beforeBodyHtml: params.includeShell ? params.shell?.previewHtml ?? "" : undefined
+    beforeBodyHtml: params.includeShell ? params.shell?.rawHtmlSnippet ?? "" : undefined
   });
 }
 
@@ -586,7 +586,7 @@ async function lookupCanonicalShell(shellKey: string): Promise<CanonicalShell | 
     shellKey: typeof row.shellKey === "string" ? row.shellKey : shellKey,
     name: typeof row.name === "string" ? row.name : shellKey,
     role: row.role === "navbar" || row.role === "footer" ? row.role : "full",
-    previewHtml: typeof row.previewHtml === "string" ? row.previewHtml : ""
+    rawHtmlSnippet: typeof row.rawHtmlSnippet === "string" ? row.rawHtmlSnippet : ""
   };
 }
 
@@ -603,7 +603,7 @@ async function createImportMasterInStrapi(params: {
     scripts: string[];
     media: string[];
   };
-  targetPreviewHtml: string;
+  renderedTargetDocument: string;
   uploadSummary?: {
     fileName: string;
     htmlEntry: string;
@@ -625,7 +625,7 @@ async function createImportMasterInStrapi(params: {
     sourceThemeCharacteristics: params.analysis.theme,
     sourceShellCharacteristics: params.analysis.shellCandidates,
     referencePreviewHtml: params.analysis.source.referencePreviewHtml,
-    targetPreviewHtml: params.targetPreviewHtml,
+    renderedTargetDocument: params.renderedTargetDocument,
     selectedThemeKey: params.selectedThemeKey,
     selectedShellKey: params.selectedShellKey,
     importMode: params.importMode,
@@ -676,8 +676,8 @@ async function upsertCanonicalBlockInStrapi(block: {
   themeKey: string;
   sourceType: string;
   sourceRef: string;
-  sourcePreviewHtml: string;
-  targetPreviewHtml: string;
+  renderedSourceDocument: string;
+  renderedTargetDocument: string;
   sourceAssetContext: {
     baseUrl?: string;
     importKey: string;
@@ -702,7 +702,7 @@ async function upsertCanonicalBlockInStrapi(block: {
   const existingId = existing ? resolveEntityMutationId(existing) : null;
 
   const snapshot = createCanonicalBlockSnapshot({
-    html: block.targetPreviewHtml,
+    html: block.renderedTargetDocument,
     sourceUrl: block.sourceRef,
     themeScopeClass: block.themeKey ? `theme-${block.themeKey}` : undefined,
     stylesheetRef: "/studio-runtime.css"
@@ -728,15 +728,12 @@ async function upsertCanonicalBlockInStrapi(block: {
       tokenCoverage: 1
     },
     fidelityMetadata: {},
-    sourcePreviewHtml: "",
-    targetPreviewHtml: "",
     sourceAssetContext: block.sourceAssetContext,
     importProposalId: block.importProposalId,
     importMaster: block.importMasterId,
     confidence: block.confidence,
     editableFields: block.editableFields,
     actions: block.actions,
-    previewHtml: "",
     usageCount: 0
   };
 
@@ -775,13 +772,13 @@ async function persistDraftProposalsToStrapi(params: {
     const block = params.analysis.blockProposals[index];
     const keySeed = `${slug}-${block.id}-${String(index + 1).padStart(2, "0")}`;
     const blockKey = normalizeBlockKey(keySeed);
-    const schemaStatus = resolveSchemaStatus(block.confidence, block.previewHtml ?? block.rawHtmlSnippet);
-    const sourcePreviewHtml = buildSourceProposalPreview({
+    const schemaStatus = resolveSchemaStatus(block.confidence, block.rawHtmlSnippet);
+    const renderedSourceDocument = buildSourceProposalPreview({
       block,
       analysis: params.analysis,
       sourceBaseUrl: params.analysis.source.baseUrl
     });
-    const targetPreviewHtml = buildTargetProposalPreview({
+    const renderedTargetDocument = buildTargetProposalPreview({
       block,
       theme: params.targetTheme
     });
@@ -794,8 +791,8 @@ async function persistDraftProposalsToStrapi(params: {
       themeKey: params.analysis.intake.themeKey,
       sourceType: params.analysis.intake.sourceType,
       sourceRef: params.analysis.source.sourceRef,
-      sourcePreviewHtml,
-      targetPreviewHtml,
+      renderedSourceDocument,
+      renderedTargetDocument,
       sourceAssetContext: {
         baseUrl: params.analysis.source.baseUrl,
         importKey: params.importMaster.importKey,
@@ -819,8 +816,8 @@ async function persistDraftProposalsToStrapi(params: {
       name,
       importMasterId: params.importMaster.id,
       importMasterKey: params.importMaster.importKey,
-      sourcePreviewHtml,
-      targetPreviewHtml
+      renderedSourceDocument,
+      renderedTargetDocument
     });
   }
 
@@ -840,15 +837,15 @@ function persistDraftProposalsInFallback(analysis: OnboardingAnalysis): Persiste
   analysis.blockProposals.forEach((block, index) => {
     const keySeed = `${slug}-${block.id}-${String(index + 1).padStart(2, "0")}`;
     const blockKey = normalizeBlockKey(keySeed);
-    const schemaStatus = resolveSchemaStatus(block.confidence, block.previewHtml ?? block.rawHtmlSnippet);
+    const schemaStatus = resolveSchemaStatus(block.confidence, block.rawHtmlSnippet);
     const existingIndex = blocks.findIndex((entry) => entry.key === blockKey || entry.id === blockKey);
     const name = block.displayName ?? block.family.replaceAll("_", " ");
-    const sourcePreviewHtml = buildSourceProposalPreview({
+    const renderedSourceDocument = buildSourceProposalPreview({
       block,
       analysis,
       sourceBaseUrl: analysis.source.baseUrl
     });
-    const targetPreviewHtml = buildTargetProposalPreview({
+    const renderedTargetDocument = buildTargetProposalPreview({
       block,
       theme: null
     });
@@ -867,7 +864,7 @@ function persistDraftProposalsInFallback(analysis: OnboardingAnalysis): Persiste
       sourceType: analysis.intake.sourceType,
       sourceRef: analysis.source.sourceRef,
       ...createCanonicalBlockSnapshot({
-        html: targetPreviewHtml,
+        html: renderedTargetDocument,
         sourceUrl: analysis.source.sourceRef,
         themeScopeClass: `theme-${analysis.intake.themeKey}`,
         stylesheetRef: "/studio-runtime.css"
@@ -875,9 +872,6 @@ function persistDraftProposalsInFallback(analysis: OnboardingAnalysis): Persiste
       confidence: block.confidence,
       editableFields: block.editableFields,
       actions: [],
-      previewHtml: "",
-      sourcePreviewHtml: "",
-      targetPreviewHtml: "",
       inUseCount: 0,
       usageCount: 0,
       createdAt: existingIndex >= 0 ? blocks[existingIndex].createdAt : now,
@@ -899,8 +893,8 @@ function persistDraftProposalsInFallback(analysis: OnboardingAnalysis): Persiste
       name,
       importMasterId: "fallback",
       importMasterKey: "fallback",
-      sourcePreviewHtml,
-      targetPreviewHtml
+      renderedSourceDocument,
+      renderedTargetDocument
     });
   });
 
@@ -1053,7 +1047,7 @@ export async function POST(request: Request): Promise<Response> {
           sourceHtml: resolvedSourceValue,
           sourceBaseUrl: analysis.source.baseUrl
         });
-        const targetPreviewHtml = buildTargetComparisonPreview({
+        const renderedTargetDocument = buildTargetComparisonPreview({
           analysis,
           theme: targetTheme,
           shell: targetShell,
@@ -1064,7 +1058,7 @@ export async function POST(request: Request): Promise<Response> {
           ...analysis,
           source: {
             ...analysis.source,
-            productionPreviewHtml: targetPreviewHtml
+            productionPreviewHtml: renderedTargetDocument
           }
         };
 
@@ -1078,7 +1072,7 @@ export async function POST(request: Request): Promise<Response> {
           selectedShellKey,
           sourceAssetBases: sourceAssetContext.assetBases,
           sourceAssetManifest: sourceAssetContext.assetManifest,
-          targetPreviewHtml,
+          renderedTargetDocument,
           uploadSummary
         });
 

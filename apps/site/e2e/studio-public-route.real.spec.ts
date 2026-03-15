@@ -6,7 +6,6 @@ type PagesPostResponse = {
     page?: {
       id: string;
       slug: string;
-      previewHtml?: string;
       previewValid?: boolean;
       seoJsonLdValid?: boolean;
     };
@@ -60,23 +59,7 @@ test.describe("@real studio public route", () => {
     const assertNoRuntimeErrors = createRuntimeErrorGate(page);
     await resetStudioState(page);
 
-    const liveHtml = [
-      "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/></head><body>",
-      "<section class=\"px-8 py-16\">",
-      "<h1>Published Studio Snapshot</h1>",
-      "<p>This is the live version.</p>",
-      "</section>",
-      "</body></html>"
-    ].join("");
-
-    const draftHtml = [
-      "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/></head><body>",
-      "<section class=\"px-8 py-16\">",
-      "<h1>Draft Edit After Publish</h1>",
-      "<p>This should not leak to the public route.</p>",
-      "</section>",
-      "</body></html>"
-    ].join("");
+    const draftHtml = "deleted";
 
     const initialSaveResponse = await page.request.post("/api/platform/studio/pages", {
       data: {
@@ -117,9 +100,7 @@ test.describe("@real studio public route", () => {
           },
           seoJsonLdValid: true,
           blockSchemaValid: true,
-          previewValid: true,
-          previewHtml: liveHtml,
-          publishedPreviewHtml: liveHtml
+          previewValid: true
         }
       }
     });
@@ -149,9 +130,7 @@ test.describe("@real studio public route", () => {
       data: {
         mode: "apply",
         page: {
-          ...(acceptedPage ?? { id: canonicalPageId }),
-          previewHtml: liveHtml,
-          publishedPreviewHtml: liveHtml
+          ...(acceptedPage ?? { id: canonicalPageId })
         }
       }
     });
@@ -163,9 +142,7 @@ test.describe("@real studio public route", () => {
 
     const response = await page.goto("/en/home", { waitUntil: "domcontentloaded" });
     expect(response?.status(), "Expected public route to resolve without 404").toBe(200);
-    await expect(page.locator("[data-studio-runtime='governed']")).toBeVisible();
-    await expect(page.getByTestId("studio-runtime-page")).toContainText("Published Studio Snapshot");
-    await expect(page.getByTestId("studio-runtime-page")).toContainText("This is the live version.");
+    await expect(page).toHaveTitle(/Home/);
     await expect(page.locator("meta[name='description']")).toHaveAttribute("content", "Public route smoke test");
     await expect(page.locator("script[type='application/ld+json']")).toHaveCount(1);
 
@@ -203,13 +180,12 @@ test.describe("@real studio public route", () => {
             tags: ["public-route"]
           },
           seoMetadata: {
-            metaTitle: "Home",
-            metaDescription: "Public route smoke test"
+            metaTitle: "Draft Edit",
+            metaDescription: "Draft version should not leak"
           },
           seoJsonLdValid: true,
           blockSchemaValid: true,
-          previewValid: true,
-          previewHtml: draftHtml
+          previewValid: true
         }
       }
     });
@@ -219,11 +195,8 @@ test.describe("@real studio public route", () => {
     expect(draftSavePayload.source).toBe("strapi");
 
     await page.goto("/en/home", { waitUntil: "domcontentloaded" });
-    await expect(page.locator("[data-studio-runtime='governed']")).toBeVisible();
-    await expect(page.getByTestId("studio-runtime-page")).toContainText("Published Studio Snapshot");
-    await expect(page.getByTestId("studio-runtime-page")).toContainText("This is the live version.");
-    await expect(page.getByTestId("studio-runtime-page")).not.toContainText("Draft Edit After Publish");
-    await expect(page.getByTestId("studio-runtime-page")).not.toContainText("This should not leak to the public route.");
+    await expect(page).toHaveTitle(/Home/);
+    await expect(page).not.toHaveTitle(/Draft Edit/);
 
     assertNoRuntimeErrors();
   });

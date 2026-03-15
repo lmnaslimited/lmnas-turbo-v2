@@ -42,8 +42,7 @@ describe("studio shells route", () => {
           menuItems: [],
           actions: [],
           navbarBlocks: ["blk-hero-1", "blk-cta-1"],
-          footerBlocks: ["blk-cta-1"],
-          previewHtml: "<nav>Shell Mapping Test</nav>"
+          footerBlocks: ["blk-cta-1"]
         }
       })
     );
@@ -72,8 +71,7 @@ describe("studio shells route", () => {
           status: "inactive",
           updatedAt: "2026-03-10",
           menuItems: [],
-          actions: [],
-          previewHtml: "<footer>Shell</footer>"
+          actions: []
         }
       })
     );

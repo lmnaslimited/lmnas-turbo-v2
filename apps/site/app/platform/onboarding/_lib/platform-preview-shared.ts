@@ -222,28 +222,28 @@ export function resolvePlatformShellPreview(params: {
 
   if (selectedShell?.role === "full") {
     return {
-      headerHtml: selectedShell.previewHtml,
+      headerHtml: "",
       footerHtml: ""
     };
   }
 
   if (selectedShell?.role === "navbar") {
     return {
-      headerHtml: selectedShell.previewHtml,
-      footerHtml: activeFooter?.previewHtml ?? DEFAULT_FOOTER_HTML
+      headerHtml: "",
+      footerHtml: DEFAULT_FOOTER_HTML
     };
   }
 
   if (selectedShell?.role === "footer") {
     return {
-      headerHtml: activeNavbar?.previewHtml ?? DEFAULT_NAVBAR_HTML,
-      footerHtml: selectedShell.previewHtml
+      headerHtml: DEFAULT_NAVBAR_HTML,
+      footerHtml: ""
     };
   }
 
   return {
-    headerHtml: activeFull?.previewHtml ?? activeNavbar?.previewHtml ?? DEFAULT_NAVBAR_HTML,
-    footerHtml: activeFull ? "" : activeFooter?.previewHtml ?? DEFAULT_FOOTER_HTML
+    headerHtml: DEFAULT_NAVBAR_HTML,
+    footerHtml: activeFull ? "" : DEFAULT_FOOTER_HTML
   };
 }
 

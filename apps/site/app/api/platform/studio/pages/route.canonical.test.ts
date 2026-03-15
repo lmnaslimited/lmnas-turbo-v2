@@ -71,7 +71,6 @@ describe("studio pages route canonical persistence", () => {
                 "0": "theme-sunrise"
               },
               stylesheetRef: "/studio-runtime.css",
-              previewHtml: "",
               createdAt: "2026-03-14",
               updatedAt: "2026-03-14"
             }
@@ -142,9 +141,7 @@ describe("studio pages route canonical persistence", () => {
               },
               seoJsonLdValid: true,
               blockSchemaValid: true,
-              previewValid: true,
-              previewHtml: "",
-              publishedPreviewHtml: ""
+              previewValid: true
             }
           ]
         });
@@ -193,7 +190,6 @@ describe("studio pages route canonical persistence", () => {
               name: "Main Shell",
               role: "full",
               status: "active",
-              previewHtml: "<header><nav>Shell</nav></header>",
               updatedAt: "2026-03-14"
             }
           ]
@@ -243,8 +239,7 @@ describe("studio pages route canonical persistence", () => {
           },
           seoJsonLdValid: true,
           blockSchemaValid: true,
-          previewValid: true,
-          previewHtml: "<main><script src=\"http://localhost:3000/_next/static/app.js\"></script><section>Wrong</section></main>"
+          previewValid: true
         }
       })
     );
@@ -252,25 +247,17 @@ describe("studio pages route canonical persistence", () => {
     expect(response.status).toBe(200);
     const payload = (await response.json()) as {
       ok: boolean;
-      data: {
-        page: {
-          previewHtml: string;
-        };
-      };
       source: string;
     };
 
     expect(payload.ok).toBe(true);
     expect(payload.source).toBe("strapi");
-    expect(payload.data.page.previewHtml).toContain("Canonical Hero");
 
     const createCall = requestStrapiMock.mock.calls.find((entry) => entry[0] === "/api/studio-pages?status=draft" && entry[1]?.method === "POST");
     expect(createCall?.[1]?.body).toEqual(
       expect.objectContaining({
         pageKey: "page-1",
-        blockOrder: ["block-hero"],
-        previewHtml: "",
-        publishedPreviewHtml: ""
+        blockOrder: ["block-hero"]
       })
     );
 

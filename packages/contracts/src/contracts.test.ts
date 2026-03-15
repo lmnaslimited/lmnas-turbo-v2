@@ -133,7 +133,8 @@ describe("contracts", () => {
       source: {
         sourceRef: "https://example.com",
         title: "Example",
-        previewHtml: "<section>Preview</section>"
+        referencePreviewHtml: "<section>Preview</section>",
+        productionPreviewHtml: "<section>Preview</section>"
       },
       shellCandidates: [
         {
@@ -143,8 +144,7 @@ describe("contracts", () => {
           confidence: 0.9,
           menuItems: [],
           editableFields: ["navItemLabel"],
-          ctaLabels: ["Book Appointment"],
-          previewHtml: "<nav>...</nav>"
+          ctaLabels: ["Book Appointment"]
         }
       ],
       blockProposals: [

@@ -50,7 +50,6 @@ type BlockSnapshot = {
   id: string;
   key: string;
   name: string;
-  previewHtml?: string;
   updatedAt?: string;
   actions?: ActionSnapshot[];
 };
@@ -219,8 +218,7 @@ async function seedPage(params: {
         locale: "en",
         blockOrder: [],
         fieldValues: {},
-        actionOverrides: {},
-        previewHtml: "<main>seeded</main>"
+        actionOverrides: {}
       }
     }
   });

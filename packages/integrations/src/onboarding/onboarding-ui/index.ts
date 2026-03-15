@@ -98,8 +98,7 @@ function applyTypeReclassification(params: {
       editableFields: block.editableFields,
       triggerLabels: block.ctaLabels,
       associatedActionIds: block.actionIds,
-      sourceSnippet: block.sourceSnippet ?? block.rawHtmlSnippet,
-      previewHtml: block.previewHtml
+      sourceSnippet: block.sourceSnippet ?? block.rawHtmlSnippet
     });
   });
 
@@ -124,9 +123,8 @@ function applyTypeReclassification(params: {
       ctaLabels: widget.triggerLabels,
       actionIds: widget.associatedActionIds,
       segmentation: "keep",
-      rawHtmlSnippet: widget.previewHtml,
-      sourceSnippet: widget.sourceSnippet,
-      previewHtml: widget.previewHtml
+      rawHtmlSnippet: widget.sourceSnippet,
+      sourceSnippet: widget.sourceSnippet
     });
   });
 
@@ -391,7 +389,7 @@ export async function publishOnboardingDraft(input: unknown): Promise<Onboarding
   });
 
   const assemblyPreviewHtml = buildFinalAssemblyPreviewDocument({
-    sourcePreviewHtml: request.analysis.source.productionPreviewHtml,
+    sourceDocumentHtml: request.analysis.source.productionPreviewHtml,
     baseUrl: request.analysis.source.baseUrl,
     themeScopeClass: request.analysis.source.themeScopeClass,
     shellCandidates: namedShellCandidates,

@@ -37,7 +37,6 @@ describe("studio blocks route canonical schema", () => {
           confidence: 1,
           editableFields: [],
           actions: [],
-          previewHtml: "<section />",
           usageCount: 0
         }
       ]

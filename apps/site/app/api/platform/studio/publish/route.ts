@@ -224,9 +224,7 @@ async function readDraftPagePublishFields(pageId: string): Promise<Record<string
     seoMetadata: row.seoMetadata,
     seoJsonLdValid: row.seoJsonLdValid,
     blockSchemaValid: row.blockSchemaValid,
-    previewValid: row.previewValid,
-    previewHtml: "",
-    publishedPreviewHtml: ""
+    previewValid: row.previewValid
   };
 }
 
@@ -235,8 +233,6 @@ function buildDraftRestoreFields(draftFields: Record<string, unknown>, published
     ...draftFields,
     status: "draft",
     lifecycle: "draft",
-    previewHtml: "",
-    publishedPreviewHtml: "",
     publishedAt
   };
 }
@@ -246,8 +242,6 @@ function buildPublishedFields(draftFields: Record<string, unknown>, publishedAt:
     ...draftFields,
     status: "published",
     lifecycle: "published",
-    previewHtml: "",
-    publishedPreviewHtml: "",
     publishedAt
   };
 }

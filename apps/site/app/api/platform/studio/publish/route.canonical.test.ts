@@ -83,8 +83,7 @@ describe("studio publish route canonical mode", () => {
           seoMetadata: { metaTitle: "Publish Page", metaDescription: "Publish Page" },
           seoJsonLdValid: true,
           blockSchemaValid: true,
-          previewValid: true,
-          previewHtml: "<main><section>Published Studio Snapshot</section></main>"
+          previewValid: true
         }
       })
       .mockResolvedValueOnce({ data: { documentId: "page-1" } })
@@ -122,9 +121,7 @@ describe("studio publish route canonical mode", () => {
         method: "PUT",
         body: expect.objectContaining({
           status: "draft",
-          lifecycle: "draft",
-          previewHtml: "",
-          publishedPreviewHtml: ""
+          lifecycle: "draft"
         })
       })
     );
@@ -134,9 +131,7 @@ describe("studio publish route canonical mode", () => {
         method: "PUT",
         body: expect.objectContaining({
           status: "published",
-          lifecycle: "published",
-          previewHtml: "",
-          publishedPreviewHtml: ""
+          lifecycle: "published"
         })
       })
     );

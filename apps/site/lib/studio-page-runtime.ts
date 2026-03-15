@@ -252,7 +252,7 @@ function normalizeBlock(value: Record<string, unknown>): StudioBlockTemplate {
           stylesheetRef: asString(row.stylesheetRef).trim() || "/studio-runtime.css"
         }
       : createCanonicalBlockSnapshot({
-          html: asString(row.previewHtml) || asString(row.targetPreviewHtml) || "<section></section>",
+          html: "<section></section>",
           sourceUrl: asString(row.sourceRef).trim() || "studio-runtime",
           stylesheetRef: "/studio-runtime.css"
         });
@@ -276,7 +276,6 @@ function normalizeBlock(value: Record<string, unknown>): StudioBlockTemplate {
     confidence: typeof row.confidence === "number" ? row.confidence : 0,
     editableFields: [],
     actions: [],
-    previewHtml: "",
     inUseCount: typeof row.usageCount === "number" ? row.usageCount : 0,
     usageCount: typeof row.usageCount === "number" ? row.usageCount : 0,
     createdAt: asString(row.createdAt).slice(0, 10),
@@ -296,8 +295,7 @@ function normalizeShell(value: Record<string, unknown>): StudioShell {
     menuItems: [],
     actions: [],
     navbarBlocks: [],
-    footerBlocks: [],
-    previewHtml: asString(row.previewHtml)
+    footerBlocks: []
   };
 }
 
@@ -387,31 +385,9 @@ function buildRenderBlocks(params: {
   const activeFooter = params.shells.find((shell) => shell.status === "active" && shell.role === "footer") ?? null;
 
   const shellSnapshots: ImportedDomSnapshotBlock[] = [];
-  const pushShellSnapshot = (html: string | undefined) => {
-    if (typeof html !== "string" || html.trim().length === 0) {
-      return;
-    }
-    const snapshot = createCanonicalBlockSnapshot({
-      html,
-      sourceUrl: params.canonicalUrl,
-      stylesheetRef: "/studio-runtime.css"
-    });
-    if (!snapshot.domJson) {
-      return;
-    }
-    shellSnapshots.push({
-      type: "imported_dom_snapshot",
-      domJson: snapshot.domJson,
-      classMap: snapshot.classMap ?? {},
-      stylesheetRef: snapshot.stylesheetRef ?? "/studio-runtime.css"
-    });
-  };
-
-  if (selectedShell?.role === "full") {
-    pushShellSnapshot(selectedShell.previewHtml);
-  } else {
-    pushShellSnapshot(selectedShell?.role === "navbar" ? selectedShell.previewHtml : activeNavbar?.previewHtml);
-  }
+  
+  // No longer building shell snapshots from previewHtml
+  // Canonical shells must eventually provide domJson
 
   const blockSnapshots = params.record.blockOrder
     .map((reference) => keyToBlock.get(reference) ?? null)
@@ -429,10 +405,6 @@ function buildRenderBlocks(params: {
         }
       ];
     });
-
-  if (selectedShell?.role !== "full") {
-    pushShellSnapshot(selectedShell?.role === "footer" ? selectedShell.previewHtml : activeFooter?.previewHtml);
-  }
 
   return [...shellSnapshots, ...blockSnapshots];
 }

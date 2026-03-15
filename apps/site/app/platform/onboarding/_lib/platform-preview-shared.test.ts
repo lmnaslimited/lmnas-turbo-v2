@@ -85,8 +85,7 @@ function buildBlock(overrides: Partial<StudioBlockTemplate> = {}): StudioBlockTe
     confidence: 0.9,
     editableFields: [],
     actions: [],
-    previewHtml: "",
-    targetPreviewHtml: "",
+
     inUseCount: 0,
     usageCount: 0,
     createdAt: "2026-03-14",
@@ -118,7 +117,7 @@ function buildPage(overrides: Partial<StudioPageDocument> = {}): StudioPageDocum
     seoJsonLdValid: true,
     blockSchemaValid: true,
     previewValid: true,
-    previewHtml: "<main><section>Fallback Preview</section></main>",
+
     updatedAt: "2026-03-14",
     ...overrides
   };
@@ -136,7 +135,7 @@ const shells: StudioShell[] = [
     actions: [],
     navbarBlocks: [],
     footerBlocks: [],
-    previewHtml: "<header><nav>Main Shell</nav></header>"
+
   }
 ];
 
@@ -186,7 +185,7 @@ describe("platform preview shared helpers", () => {
     const html = buildPlatformPagePreviewDocument({
       page: buildPage({
         blockOrder: [],
-        previewHtml: "<main><section>Old Snapshot</section></main>"
+
       }),
       blocks: [buildBlock()],
       shells,
@@ -202,14 +201,11 @@ describe("platform preview shared helpers", () => {
   it("regenerates page previews from canonical snapshots after disposable preview cache removal", () => {
     const html = buildPlatformPagePreviewDocument({
       page: buildPage({
-        previewHtml: "",
-        publishedPreviewHtml: undefined
+
       }),
       blocks: [
         buildBlock({
-          previewHtml: "",
-          sourcePreviewHtml: "",
-          targetPreviewHtml: ""
+
         })
       ],
       shells,

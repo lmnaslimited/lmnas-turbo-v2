@@ -100,8 +100,7 @@ test.describe("@real pages draft listing", () => {
           seoMetadata: { metaTitle: "Draft only page", metaDescription: "Draft only page" },
           seoJsonLdValid: true,
           blockSchemaValid: true,
-          previewValid: true,
-          previewHtml: ""
+          previewValid: true
         }
       }
     });

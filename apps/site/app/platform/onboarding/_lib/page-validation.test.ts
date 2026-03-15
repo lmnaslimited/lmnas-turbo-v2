@@ -25,7 +25,6 @@ function buildPage(overrides: Partial<StudioPageDocument> = {}): StudioPageDocum
     seoJsonLdValid: true,
     blockSchemaValid: true,
     previewValid: true,
-    previewHtml: "<html><body><main>Preview</main></body></html>",
     updatedAt: "2026-03-13",
     ...overrides
   };

@@ -146,7 +146,7 @@ export function buildStyledSourcePreview(params: {
       .filter(Boolean)
       .join("");
 
-  const previewHtml = isFullDocument
+  const renderedPreviewDocument = isFullDocument
     ? ensureBodyThemeClass(injectHeadElements(sanitizedHtml, previewOverlayStyles), themeScopeClass)
     : wrapSnippetAsPreviewDocument({
       snippetHtml: sanitizedHtml,
@@ -156,8 +156,8 @@ export function buildStyledSourcePreview(params: {
     });
 
   return {
-    referencePreviewHtml: previewHtml,
-    productionPreviewHtml: previewHtml,
+    referencePreviewHtml: renderedPreviewDocument,
+    productionPreviewHtml: renderedPreviewDocument,
     rawMarkupPreview: sanitizedHtml.slice(0, 10000),
     baseUrl,
     themeScopeClass,
@@ -167,13 +167,13 @@ export function buildStyledSourcePreview(params: {
 
 export function buildDetectionThumbnailDocument(params: {
   snippetHtml: string;
-  sourcePreviewHtml: string;
+  sourceDocumentHtml: string;
   themeScopeClass: string;
   baseUrl?: string;
 }): string {
   return wrapSnippetAsPreviewDocument({
     snippetHtml: sanitizePreviewHtml(params.snippetHtml),
-    sourceHtmlForStyles: params.sourcePreviewHtml,
+    sourceHtmlForStyles: params.sourceDocumentHtml,
     baseUrl: params.baseUrl,
     themeScopeClass: params.themeScopeClass,
     bodyClassName: "lmnas-preview-thumbnail"
@@ -189,7 +189,7 @@ function renderSelectedSnippet(snippet: string | undefined, fallback: string): s
 }
 
 export function buildFinalAssemblyPreviewDocument(params: {
-  sourcePreviewHtml: string;
+  sourceDocumentHtml: string;
   baseUrl?: string;
   themeScopeClass: string;
   shellCandidates: OnboardingShellCandidate[];
@@ -208,7 +208,7 @@ export function buildFinalAssemblyPreviewDocument(params: {
       return [
         "<section class='lmnas-assembly-block'>",
         `<div class='lmnas-assembly-block-meta'>${title} (${block.family})</div>`,
-        renderSelectedSnippet(block.previewHtml ?? block.rawHtmlSnippet, `<div>${title}</div>`),
+        renderSelectedSnippet(block.rawHtmlSnippet ?? block.sourceSnippet, `<div>${title}</div>`),
         "</section>"
       ].join("");
     })
@@ -246,21 +246,21 @@ export function buildFinalAssemblyPreviewDocument(params: {
 
   const snippet = [
     "<div class='lmnas-assembly-root'>",
-    renderSelectedSnippet(announcement?.previewHtml, ""),
-    renderSelectedSnippet(utility?.previewHtml, ""),
-    renderSelectedSnippet(navbar?.previewHtml, "<header class='lmnas-assembly-placeholder'>No navbar selected</header>"),
+    renderSelectedSnippet(announcement?.sourceSnippet, ""),
+    renderSelectedSnippet(utility?.sourceSnippet, ""),
+    renderSelectedSnippet(navbar?.sourceSnippet, "<header class='lmnas-assembly-placeholder'>No navbar selected</header>"),
     "<main class='lmnas-assembly-main'>",
     blocksHtml || "<section class='lmnas-assembly-placeholder'>No blocks selected</section>",
     "</main>",
     widgetsHtml,
     actionsHtml,
-    renderSelectedSnippet(footer?.previewHtml, "<footer class='lmnas-assembly-placeholder'>No footer selected</footer>"),
+    renderSelectedSnippet(footer?.sourceSnippet, "<footer class='lmnas-assembly-placeholder'>No footer selected</footer>"),
     "</div>"
   ].join("");
 
   return wrapSnippetAsPreviewDocument({
     snippetHtml: snippet,
-    sourceHtmlForStyles: params.sourcePreviewHtml,
+    sourceHtmlForStyles: params.sourceDocumentHtml,
     baseUrl: params.baseUrl,
     themeScopeClass: params.themeScopeClass
   });

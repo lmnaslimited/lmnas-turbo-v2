@@ -36,8 +36,6 @@ type BlocksPayload = {
     id: string;
     key: string;
     name: string;
-    previewHtml?: string;
-    targetPreviewHtml?: string;
   }>;
 };
 
@@ -293,11 +291,7 @@ test.describe("@real theme import toggle flow", () => {
     const activeThemeAfterToggle = themesAfterToggle.data?.find((theme) => theme.status === "active");
     const activeShell = shellsPayload.data?.find((shell) => shell.status === "active") ?? shellsPayload.data?.[0];
     const publishPageSlug = `publish-e2e-${Date.now()}`;
-    const publishPagePreview = [
-      "<!doctype html><html><head><meta charset=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/></head><body>",
-      blocksPayload.data?.[0]?.targetPreviewHtml ?? blocksPayload.data?.[0]?.previewHtml ?? "<section><h1>Publish Preview</h1></section>",
-      "</body></html>"
-    ].join("");
+    const publishPagePreview = "<section><h1>Publish Preview</h1></section>";
 
     const createPageResponse = await page.request.post("/api/platform/studio/pages", {
       data: {
@@ -320,8 +314,7 @@ test.describe("@real theme import toggle flow", () => {
           seoMetadata: { metaTitle: "E2E Publish Page", metaDescription: "Canonical publish validation" },
           seoJsonLdValid: true,
           blockSchemaValid: true,
-          previewValid: true,
-          previewHtml: publishPagePreview
+          previewValid: true
         }
       }
     });

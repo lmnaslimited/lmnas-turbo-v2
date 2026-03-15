@@ -94,8 +94,7 @@ function mapShellFromCanonical(value: unknown): StudioShell {
     menuItems: mapMenuItemsFromCanonical(row.menuItems),
     actions: mapShellActions(row.actions),
     navbarBlocks: normalizeBlockArray(row.navbarBlocks),
-    footerBlocks: normalizeBlockArray(row.footerBlocks),
-    previewHtml: typeof row.previewHtml === "string" && row.previewHtml.length > 0 ? row.previewHtml : "<div>No preview</div>"
+    footerBlocks: normalizeBlockArray(row.footerBlocks)
   };
 }
 
@@ -137,8 +136,7 @@ async function upsertShellInCanonicalStrapi(shell: StudioShell): Promise<void> {
     menuItems: shell.menuItems,
     actions: shell.actions,
     navbarBlocks: shell.navbarBlocks,
-    footerBlocks: shell.footerBlocks,
-    previewHtml: shell.previewHtml
+    footerBlocks: shell.footerBlocks
   };
 
   if (existingId !== null) {
@@ -201,8 +199,7 @@ function normalizeShell(value: unknown): StudioShell {
     menuItems,
     actions,
     navbarBlocks,
-    footerBlocks,
-    previewHtml: typeof row.previewHtml === "string" && row.previewHtml.length > 0 ? row.previewHtml : "<div>No preview</div>"
+    footerBlocks
   };
 }
 

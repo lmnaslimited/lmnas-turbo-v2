@@ -100,8 +100,7 @@ async function seedCanonicalShells(): Promise<number> {
         menuItems: shell.menuItems,
         actions: shell.actions,
         navbarBlocks: shell.navbarBlocks,
-        footerBlocks: shell.footerBlocks,
-        previewHtml: shell.previewHtml
+        footerBlocks: shell.footerBlocks
       }
     });
     seeded += 1;
@@ -129,7 +128,6 @@ async function seedCanonicalBlocks(): Promise<number> {
         confidence: block.confidence,
         editableFields: block.editableFields,
         actions: block.actions,
-        previewHtml: block.previewHtml,
         usageCount: block.usageCount ?? block.inUseCount,
         productMapping: "",
         industryMapping: []
@@ -194,8 +192,7 @@ async function seedCanonicalPages(): Promise<number> {
         seoMetadata: page.seoMetadata,
         seoJsonLdValid: page.seoJsonLdValid,
         blockSchemaValid: page.blockSchemaValid,
-        previewValid: page.previewValid,
-        previewHtml: page.previewHtml
+        previewValid: page.previewValid
       }
     });
     seeded += 1;

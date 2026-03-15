@@ -42,9 +42,6 @@
     },
     "footerBlocks": {
       "type": "json"
-    },
-    "previewHtml": {
-      "type": "text"
     }
   }
 }

@@ -38,7 +38,7 @@ Fallback path (when Strapi unavailable):
 ## Data Model (UI-facing)
 
 - shell identity: `id`, `key`, `name`, `role`, `status`
-- preview: `previewHtml`
+- preview: `rawHtmlSnippet`
 - menu: hierarchical menu items
 - actions: `{ id, label, type, target }`
 

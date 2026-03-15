@@ -220,7 +220,7 @@ export default function PublishWorkflowPage(): React.ReactElement {
         shells,
         themes,
         hostAssets: platformPreviewAssets,
-        fallbackHtml: publishedPage.publishedPreviewHtml ?? publishedPage.previewHtml
+        fallbackHtml: ""
       });
     },
     [publishedPage, blocks, shells, themes, platformPreviewAssets]
@@ -236,7 +236,7 @@ export default function PublishWorkflowPage(): React.ReactElement {
         shells,
         themes,
         hostAssets: platformPreviewAssets,
-        fallbackHtml: governancePage.previewHtml
+        fallbackHtml: ""
       });
     },
     [blocks, governancePage, platformPreviewAssets, shells, themes]

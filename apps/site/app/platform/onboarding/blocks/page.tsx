@@ -9,6 +9,7 @@ import {
 } from "../_lib/platform-preview";
 import { readPreviewSwatchThemeId, setPreviewSwatchThemeId as setGlobalPreviewSwatchThemeId, subscribePreviewSwatchThemeId } from "../_lib/preview-swatch-state";
 import type { StudioBlockTemplate, StudioPageDocument, StudioTheme } from "../_lib/studio-types";
+import { renderCanonicalBlockMarkup } from "../../../../lib/studio-canonical";
 
 type BlocksResponse = {
   ok: boolean;
@@ -450,7 +451,7 @@ export default function BlocksWorkflowPage(): React.ReactElement {
   const selectedUsageCount = selected ? blockUsage.get(selected.key) ?? blockUsage.get(selected.id) ?? selected.usageCount ?? selected.inUseCount : 0;
 
   function resolveTargetPreview(block: StudioBlockTemplate): string {
-    const proposalHtml = (block.targetPreviewHtml ?? block.previewHtml ?? block.sourcePreviewHtml ?? "").trim();
+    const proposalHtml = block ? renderCanonicalBlockMarkup(block).bodyHtml.trim() : "";
     if (proposalHtml.length === 0) {
       return "";
     }
@@ -730,20 +731,6 @@ export default function BlocksWorkflowPage(): React.ReactElement {
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
-                        onClick={() => setPreviewVariant("target")}
-                        className={`rounded px-2 py-0.5 text-[10px] font-semibold ${previewVariant === "target" ? "bg-blue-500/20 text-blue-200" : "text-slate-500"}`}
-                      >
-                        Target
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPreviewVariant("source")}
-                        className={`rounded px-2 py-0.5 text-[10px] font-semibold ${previewVariant === "source" ? "bg-white/[0.08] text-slate-200" : "text-slate-500"}`}
-                      >
-                        Source
-                      </button>
-                      <button
-                        type="button"
                         onClick={() => setPreviewDevice("desktop")}
                         className={`rounded p-1.5 ${previewDevice === "desktop" ? "bg-blue-500/20 text-blue-200" : "bg-white/[0.03] text-slate-400"}`}
                       >
@@ -768,11 +755,11 @@ export default function BlocksWorkflowPage(): React.ReactElement {
 
                   <div className="overflow-auto rounded-xl border border-white/[0.12] bg-[#020d1f] p-3">
                     <div className={deviceFrameClass()} data-testid="blocks-selected-preview">
-                      {(previewVariant === "source" ? selected.sourcePreviewHtml ?? "" : resolveTargetPreview(selected)).trim().length > 0 ? (
+                      {resolveTargetPreview(selected).length > 0 ? (
                           <iframe
                             title={`${selected.key}-preview`}
                             className="h-full w-full rounded-lg border border-white/[0.08] bg-white"
-                            srcDoc={(previewVariant === "source" ? selected.sourcePreviewHtml ?? "" : resolveTargetPreview(selected)).trim()}
+                            srcDoc={resolveTargetPreview(selected)}
                             sandbox="allow-scripts allow-same-origin"
                           />
                       ) : (

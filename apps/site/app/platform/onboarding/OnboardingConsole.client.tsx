@@ -154,7 +154,7 @@ type DetectableItem = {
   id: string;
   type: "shell" | "block" | "widget" | "action";
   label: string;
-  previewHtml?: string;
+  rawHtmlSnippet?: string;
   previewSelector?: string;
   confidence: number;
 };
@@ -190,7 +190,7 @@ function buildDetectableItems(analysis: OnboardingAnalysis | null): DetectableIt
     id: item.id,
     type: "shell" as const,
     label: item.displayName ?? item.id,
-    previewHtml: item.previewHtml,
+    rawHtmlSnippet: item.sourceSnippet,
     previewSelector: item.previewSelector,
     confidence: item.confidence
   }));
@@ -199,7 +199,7 @@ function buildDetectableItems(analysis: OnboardingAnalysis | null): DetectableIt
     id: item.id,
     type: "block" as const,
     label: item.displayName ?? item.id,
-    previewHtml: item.previewHtml,
+    rawHtmlSnippet: item.rawHtmlSnippet,
     previewSelector: item.previewSelector,
     confidence: item.confidence
   }));
@@ -208,7 +208,7 @@ function buildDetectableItems(analysis: OnboardingAnalysis | null): DetectableIt
     id: item.id,
     type: "widget" as const,
     label: item.displayName ?? item.name,
-    previewHtml: item.previewHtml,
+    rawHtmlSnippet: item.sourceSnippet,
     previewSelector: item.previewSelector,
     confidence: item.confidence
   }));
@@ -217,7 +217,7 @@ function buildDetectableItems(analysis: OnboardingAnalysis | null): DetectableIt
     id: item.id,
     type: "action" as const,
     label: item.displayName ?? item.label,
-    previewHtml: item.previewHtml,
+    rawHtmlSnippet: item.sourceSnippet,
     previewSelector: item.previewSelector,
     confidence: item.confidence
   }));
@@ -255,7 +255,7 @@ function buildFinalAssemblyPreview(params: {
     .map((item) => mergeDisplayName(item, params.displayNameOverrides));
 
   return buildFinalAssemblyPreviewDocument({
-    sourcePreviewHtml: params.analysis.source.productionPreviewHtml,
+    sourceDocumentHtml: params.analysis.source.productionPreviewHtml,
     baseUrl: params.analysis.source.baseUrl,
     themeScopeClass: params.analysis.source.themeScopeClass,
     shellCandidates: shells,
@@ -533,7 +533,7 @@ export function OnboardingConsole() {
 
     return buildDetectionThumbnailDocument({
       snippetHtml: snippet ?? "<div>No preview</div>",
-      sourcePreviewHtml: analysis.source.productionPreviewHtml,
+      sourceDocumentHtml: analysis.source.productionPreviewHtml,
       baseUrl: analysis.source.baseUrl,
       themeScopeClass: analysis.source.themeScopeClass
     });
@@ -935,7 +935,7 @@ export function OnboardingConsole() {
                     <iframe
                       className="w-full rounded-lg border border-lmnas-border bg-white"
                       style={{ minHeight: "100px", height: "100px" }}
-                      srcDoc={injectProjectStyles(buildCardPreview(item.previewHtml), projectStyles)}
+                      srcDoc={injectProjectStyles(buildCardPreview(item.rawHtmlSnippet), projectStyles)}
                       sandbox="allow-scripts allow-same-origin"
                       title={`${item.id} preview`}
                     />

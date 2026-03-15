@@ -44,8 +44,7 @@ function mapImportMaster(value: Record<string, unknown>): StudioImportMaster {
     sourceShellCharacteristics: Array.isArray(row.sourceShellCharacteristics)
       ? row.sourceShellCharacteristics.filter((entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === "object")
       : undefined,
-    referencePreviewHtml: typeof row.referencePreviewHtml === "string" ? row.referencePreviewHtml : "",
-    targetPreviewHtml: typeof row.targetPreviewHtml === "string" ? row.targetPreviewHtml : "",
+
     selectedThemeKey: typeof row.selectedThemeKey === "string" ? row.selectedThemeKey : "default",
     selectedShellKey: typeof row.selectedShellKey === "string" ? row.selectedShellKey : "",
     importMode: row.importMode === "page" ? "page" : "blocks",

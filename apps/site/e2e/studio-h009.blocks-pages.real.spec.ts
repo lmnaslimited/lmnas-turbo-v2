@@ -52,7 +52,6 @@ type BlocksPayload = {
   data?: Array<{
     id: string;
     key: string;
-    previewHtml?: string;
     status?: string;
   }>;
 };

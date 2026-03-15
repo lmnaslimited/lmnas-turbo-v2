@@ -34,7 +34,6 @@ Payload includes:
 - `fieldValues`
 - `actionOverrides`
 - `activeShellId`
-- `previewHtml`
 - `slug`, `locale`
 
 `POST` modes:

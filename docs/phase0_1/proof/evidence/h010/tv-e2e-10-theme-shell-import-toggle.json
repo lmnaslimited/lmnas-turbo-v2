@@ -1,12 +1,12 @@
 {
   "createdTheme": {
-    "id": "bp13j2b2ssyjtzgsm5ihrk09",
-    "themeKey": "e2e-imported-theme-1773387033187-33275",
-    "name": "E2E Imported Theme 1773387033187",
+    "id": "fj2iwrw1nt45wwxpswz2025o",
+    "themeKey": "e2e-imported-theme-1773480448935-49001",
+    "name": "E2E Imported Theme 1773480448935",
     "status": "active",
     "sourceRef": "raw-html",
-    "createdAt": "2026-03-13",
-    "updatedAt": "2026-03-13",
+    "createdAt": "2026-03-14",
+    "updatedAt": "2026-03-14",
     "tokenCoverage": 0.35,
     "themeDebt": "8 arbitrary class values detected; convert to platform tokens where possible.",
     "darkMode": true,
@@ -54,13 +54,13 @@
     ]
   },
   "alternateTheme": {
-    "id": "y9gjrhtyhbymojvstu8kziz4",
+    "id": "tygfywtrz7cu27vncqgb72hb",
     "themeKey": "default",
     "name": "LMNAs Default",
     "status": "inactive",
     "sourceRef": "globals.css",
-    "createdAt": "2026-03-13",
-    "updatedAt": "2026-03-13",
+    "createdAt": "2026-03-14",
+    "updatedAt": "2026-03-14",
     "tokenCoverage": 0.92,
     "themeDebt": "3 arbitrary color values detected outside token system",
     "darkMode": true,
@@ -118,7 +118,7 @@
         }
       ],
       "activeTheme": {
-        "id": "theme-1773387036661",
+        "id": "theme-1773480454157",
         "themeKey": "default",
         "name": "LMNAs Default",
         "darkMode": true,
@@ -137,9 +137,9 @@
       "governance": {
         "ready": true,
         "page": {
-          "id": "ei39eq54ydtoc3ave42g54om",
+          "id": "p4b9tl92pudx9qq18qbgnd7v",
           "name": "E2E Publish Page",
-          "slug": "publish-e2e-1773387036229"
+          "slug": "publish-e2e-1773480453416"
         },
         "checks": [
           {
@@ -196,17 +196,17 @@
         "source": "strapi"
       },
       "payload": {
-        "generatedAt": "2026-03-13T07:30:36.689Z",
+        "generatedAt": "2026-03-14T09:27:34.223Z",
         "mode": "apply",
         "activeTheme": {
-          "id": "theme-1773387036661",
+          "id": "theme-1773480454157",
           "themeKey": "default",
           "name": "LMNAs Default",
           "darkMode": true,
           "status": "active"
         },
         "sourceHtml": "<style>\n@media(dark) {\n  body { background: #020617; color: #f8fafc; }\n}\nbody { font-family: 'Comic Sans MS', cursive; }\n</style>\n<main><h1>Publish Fidelity Probe</h1><p>Inspect fidelity before commit.</p></main>",
-        "governancePageId": "ei39eq54ydtoc3ave42g54om",
+        "governancePageId": "p4b9tl92pudx9qq18qbgnd7v",
         "fidelity": {
           "mode": "allow-below-threshold",
           "threshold": 0.25,
@@ -222,7 +222,7 @@
       "persistence": {
         "source": "strapi",
         "mutated": true,
-        "pageId": "ei39eq54ydtoc3ave42g54om"
+        "pageId": "p4b9tl92pudx9qq18qbgnd7v"
       }
     }
   }
