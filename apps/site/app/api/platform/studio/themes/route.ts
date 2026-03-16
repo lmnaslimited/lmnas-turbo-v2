@@ -40,25 +40,31 @@ function normalizeTokens(value: unknown): StudioThemeToken[] {
   }
 
   return value
-    .map((token) => {
+    .map((token, index) => {
       if (!token || typeof token !== "object" || Array.isArray(token)) {
         return null;
       }
       const row = token as Record<string, unknown>;
-      if (typeof row.key !== "string" || typeof row.value !== "string") {
+      
+      // Be more lenient with token structure from extraction
+      const key = typeof row.key === "string" && row.key.trim().length > 0 ? row.key.trim() : `token-${index + 1}`;
+      const val = typeof row.value === "string" ? row.value.trim() : "";
+      
+      // But we still need a value to consider it a valid token
+      if (val.length === 0) {
         return null;
       }
 
       const category = row.category;
       return {
-        key: row.key,
-        label: typeof row.label === "string" ? row.label : row.key,
+        key,
+        label: typeof row.label === "string" ? row.label : key,
         category:
           category === "color" || category === "typography" || category === "spacing" || category === "radius" || category === "shadow"
             ? category
             : "color",
-        value: row.value,
-        cssVariable: typeof row.cssVariable === "string" ? row.cssVariable : row.key,
+        value: val,
+        cssVariable: typeof row.cssVariable === "string" && row.cssVariable.startsWith("--") ? row.cssVariable : `--${key.replace(/[^a-z0-9-]+/gi, "-")}`,
         mapped: Boolean(row.mapped)
       } as StudioThemeToken;
     })
@@ -84,6 +90,9 @@ function normalizeTheme(value: unknown): StudioTheme {
   const darkMode = Boolean(row.darkMode);
   const themeMode = normalizeThemeMode(row.themeMode, darkMode);
 
+  const tokens = normalizeTokens(row.tokens);
+  console.log(`[Themes API] normalizeTheme: themeKey=${themeKey} tokensCount=${tokens.length}`);
+
   return {
     id,
     themeKey,
@@ -98,19 +107,30 @@ function normalizeTheme(value: unknown): StudioTheme {
     tokenCoverage: typeof row.tokenCoverage === "number" ? row.tokenCoverage : 0,
     themeDebt: typeof row.themeDebt === "string" ? row.themeDebt : "",
     darkMode: themeMode === "dark" || (themeMode === "system" && darkMode),
-    tokens: normalizeTokens(row.tokens)
+    tokens
   };
 }
 
 async function listThemesFromCollection(collectionPath: string): Promise<StudioTheme[]> {
-  const response = await requestStrapi<StrapiCollectionResponse>(`${collectionPath}?pagination[pageSize]=100&sort=updatedAt:desc`);
+  // Use status=draft to see Document Status (Draft/Published) in Strapi 5
+  // But we don't filter our custom 'status' field here to see everything in the Studio
+  const url = `${collectionPath}?pagination[pageSize]=100&sort=updatedAt:desc&status=draft`;
+  const response = await requestStrapi<StrapiCollectionResponse>(url);
+
   const rows = Array.isArray(response.data) ? response.data : [];
-  return rows.map((row) => normalizeTheme(unwrapStrapiEntity(row)));
+  console.log(`[Themes API] listThemes: fetched ${rows.length} rows from ${url}`);
+
+  return rows.map((row, idx) => {
+    const unwrapped = unwrapStrapiEntity(row);
+    const normalized = normalizeTheme(unwrapped);
+    console.log(`[Themes API] listThemes: [${idx}] key=${normalized.themeKey} name=${normalized.name} tokens=${normalized.tokens.length}`);
+    return normalized;
+  });
 }
 
 async function resolveThemeMutationIdByKey(collectionPath: string, themeKey: string): Promise<string | null> {
   const lookup = await requestStrapi<StrapiCollectionResponse>(
-    `${collectionPath}?filters[themeKey][$eq]=${encodeURIComponent(themeKey)}&pagination[pageSize]=1`
+    `${collectionPath}?filters[themeKey][$eq]=${encodeURIComponent(themeKey)}&pagination[pageSize]=1&status=draft`
   );
   const existing = Array.isArray(lookup.data) ? lookup.data[0] : undefined;
   if (!existing) {
@@ -164,11 +184,13 @@ async function listThemesFromStrapi(): Promise<{ themes: StudioTheme[]; schemaSo
 }
 
 async function upsertThemeInCollection(collectionPath: string, keyField: string, theme: StudioTheme): Promise<void> {
-  const lookup = await requestStrapi<StrapiCollectionResponse>(
-    `${collectionPath}?filters[${encodeURIComponent(keyField)}][$eq]=${encodeURIComponent(theme.themeKey)}&pagination[pageSize]=1`
-  );
+  // Query by themeKey across ALL document statuses
+  const url = `${collectionPath}?filters[${encodeURIComponent(keyField)}][$eq]=${encodeURIComponent(theme.themeKey)}&pagination[pageSize]=1&status=draft`;
+  const lookup = await requestStrapi<StrapiCollectionResponse>(url);
+  
   const existing = Array.isArray(lookup.data) ? lookup.data[0] : undefined;
   const existingId = existing ? resolveEntityMutationId(existing) : null;
+  console.log(`[Themes API] upsert: lookup for ${theme.themeKey} found existingId: ${existingId}`);
 
   const payload = {
     themeKey: theme.themeKey,
@@ -184,6 +206,7 @@ async function upsertThemeInCollection(collectionPath: string, keyField: string,
   };
 
   if (existingId !== null) {
+    console.log(`[Themes API] upsert: perform PUT for ${existingId}`);
     await requestStrapi(`${collectionPath}/${encodeURIComponent(existingId)}`, {
       method: "PUT",
       body: payload
@@ -191,6 +214,7 @@ async function upsertThemeInCollection(collectionPath: string, keyField: string,
     return;
   }
 
+  console.log(`[Themes API] upsert: perform POST for ${theme.themeKey}`);
   await requestStrapi(collectionPath, {
     method: "POST",
     body: payload
@@ -239,6 +263,7 @@ function findDuplicateTheme(themes: StudioTheme[], theme: StudioTheme): StudioTh
 
 export async function GET(): Promise<Response> {
   if (isStrapiConfigured()) {
+    console.log("[Themes API] GET: Using Strapi backend");
     try {
       const { schemaSource } = await listThemesFromStrapi();
       const themes = await enforceSingleActiveThemeInCollection(CANONICAL_THEME_COLLECTION);
@@ -270,7 +295,10 @@ export async function GET(): Promise<Response> {
 export async function POST(request: Request): Promise<Response> {
   try {
     const payload = (await request.json()) as ThemePostPayload;
+    console.log("[Themes API] POST payload received:", JSON.stringify(payload, null, 2));
+
     if (payload.sourceType !== undefined && !isStudioThemeSourceType(payload.sourceType)) {
+      console.warn("[Themes API] Invalid sourceType:", payload.sourceType);
       return Response.json(
         {
           ok: false,
@@ -284,7 +312,20 @@ export async function POST(request: Request): Promise<Response> {
     const theme = normalizeTheme(payload.theme);
     const mode = payload.mode === "create" ? "create" : "upsert";
 
+    if (theme.tokens.length === 0) {
+      console.warn("[Themes API] Validation failed: tokens.length is 0. Payload theme:", JSON.stringify(payload.theme, null, 2));
+      return Response.json(
+        {
+          ok: false,
+          error: "Theme must have at least one token to be valid.",
+          code: "theme.tokens_empty"
+        },
+        { status: 400 }
+      );
+    }
+
     if (isStrapiConfigured()) {
+      console.log("[Themes API] POST: Using Strapi backend");
       try {
         const existingThemes = await listThemesFromCollection(CANONICAL_THEME_COLLECTION);
         if (mode === "create") {
@@ -323,7 +364,7 @@ export async function POST(request: Request): Promise<Response> {
         );
       }
     }
-
+    console.log("[Themes API] POST: Strapi NOT configured, using Fallback store");
     if (mode === "create") {
       const duplicateTheme = findDuplicateTheme(getStudioStore().themes, theme);
       if (duplicateTheme) {

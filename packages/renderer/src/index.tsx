@@ -61,17 +61,7 @@ export function renderValidatedBlock(block: unknown, preview = false): React.Rea
 }
 
 export function PageRenderer({ blocks, preview = false }: { blocks: unknown[]; preview?: boolean }) {
-  const hasImportedSnapshot = blocks.some((block) => {
-    if (!block || typeof block !== "object") {
-      return false;
-    }
-    const maybeType = (block as { type?: unknown }).type;
-    return maybeType === "imported_dom_snapshot";
-  });
-
-  const renderableBlocks = hasImportedSnapshot
-    ? blocks.filter((block) => block && typeof block === "object" && (block as { type?: unknown }).type === "imported_dom_snapshot")
-    : blocks;
+  const renderableBlocks = blocks;
 
   return (
     <>

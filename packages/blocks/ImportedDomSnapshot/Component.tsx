@@ -118,13 +118,14 @@ function parseStyleAttribute(styleText: string): React.CSSProperties {
       return;
     }
 
-    const rawProperty = entry.slice(0, separatorIndex).trim();
+    const rawProperty = entry.slice(0, separatorIndex).trim().toLowerCase();
     const rawValue = entry.slice(separatorIndex + 1).trim();
     if (!rawProperty || !rawValue) {
       return;
     }
 
     const camelProperty = rawProperty.replace(/-([a-z])/g, (_match, char: string) => char.toUpperCase());
+    // Directly assign the raw value to handle complex values like url("...")
     style[camelProperty] = rawValue;
   });
 
@@ -160,7 +161,7 @@ export function ImportedDomSnapshotBlockComponent({ block }: { block: ImportedDo
   const nodes = block.domJson.children.map((node, index) => renderNode(node, `${index}`, block.classMap));
 
   return (
-    <section data-block-type={block.type} data-stylesheet-ref={block.stylesheetRef}>
+    <section className="lmnas-target-main" data-block-type={block.type} data-stylesheet-ref={block.stylesheetRef}>
       {[stylesheetImport, ...nodes]}
     </section>
   );

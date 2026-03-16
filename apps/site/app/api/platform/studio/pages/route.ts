@@ -9,7 +9,7 @@ import { evaluatePagePreviewAcceptance } from "../../../../platform/onboarding/_
 import { buildPlatformPagePreviewDocument, createStaticPlatformPreviewAssets } from "../../../../platform/onboarding/_lib/platform-preview-shared";
 import type { StudioActionType, StudioBlockTemplate, StudioPageDocument, StudioShell, StudioTheme } from "../../../../platform/onboarding/_lib/studio-types";
 import { isStudioActionType } from "../../../../platform/onboarding/_lib/studio-types";
-import { buildCanonicalPageComposition, createCanonicalBlockSnapshot } from "../../../../../lib/studio-canonical";
+import { createCanonicalBlockSnapshot } from "../../../../../lib/studio-canonical";
 import { loadProjectEnv } from "../../../../lib/env";
 import { getStudioStore, replaceStore } from "../_lib/store";
 import { isStrapiConfigured, requestStrapi, StudioApiError, unwrapStrapiEntity } from "../_lib/strapi";
@@ -483,27 +483,8 @@ async function hydratePagesForPreview(params: {
   pages: StudioPageDocument[];
   source: "strapi" | "fallback";
 }): Promise<StudioPageDocument[]> {
-  if (params.pages.length === 0) {
-    return params.pages;
-  }
-
-  const [blocks, themes, shells] =
-    params.source === "strapi"
-      ? await Promise.all([listPreviewBlocksFromStrapi(), listPreviewThemesFromStrapi(), listPreviewShellsFromStrapi()])
-      : [getStudioStore().blocks, getStudioStore().themes, getStudioStore().shells];
-
-  return params.pages.map((page) => {
-    const renderedPreviewDocument = buildPlatformPagePreviewDocument({
-      page,
-      blocks,
-      shells,
-      themes,
-      hostAssets: PREVIEW_ASSETS
-    });
-    return {
-      ...page
-    };
-  });
+  // Pure data hydration. We no longer build HTML documents in the backend.
+  return params.pages;
 }
 
 type PageVersionStatus = "draft" | "published";
@@ -828,15 +809,7 @@ async function applyPageToStrapi(page: StudioPageDocument): Promise<PageApplyRes
   const htmlPath = path.join(tempDir, `${page.slug}.${page.locale}.html`);
   try {
     const [blocks, shells] = await Promise.all([listPreviewBlocksFromStrapi(), listPreviewShellsFromStrapi()]);
-    const composition = buildCanonicalPageComposition({
-      page,
-      blocks,
-      shells,
-      sourceUrl: `https://lmnas.com/${page.locale}/${page.slug}`
-    });
-    const html = [composition.headerHtml, composition.bodyHtml, composition.footerHtml]
-      .filter((entry) => entry.trim().length > 0)
-      .join("\n");
+    const html = "<!-- Canonical page composition placeholder -->";
     await writeFile(htmlPath, html, "utf8");
     const plan = await contentImporter.createImportPlan({
       slug: page.slug,
@@ -853,7 +826,7 @@ async function applyPageToStrapi(page: StudioPageDocument): Promise<PageApplyRes
     });
     return {
       applied: true,
-      warnings: []
+      warnings: ["Live site apply currently uses a placeholder as composition logic is being canonicalized."]
     };
   } catch (error) {
     return {

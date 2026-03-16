@@ -12,6 +12,7 @@ import {
   extractBodyHtml,
   usePlatformPreviewAssets
 } from "../_lib/platform-preview";
+import { PlatformBlockPreview } from "../_lib/PlatformBlockPreview";
 import {
   readPreviewSwatchThemeId,
   setPreviewSwatchThemeId as setGlobalPreviewSwatchThemeId,
@@ -256,63 +257,110 @@ function buildSourcePreviewWithImportContext(params: {
 }
 
 function normalizeCssVarName(input: string): string {
-  const token = input
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9-]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-  return token.length > 0 ? `--${token}` : `--theme-token-${Date.now()}`;
+  return `--${input.replace(/[^a-z0-9-]+/gi, "-").toLowerCase()}`;
 }
 
-function buildExtractedThemeTokens(analysis: OnboardingAnalysis): StudioTheme["tokens"] {
-  const tokens: StudioTheme["tokens"] = [];
+function buildExtractedThemeTokens(analysis: OnboardingAnalysis, baseTokens: StudioTheme["tokens"] = []): StudioTheme["tokens"] {
+  const tokens: StudioTheme["tokens"] = [...baseTokens];
+
+  // 1. Merge Colors
   const colors = analysis.theme.extractedColors ?? {};
   Object.entries(colors).forEach(([key, value]) => {
     if (typeof value !== "string" || value.trim().length === 0) {
       return;
     }
-    tokens.push({
-      key: `color.${key}`,
+
+    const tokenKey = `color.${key}`;
+    const existingIndex = tokens.findIndex((t) => t.key === tokenKey);
+    const newToken = {
+      key: tokenKey,
       label: key,
-      category: "color",
+      category: "color" as const,
       value: value.trim(),
       cssVariable: normalizeCssVarName(`color-${key}`),
       mapped: true
-    });
+    };
+
+    if (existingIndex >= 0) {
+      tokens[existingIndex] = newToken;
+    } else {
+      tokens.push(newToken);
+    }
   });
 
+  // 2. Merge Fonts
   analysis.theme.extractedFonts.forEach((font, index) => {
-    tokens.push({
-      key: `typography.font.${index + 1}`,
+    const tokenKey = `typography.font.${index + 1}`;
+    const existingIndex = tokens.findIndex((t) => t.key === tokenKey);
+    const newToken = {
+      key: tokenKey,
       label: `Font ${index + 1}`,
-      category: "typography",
+      category: "typography" as const,
       value: font,
       cssVariable: normalizeCssVarName(`font-${index + 1}`),
       mapped: true
-    });
+    };
+
+    if (existingIndex >= 0) {
+      tokens[existingIndex] = newToken;
+    } else {
+      tokens.push(newToken);
+    }
   });
 
-  if (tokens.length === 0) {
-    tokens.push({
-      key: "color.primary",
-      label: "Primary",
-      category: "color",
-      value: "#1162d4",
-      cssVariable: "--color-primary",
+  // 3. Merge Radii (Shape Tokens)
+  const radii = analysis.theme.extractedRadii ?? {};
+  Object.entries(radii).forEach(([key, value]) => {
+    if (typeof value !== "string" || value.trim().length === 0) {
+      return;
+    }
+
+    const tokenKey = key === "DEFAULT" ? "radius.default" : `radius.${key}`;
+    const label = key === "DEFAULT" ? "Base Radius" : `${key} Radius`;
+    const cssKey = key === "DEFAULT" ? "default" : key.replace(/[^a-z0-9-]+/gi, "-");
+    const existingIndex = tokens.findIndex((t) => t.key === tokenKey);
+    const newToken = {
+      key: tokenKey,
+      label,
+      category: "radius" as const,
+      value: value.trim(),
+      cssVariable: normalizeCssVarName(`radius-${cssKey}`),
       mapped: true
-    });
-  }
+    };
+
+    if (existingIndex >= 0) {
+      tokens[existingIndex] = newToken;
+    } else {
+      tokens.push(newToken);
+    }
+  });
 
   return tokens;
 }
 
-function resolveProposalRenderedTarget(params: {
+function resolveProposalSnippet(params: {
+  proposalHtml: string;
+  persistedMeta: PersistedProposalMeta | null;
+  theme: StudioTheme | null;
+  analysis: OnboardingAnalysis | null;
+}): string {
+  // Always extract body content to ensure we have a fragment, not a full document
+  const rawHtml = params.proposalHtml || params.persistedMeta?.renderedTargetDocument || "<section></section>";
+  const html = extractBodyHtml(rawHtml);
+  
+  const isDark = params.theme?.darkMode ?? params.analysis?.theme.hasDarkModeTrigger ?? false;
+  // We wrap the snippet in a div with the theme class to ensure Tailwind dark: rules apply
+  // and force the background to match our theme tokens for legibility.
+  return `<div class="${isDark ? "dark" : ""} lmnas-snippet-root flex flex-col w-full h-full">${html}</div>`;
+}
+
+function resolveProposalDocument(params: {
   proposalHtml: string;
   persistedMeta: PersistedProposalMeta | null;
   theme: StudioTheme | null;
   hostAssets: ReturnType<typeof usePlatformPreviewAssets>;
 }): string {
+  // Full document for iframes (Comparison view)
   return buildPlatformBlockPreviewDocument({
     proposalHtml: params.proposalHtml || params.persistedMeta?.renderedTargetDocument || "<section></section>",
     theme: params.theme,
@@ -332,6 +380,7 @@ export default function ImportWorkflowPage(): React.ReactElement {
   const [selectedThemeKey, setSelectedThemeKey] = useState("default");
   const [selectedShellKey, setSelectedShellKey] = useState("");
   const [newThemeName, setNewThemeName] = useState("");
+  const [newThemeStatus, setNewThemeStatus] = useState<"draft" | "active">("active");
   const [newShellName, setNewShellName] = useState("");
   const [importMode, setImportMode] = useState<"page" | "blocks">("blocks");
   const [deepScanning, setDeepScanning] = useState(true);
@@ -340,7 +389,7 @@ export default function ImportWorkflowPage(): React.ReactElement {
   const [previewSwatchThemeId, setPreviewSwatchThemeId] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<OnboardingAnalysis | null>(null);
   const [selectedBlocks, setSelectedBlocks] = useState<Record<string, boolean>>({});
-  const [persistedProposalMeta, setPersistedProposalMeta] = useState<Record<string, PersistedProposalMeta>>({});
+  const [proposalMeta, setProposalMeta] = useState<Record<string, PersistedProposalMeta>>({});
   const [proposalNameDrafts, setProposalNameDrafts] = useState<Record<string, string>>({});
   const [importMaster, setImportMaster] = useState<StudioImportMaster | null>(null);
   const [focusedProposalId, setFocusedProposalId] = useState<string | null>(null);
@@ -360,8 +409,8 @@ export default function ImportWorkflowPage(): React.ReactElement {
   );
 
   const persistedCount = useMemo(
-    () => Object.values(persistedProposalMeta).filter((entry) => entry.status === "draft").length,
-    [persistedProposalMeta]
+    () => Object.values(proposalMeta).filter((entry) => entry.status === "draft").length,
+    [proposalMeta]
   );
 
   const focusedProposal = useMemo(
@@ -370,8 +419,8 @@ export default function ImportWorkflowPage(): React.ReactElement {
   );
 
   const focusedProposalMeta = useMemo(
-    () => (focusedProposal ? persistedProposalMeta[focusedProposal.id] ?? null : null),
-    [focusedProposal, persistedProposalMeta]
+    () => (focusedProposal ? proposalMeta[focusedProposal.id] ?? null : null),
+    [focusedProposal, proposalMeta]
   );
 
   const selectedTheme = useMemo(
@@ -394,7 +443,7 @@ export default function ImportWorkflowPage(): React.ReactElement {
       return null;
     }
 
-    return resolveProposalRenderedTarget({
+    return resolveProposalDocument({
       proposalHtml: focusedProposal.rawHtmlSnippet ?? "<section></section>",
       persistedMeta: focusedProposalMeta,
       theme: compareTheme,
@@ -619,16 +668,14 @@ export default function ImportWorkflowPage(): React.ReactElement {
     setPreviewSwatchThemeId(active?.id ?? null);
   }
 
-  async function createThemePreset(options?: {
-    fromExtraction?: boolean;
-  }): Promise<void> {
-    const fromExtraction = options?.fromExtraction === true;
+  async function createThemePreset(): Promise<void> {
     const analysisTheme = analysis?.theme;
-    const defaultName = analysis?.source.title ? `${analysis.source.title} Imported Theme` : "Imported Theme";
-    const baseName = fromExtraction ? newThemeName.trim() || defaultName : newThemeName.trim();
+    const defaultName = analysis?.source.title ? `${analysis.source.title} Theme` : "Imported Theme";
+    const baseName = newThemeName.trim() || (analysisTheme ? defaultName : "");
 
     if (!baseName) {
       setError("Provide a theme preset name to create.");
+      setIsCreatingTheme(false);
       return;
     }
 
@@ -637,19 +684,25 @@ export default function ImportWorkflowPage(): React.ReactElement {
     setStatusMessage(null);
 
     try {
-      const keyBase = normalizeKey(baseName, "theme");
-      const key = fromExtraction ? `${keyBase}-${Date.now().toString().slice(-5)}` : keyBase;
-      const sourceType = sourceTab === "stitch" ? "stitch_export" : sourceTab === "figma" ? "figma_export" : sourceTab === "url" ? "url" : "html_upload";
+      const key = normalizeKey(baseName, "theme");
+      const sourceType =
+        sourceTab === "stitch"
+          ? "stitch_export"
+          : sourceTab === "figma"
+            ? "figma_export"
+            : sourceTab === "url"
+              ? "url"
+              : "html_upload";
       const sourceRef =
         sourceTab === "stitch"
           ? stitchUpload?.fileName ?? "stitch-upload"
           : sourceTab === "url"
             ? sourceValue.trim() || "url"
             : analysis?.source.sourceRef || sourceTab;
-      const extractedTokens =
-        fromExtraction && analysisTheme
-          ? buildExtractedThemeTokens(analysis)
-          : [];
+
+      const activeTheme = themes.find((t) => t.status === "active") || themes[0] || null;
+      const baseTokens = activeTheme?.tokens || [];
+      const extractedTokens = analysis ? buildExtractedThemeTokens(analysis, baseTokens) : [...baseTokens];
 
       const payload = await requestClientJson<{ ok: boolean; data?: StudioTheme[]; error?: string }>(
         "/api/platform/studio/themes",
@@ -663,11 +716,11 @@ export default function ImportWorkflowPage(): React.ReactElement {
               id: `theme-${Date.now()}`,
               themeKey: key,
               name: baseName,
-              status: fromExtraction ? "active" : "draft",
+              status: newThemeStatus,
               sourceRef,
-              tokenCoverage: fromExtraction && analysisTheme ? Number(analysisTheme.tokenFirstMatchRatio.toFixed(2)) : 0,
-              themeDebt: fromExtraction && analysisTheme ? analysisTheme.themeDebtSummary : "",
-              darkMode: fromExtraction && analysisTheme ? analysisTheme.hasDarkModeTrigger : true,
+              tokenCoverage: analysisTheme ? Number(analysisTheme.tokenFirstMatchRatio.toFixed(2)) : 0,
+              themeDebt: analysisTheme ? analysisTheme.themeDebtSummary : "",
+              darkMode: analysisTheme ? analysisTheme.hasDarkModeTrigger : true,
               tokens: extractedTokens
             }
           })
@@ -688,7 +741,7 @@ export default function ImportWorkflowPage(): React.ReactElement {
       setPreviewSwatchThemeId(created?.id ?? null);
       setNewThemeName("");
       setStatusMessage(
-        fromExtraction
+        analysis
           ? `Created and applied extracted Theme Preset: ${baseName} (${key}) with ${extractedTokens.length} token(s).`
           : `Created and selected Theme Preset: ${baseName} (${key}).`
       );
@@ -759,7 +812,7 @@ export default function ImportWorkflowPage(): React.ReactElement {
       return;
     }
 
-    const meta = persistedProposalMeta[proposalId];
+    const meta = proposalMeta[proposalId];
     if (!meta?.blockKey) {
       return;
     }
@@ -774,66 +827,17 @@ export default function ImportWorkflowPage(): React.ReactElement {
       return;
     }
 
-    setIsRenamingProposal(proposalId);
-    setError(null);
-    try {
-      const payload = await requestClientJson<{ ok: boolean; source?: "strapi" | "fallback"; schemaSource?: "canonical" | "legacy" | "fallback"; error?: string }>(
-        "/api/platform/studio/blocks",
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            block: {
-              id: meta.blockKey,
-              key: meta.blockKey,
-              name: nextName,
-              family: block.family,
-              status: "draft",
-              lifecycle: "draft",
-              scope: "global",
-              schemaStatus: meta.schemaStatus,
-              themeKey: selectedThemeKey,
-              sourceType: analysis.intake.sourceType,
-              sourceRef: analysis.source.sourceRef,
-              importMasterId: meta.importMasterId,
-              importMasterKey: meta.importMasterKey,
-              importProposalId: proposalId,
-              renderedSourceDocument: meta.renderedSourceDocument,
-              renderedTargetDocument: meta.renderedTargetDocument,
-              rawHtmlSnippet: meta.renderedTargetDocument || block.rawHtmlSnippet || "<section></section>",
-              confidence: block.confidence,
-              editableFields: block.editableFields,
-              actions: [],
-              inUseCount: 0,
-              usageCount: 0,
-              createdAt: new Date().toISOString().slice(0, 10),
-              updatedAt: new Date().toISOString().slice(0, 10)
-            }
-          })
-        },
-        {
-          timeoutMessage: "Persisting proposal rename timed out. Please retry.",
-          fallbackErrorMessage: "Unable to persist proposal rename."
-        }
-      );
-
-      if (!payload.ok) {
-        throw new Error(payload.error ?? "Unable to persist proposal rename.");
+    setProposalMeta((prev) => ({
+      ...prev,
+      [proposalId]: {
+        ...meta,
+        name: nextName
       }
-
-      setPersistedProposalMeta((current) => ({
-        ...current,
-        [proposalId]: {
-          ...current[proposalId],
-          name: nextName
-        }
-      }));
-      setStatusMessage(`Renamed proposal to ${nextName}.`);
-    } catch (renameError) {
-      setError(renameError instanceof Error ? renameError.message : String(renameError));
-    } finally {
-      setIsRenamingProposal((current) => (current === proposalId ? null : current));
-    }
+    }));
+    setProposalNameDrafts((prev) => ({
+      ...prev,
+      [proposalId]: nextName
+    }));
   }
 
   async function processSource(): Promise<void> {
@@ -948,7 +952,7 @@ export default function ImportWorkflowPage(): React.ReactElement {
           renderedTargetDocument: entry.renderedTargetDocument
         };
       });
-      setPersistedProposalMeta(nextMeta);
+      setProposalMeta(nextMeta);
 
       const createdDraftBlocks = payload.persistence?.proposalBlocks.filter((entry) => entry.disposition === "created").length ?? 0;
       const updatedDraftBlocks = payload.persistence?.proposalBlocks.filter((entry) => entry.disposition === "updated").length ?? 0;
@@ -990,14 +994,14 @@ export default function ImportWorkflowPage(): React.ReactElement {
     try {
       const resolvedImportMasterId =
         importMaster?.id ??
-        Object.values(persistedProposalMeta).find((entry) => entry.importMasterId.trim().length > 0)?.importMasterId;
+        Object.values(proposalMeta).find((entry) => entry.importMasterId.trim().length > 0)?.importMasterId;
       const resolvedImportMasterKey =
         importMaster?.importKey ??
-        Object.values(persistedProposalMeta).find((entry) => entry.importMasterKey.trim().length > 0)?.importMasterKey;
+        Object.values(proposalMeta).find((entry) => entry.importMasterKey.trim().length > 0)?.importMasterKey;
 
       const mapToExisting: Record<string, string> = {};
       const displayNameOverrides: Record<string, string> = {};
-      Object.entries(persistedProposalMeta).forEach(([proposalId, meta]) => {
+      Object.entries(proposalMeta).forEach(([proposalId, meta]) => {
         mapToExisting[proposalId] = meta.blockKey;
         const draftName = (proposalNameDrafts[proposalId] ?? meta.name).trim();
         if (draftName.length > 0) {
@@ -1054,8 +1058,8 @@ export default function ImportWorkflowPage(): React.ReactElement {
       }
 
       const selectedProposalIds = analysis.blockProposals.filter((block) => selectedBlocks[block.id] !== false).map((block) => block.id);
-      const createdCount = selectedProposalIds.filter((proposalId) => persistedProposalMeta[proposalId]?.disposition === "created").length;
-      const updatedCount = selectedProposalIds.filter((proposalId) => persistedProposalMeta[proposalId]?.disposition === "updated").length;
+      const createdCount = selectedProposalIds.filter((proposalId) => proposalMeta[proposalId]?.disposition === "created").length;
+      const updatedCount = selectedProposalIds.filter((proposalId) => proposalMeta[proposalId]?.disposition === "updated").length;
       const updatedMatchDetails = (payload.matchedBlocks ?? [])
         .filter((entry) => entry.disposition === "updated")
         .map((entry) => {
@@ -1070,7 +1074,7 @@ export default function ImportWorkflowPage(): React.ReactElement {
       if (importMode === "page") {
         const selectedBlockKeys = analysis.blockProposals
           .filter((block) => selectedBlocks[block.id] !== false)
-          .map((block) => persistedProposalMeta[block.id]?.blockKey ?? block.id)
+          .map((block) => proposalMeta[block.id]?.blockKey ?? block.id)
           .filter((value, index, arr) => value.trim().length > 0 && arr.indexOf(value) === index);
 
         const pageSeed = Date.now();
@@ -1399,23 +1403,37 @@ export default function ImportWorkflowPage(): React.ReactElement {
                 </button>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2">
                 <input
-                  className="flex-1 rounded-lg border border-white/[0.08] bg-white/[0.03] px-2 py-1.5 text-xs text-slate-100"
-                  placeholder="Create theme preset"
+                  className="w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-2 py-1.5 text-xs text-slate-100"
+                  placeholder="Create theme preset name"
                   value={newThemeName}
                   onChange={(event) => setNewThemeName(event.target.value)}
                 />
-                <button
-                  type="button"
-                  onClick={() => {
-                    void createThemePreset();
-                  }}
-                  disabled={isCreatingTheme}
-                  className="rounded-lg border border-blue-500/30 bg-blue-500/[0.12] px-2 py-1 text-[11px] font-semibold text-blue-200 disabled:opacity-40"
-                >
-                  {isCreatingTheme ? "Creating…" : "Create"}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewThemeStatus("draft");
+                      void createThemePreset();
+                    }}
+                    disabled={isCreatingTheme}
+                    className="flex-1 rounded-lg border border-white/[0.1] bg-white/[0.05] px-2 py-1 text-[11px] font-semibold text-slate-300 disabled:opacity-40"
+                  >
+                    {isCreatingTheme && newThemeStatus === "draft" ? "Creating…" : "Create (Draft)"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewThemeStatus("active");
+                      void createThemePreset();
+                    }}
+                    disabled={isCreatingTheme}
+                    className="flex-1 rounded-lg border border-blue-500/30 bg-blue-500/[0.12] px-2 py-1 text-[11px] font-semibold text-blue-200 disabled:opacity-40"
+                  >
+                    {isCreatingTheme && newThemeStatus === "active" ? "Creating…" : "Create & Apply"}
+                  </button>
+                </div>
               </div>
 
               {analysis ? (
@@ -1426,22 +1444,10 @@ export default function ImportWorkflowPage(): React.ReactElement {
                   </p>
                   <p className="text-[10px] text-slate-500">{analysis.theme.themeDebtSummary}</p>
                   <p className="mt-1 text-[10px] text-slate-400">
-                    Colors: {Object.keys(analysis.theme.extractedColors ?? {}).join(", ") || "none"} · Fonts:{" "}
-                    {analysis.theme.extractedFonts.join(", ") || "none"}
+                    Colors: {Object.keys(analysis.theme.extractedColors ?? {}).length} · 
+                    Fonts: {analysis.theme.extractedFonts.length} · 
+                    Shapes: {Object.keys(analysis.theme.extractedRadii ?? {}).length}
                   </p>
-                  <div className="mt-2 flex justify-end">
-                    <button
-                      data-testid="import-create-theme-from-extraction"
-                      type="button"
-                      onClick={() => {
-                        void createThemePreset({ fromExtraction: true });
-                      }}
-                      disabled={isCreatingTheme}
-                      className="rounded-lg border border-emerald-500/30 bg-emerald-500/[0.12] px-2 py-1 text-[11px] font-semibold text-emerald-200 disabled:opacity-40"
-                    >
-                      {isCreatingTheme ? "Creating…" : "Create + Apply Extracted Theme"}
-                    </button>
-                  </div>
                 </div>
               ) : null}
 
@@ -1556,10 +1562,16 @@ export default function ImportWorkflowPage(): React.ReactElement {
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {blockProposals.map((block, index) => {
                   const included = selectedBlocks[block.id] !== false;
-                  const persistedMeta = persistedProposalMeta[block.id] ?? null;
+                  const persistedMeta = proposalMeta[block.id] ?? null;
                   const proposalHtml = block.rawHtmlSnippet ?? "<section></section>";
                   const renderedSourceDocument = persistedMeta?.renderedSourceDocument ?? proposalHtml;
-                  const renderedTargetDocument = resolveProposalRenderedTarget({
+                  const renderedSnippet = resolveProposalSnippet({
+                    proposalHtml,
+                    persistedMeta,
+                    theme: compareTheme,
+                    analysis
+                  });
+                  const renderedDocument = resolveProposalDocument({
                     proposalHtml,
                     persistedMeta,
                     theme: compareTheme,
@@ -1579,13 +1591,15 @@ export default function ImportWorkflowPage(): React.ReactElement {
                       key={block.id}
                       className={`rounded-lg border p-2 ${included ? "border-blue-500/30 bg-blue-500/[0.06]" : "border-white/[0.08] bg-white/[0.02]"}`}
                     >
-                      <div className="mb-2 h-24 overflow-hidden rounded border border-white/[0.08] bg-[#020617]">
-                        {renderedTargetDocument.trim().length > 0 ? (
-                          <iframe
-                            title={`${block.id}-preview`}
-                            className="h-full w-full"
-                            srcDoc={buildPreviewThumbnailDocument(renderedTargetDocument)}
-                            sandbox="allow-scripts allow-same-origin"
+                      {/* Enforce a theme-aware background for the block preview to ensure legibility */}
+                      <div className={`mb-2 h-28 overflow-hidden rounded border border-white/[0.08] relative group/preview`}
+                           style={{ backgroundColor: compareTheme?.darkMode ? "var(--color-background-dark)" : "#ffffff" }}>
+                        {renderedSnippet.trim().length > 0 ? (
+                          <PlatformBlockPreview
+                            html={renderedSnippet}
+                            sourceUrl={analysis?.source.sourceRef}
+                            theme={compareTheme}
+                            className="absolute inset-0"
                           />
                         ) : (
                           <div className="flex h-full items-center justify-center px-2 text-center text-[10px] text-slate-500">

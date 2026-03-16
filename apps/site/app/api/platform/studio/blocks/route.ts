@@ -198,12 +198,7 @@ function hydrateBlockPreview(
   themes: Array<ReturnType<typeof normalizeTheme>>
 ): StudioBlockTemplate {
   const canonical = ensureCanonicalSnapshot(template);
-  const renderModel = renderCanonicalBlockMarkup({
-    blockType: canonical.blockType,
-    domJson: canonical.domJson,
-    classMap: canonical.classMap,
-    stylesheetRef: canonical.stylesheetRef
-  });
+  const renderModel = renderCanonicalBlockMarkup(canonical);
   const themeRecord = themes.find((theme) => theme.themeKey === canonical.themeKey) ?? null;
   const theme = themeRecord
     ? {

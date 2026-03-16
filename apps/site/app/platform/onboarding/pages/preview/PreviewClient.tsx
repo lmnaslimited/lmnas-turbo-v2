@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { requestClientJson } from "../../_lib/client-request";
 import { publishPagePreviewAcceptance } from "../../_lib/page-preview-acceptance-channel";
 import { evaluatePagePreviewAcceptance } from "../../_lib/page-validation";
-import { buildPlatformPagePreviewDocument, buildPreviewPlaceholderDocument, usePlatformPreviewAssets } from "../../_lib/platform-preview";
+import { PlatformPagePreview } from "../../_lib/PlatformPagePreview";
 import type { StudioPageDocument } from "../../_lib/studio-types";
 import type { StudioBlockTemplate, StudioShell, StudioTheme } from "../../_lib/studio-types";
 
@@ -37,27 +37,12 @@ type SaveResponse = {
 };
 
 export default function PreviewClient(props: PreviewClientProps): React.ReactElement {
-  const platformPreviewAssets = usePlatformPreviewAssets();
   const [isReady, setIsReady] = useState(false);
   const [isAccepted, setIsAccepted] = useState(Boolean(props.initialPreviewValid));
   const [isAccepting, setIsAccepting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
-  const html = useMemo(() => {
-    if (!props.page) {
-      return buildPreviewPlaceholderDocument(props.emptyTitle ?? "No preview available");
-    }
-
-    return buildPlatformPagePreviewDocument({
-      page: props.page,
-      blocks: props.blocks,
-      shells: props.shells,
-      themes: props.themes,
-      hostAssets: platformPreviewAssets,
-      emptyTitle: props.emptyTitle
-    });
-  }, [platformPreviewAssets, props.blocks, props.emptyTitle, props.page, props.shells, props.themes]);
 
   useEffect(() => {
     setIsReady(true);
@@ -166,14 +151,16 @@ export default function PreviewClient(props: PreviewClientProps): React.ReactEle
       {error ? <div className="border-b border-red-500/30 bg-red-500/[0.08] px-5 py-3 text-xs text-red-300">{error}</div> : null}
       {statusMessage ? <div className="border-b border-emerald-500/30 bg-emerald-500/[0.08] px-5 py-3 text-xs text-emerald-300">{statusMessage}</div> : null}
 
-      <main className="flex-1 p-4">
-        <iframe
-          title="studio-page-preview"
-          data-testid="studio-page-preview-frame"
-          className="h-[calc(100vh-120px)] w-full rounded-xl border border-white/[0.08] bg-white"
-          srcDoc={html}
-          sandbox="allow-scripts allow-same-origin"
-        />
+      <main className="flex-1 p-4 overflow-auto">
+        <div className="min-h-full w-full rounded-xl border border-white/[0.08] bg-white overflow-hidden">
+          <PlatformPagePreview
+            page={props.page}
+            blocks={props.blocks}
+            shells={props.shells}
+            themes={props.themes}
+            emptyTitle={props.emptyTitle}
+          />
+        </div>
       </main>
     </div>
   );

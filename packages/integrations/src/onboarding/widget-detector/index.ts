@@ -149,21 +149,5 @@ export function detectWidgetProposals(html: string): OnboardingWidgetProposal[] 
     }
   }
 
-  if (merged.size === 0) {
-    merged.set("widget_contact_drawer", {
-      id: "widget_contact_drawer",
-      name: "Contact Drawer",
-      displayName: "Contact Drawer",
-      widgetType: "drawer",
-      selectorHint: "fallback:widget",
-      previewSelector: "body",
-      confidence: 0.32,
-      editableFields: ["heading", "buttonText"],
-      triggerLabels: [],
-      associatedActionIds: [],
-      sourceSnippet: "fallback"
-    });
-  }
-
   return Array.from(merged.values());
 }

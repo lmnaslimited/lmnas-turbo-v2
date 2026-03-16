@@ -37,6 +37,13 @@
   --color-lmnas-block-bg: rgba(167, 139, 250, 0.08);
   --color-lmnas-widget-bg: rgba(52, 211, 153, 0.08);
   --color-lmnas-action-bg: rgba(251, 191, 36, 0.08);
+
+  /* Mapping standard Tailwind names to our theme variables for runtime reactivity */
+  --color-primary: var(--color-primary, #135bec);
+  --color-background-light: var(--color-background-light, #f6f6f8);
+  --color-background-dark: var(--color-background-dark, #101622);
+  --color-foreground-light: var(--color-foreground-light, #0f172a);
+  --color-foreground-dark: var(--color-foreground-dark, #e2e8f0);
 }
 
 @layer base {
@@ -169,4 +176,28 @@
   .lmnas-block-fallback-frame :where(section, article, div, h1, h2, h3, h4, p, ul, ol, li, a, button) {
     max-width: 100%;
   }
+}
+
+/* Platform Preview Reset (Onboarding) */
+.lmnas-platform-preview-root * {
+  margin-top: 0 !important;
+  margin-block-start: 0 !important;
+}
+
+.lmnas-platform-preview-root .lmnas-target-main,
+.lmnas-platform-preview-root .lmnas-target-main > * {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.lmnas-platform-preview-root section,
+.lmnas-platform-preview-root div,
+.lmnas-platform-preview-root h1,
+.lmnas-platform-preview-root h2,
+.lmnas-platform-preview-root h3,
+.lmnas-platform-preview-root h4,
+.lmnas-platform-preview-root p {
+  margin-block-start: 0 !important;
+  margin-block-end: 0 !important;
 }

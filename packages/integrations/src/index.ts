@@ -30,6 +30,7 @@ export {
   buildDetectionThumbnailDocument,
   buildFinalAssemblyPreviewDocument,
   analyzeTheme,
+  resolveArbitraryClasses,
   buildFidelityWarnings,
   ExitAdapterRuntime,
   analyzeOnboardingSource,

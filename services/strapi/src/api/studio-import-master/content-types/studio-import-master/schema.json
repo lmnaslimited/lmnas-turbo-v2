@@ -90,6 +90,12 @@
     },
     "processedAt": {
       "type": "datetime"
+    },
+    "blocks": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::studio-block.studio-block",
+      "mappedBy": "importMaster"
     }
   }
 }

@@ -16,7 +16,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -30,33 +30,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         <Script id="lmnas-tailwind-runtime-config" strategy="beforeInteractive">{`
           window.tailwind = window.tailwind || {};
-          window.tailwind.config = {
-            darkMode: "class",
-            theme: {
-              extend: {
-                colors: {
-                  primary: "#135bec",
-                  "background-light": "#f6f6f8",
-                  "background-dark": "#101622"
-                },
-                fontFamily: {
-                  display: ["Manrope", "sans-serif"]
-                },
-                borderRadius: {
-                  DEFAULT: "0.25rem",
-                  lg: "0.5rem",
-                  xl: "0.75rem",
-                  full: "9999px"
-                }
-              }
-            }
-          };
+          // Tailwind v4 runtime config is handled via CSS variables and the @theme block in globals.css.
+          // No need for window.tailwind.config if the CDN is removed.
         `}</Script>
-        <Script src="https://cdn.tailwindcss.com?plugins=forms,container-queries" strategy="beforeInteractive" />
       </head>
-      <body className="lmnas-app-root">
-        <ExitRuntimeBridge />
-        {children}
+      <body className="lmnas-app-root h-screen overflow-hidden bg-slate-950 text-slate-200">
+        <div className="dark h-full w-full flex flex-col">
+          <ExitRuntimeBridge />
+          {children}
+        </div>
       </body>
     </html>
   );

@@ -54,7 +54,7 @@ export function buildFidelityWarnings(params: {
   if (workflowActions.length > 0) {
     warnings.push({
       code: "actions.workflow_review",
-      message: `${workflowActions.length} CTA action(s) require workflow mapping review.`,
+      message: `${workflowActions.length} CTA action(s) identified for workflow mapping during page assembly.`,
       severity: "info"
     });
   }

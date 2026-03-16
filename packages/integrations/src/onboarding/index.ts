@@ -27,7 +27,7 @@ export {
 } from "./preview-renderer";
 export type { StyledSourcePreview } from "./preview-renderer";
 
-export { analyzeTheme } from "./theme-engine";
+export { analyzeTheme, resolveArbitraryClasses } from "./theme-engine";
 export { buildFidelityWarnings } from "./fidelity-reporter";
 
 export { ExitAdapterRuntime } from "./exit-adapter-runtime";

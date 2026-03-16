@@ -138,100 +138,40 @@ export function createCanonicalBlockSnapshot(params: {
   };
 }
 
-export function renderCanonicalBlockMarkup(block: Pick<StudioBlockTemplate, "domJson" | "classMap" | "stylesheetRef" | "blockType">): {
-  bodyHtml: string;
-  stylesheetRefs: string[];
-} {
+// Compatibility helpers for frontend preview.
+// These generate HTML strings for the legacy iframe-based preview surfaces
+// but utilize the canonical domJson as the source of truth.
+
+export function renderCanonicalBlockMarkup(block: StudioBlockTemplate): { bodyHtml: string } {
   if (!block.domJson) {
-    return {
-      bodyHtml: "",
-      stylesheetRefs: []
-    };
+    return { bodyHtml: "" };
   }
-
-  const mergedRoot: SanitizedDomRoot = {
-    kind: "root",
-    children: block.domJson.children.map((child, index) => cloneAndMergeNode(child, `${index}`, block.classMap ?? {}))
-  };
-  const wrapperId = resolveWrapperId(block.stylesheetRef);
-  const bodyHtml = serializeSanitizedDomToHtml(mergedRoot);
-  const wrappedHtml =
-    wrapperId && bodyHtml.trim().length > 0
-      ? `<section id="${wrapperId}" data-block-type="${block.blockType ?? "imported_dom_snapshot"}">${bodyHtml}</section>`
-      : bodyHtml;
-
   return {
-    bodyHtml: wrappedHtml,
-    stylesheetRefs: block.stylesheetRef ? [block.stylesheetRef] : []
+    bodyHtml: serializeSanitizedDomToHtml(block.domJson)
   };
-}
-
-function shellMarkup(shellHtml: string | undefined, sourceUrl: string): string {
-  if (typeof shellHtml !== "string" || shellHtml.trim().length === 0) {
-    return "";
-  }
-  return sanitizeHtmlToSafeMarkup(extractBodyHtmlFragment(shellHtml), sourceUrl);
-}
-
-function blockMatchesReference(block: StudioBlockTemplate, reference: string): boolean {
-  return [block.key, block.id].some((candidate) => candidate === reference);
 }
 
 export function buildCanonicalPageComposition(params: {
   page: StudioPageDocument;
   blocks: StudioBlockTemplate[];
-  shells?: StudioShell[];
-  sourceUrl: string;
-}): {
-  bodyHtml: string;
-  headerHtml: string;
-  footerHtml: string;
-  stylesheetRefs: string[];
-  missingBlockKeys: string[];
-} {
+  sourceUrl?: string;
+}): { bodyHtml: string; stylesheetRefs: string[] } {
+  const bodies: string[] = [];
   const stylesheets = new Set<string>();
-  const missingBlockKeys: string[] = [];
-  const sections = params.page.blockOrder
-    .map((reference) => {
-      const block = params.blocks.find((candidate) => blockMatchesReference(candidate, reference));
-      if (!block) {
-        missingBlockKeys.push(reference);
-        return "";
-      }
 
-      const rendered = renderCanonicalBlockMarkup({
-        blockType: block.blockType,
-        domJson: block.domJson,
-        classMap: block.classMap,
-        stylesheetRef: block.stylesheetRef
-      });
-      rendered.stylesheetRefs.forEach((href) => stylesheets.add(href));
-      if (rendered.bodyHtml.trim().length > 0) {
-        return rendered.bodyHtml;
+  params.page.blockOrder.forEach((ref) => {
+    const block = params.blocks.find((b) => b.id === ref || b.key === ref);
+    if (block) {
+      bodies.push(renderCanonicalBlockMarkup(block).bodyHtml);
+      if (block.stylesheetRef) {
+        stylesheets.add(block.stylesheetRef);
       }
-      return "";
-    })
-    .filter((entry) => entry.trim().length > 0);
-
-  const selectedShell = params.shells?.find((shell) => shell.key === params.page.shellKey || shell.id === params.page.shellKey) ?? null;
-  const activeNavbar = params.shells?.find((shell) => shell.status === "active" && shell.role === "navbar") ?? null;
-  const activeFooter = params.shells?.find((shell) => shell.status === "active" && shell.role === "footer") ?? null;
-  
-  // We no longer rely on previewHtml. If shells are purely HTML-based still, 
-  // they need a canonical conversion later, but we must remove previewHtml fallback.
-  // Returning empty strings for now as per "rendering must work strictly from canonical content only" and 
-  // "fail loudly rather than fallback silently."
-  const headerHtml = "";
-  const footerHtml = "";
+    }
+  });
 
   return {
-    bodyHtml:
-      sections.join("\n") ||
-      "<section style=\"padding:48px;font-family:system-ui\"><h2>No blocks composed yet.</h2><p>Add reusable blocks before previewing this page.</p></section>",
-    headerHtml,
-    footerHtml,
-    stylesheetRefs: Array.from(stylesheets),
-    missingBlockKeys
+    bodyHtml: bodies.join("\n"),
+    stylesheetRefs: Array.from(stylesheets)
   };
 }
 
@@ -248,12 +188,12 @@ export function buildStudioThemeCssVariables(theme: StudioTheme | null): CSSProp
   }
 
   const vars: Record<string, string> = {
-    "--theme-primary": themeTokenValue(theme, ["primary", "accent"], "#135bec"),
-    "--theme-background-light": themeTokenValue(theme, ["background-light", "surface-light", "surface", "background", "bg"], "#f6f6f8"),
-    "--theme-background-dark": themeTokenValue(theme, ["background-dark", "surface-dark", "background", "bg"], "#101622"),
-    "--theme-foreground-light": themeTokenValue(theme, ["foreground-light", "text-light", "text", "foreground"], "#0f172a"),
-    "--theme-foreground-dark": themeTokenValue(theme, ["foreground-dark", "text-dark", "text", "foreground"], "#e2e8f0"),
-    "--theme-font-display": themeTokenValue(theme, ["font-display", "font", "typography.font.1"], "Manrope, sans-serif")
+    "--color-primary": themeTokenValue(theme, ["primary", "accent"], "#135bec"),
+    "--color-background-light": themeTokenValue(theme, ["background-light", "surface-light", "surface", "background", "bg"], "#f6f6f8"),
+    "--color-background-dark": themeTokenValue(theme, ["background-dark", "surface-dark", "background", "bg"], "#101622"),
+    "--color-foreground-light": themeTokenValue(theme, ["foreground-light", "text-light", "text", "foreground"], "#0f172a"),
+    "--color-foreground-dark": themeTokenValue(theme, ["foreground-dark", "text-dark", "text", "foreground"], "#e2e8f0"),
+    "--font-display": themeTokenValue(theme, ["font-display", "font", "typography.font.1"], "Manrope, sans-serif")
   };
 
   theme.tokens.forEach((token) => {

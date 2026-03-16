@@ -1,5 +1,5 @@
 import { sanitizeHtmlToSafeMarkup } from "../../../../lib/studio-html-sanitizer";
-import { buildCanonicalPageComposition } from "../../../../lib/studio-canonical";
+import { renderCanonicalBlockMarkup } from "../../../../lib/studio-canonical";
 import type { StudioBlockTemplate, StudioPageDocument, StudioShell, StudioTheme } from "./studio-types";
 
 export type PlatformPreviewAssets = {
@@ -7,11 +7,9 @@ export type PlatformPreviewAssets = {
   tailwindRuntimeSrc: string | null;
 };
 
-const DEFAULT_TAILWIND_RUNTIME_SRC = "https://cdn.tailwindcss.com?plugins=forms,container-queries";
-const DEFAULT_NAVBAR_HTML =
-  '<nav style="display:flex;justify-content:space-between;align-items:center;padding:14px 28px;background:#0f172a;color:#f8fafc;font-family:system-ui;border-bottom:1px solid #1e293b"><strong style="font-size:16px">LMNAs</strong><span style="font-size:12px;color:#94a3b8">Studio Shell</span></nav>';
-const DEFAULT_FOOTER_HTML =
-  '<footer style="padding:18px 28px;background:#0b1120;color:#64748b;font-family:system-ui;text-align:center;font-size:12px;border-top:1px solid #1e293b">LMNAs Studio Footer</footer>';
+const DEFAULT_TAILWIND_RUNTIME_SRC = ""; // Removed as per user request to avoid CDN
+const DEFAULT_NAVBAR_HTML = "";
+const DEFAULT_FOOTER_HTML = "";
 
 function stripPreviewRuntime(html: string): string {
   return html
@@ -24,7 +22,7 @@ function blockReferenceCandidates(block: StudioBlockTemplate): string[] {
   return [block.key, block.id].filter((value): value is string => typeof value === "string" && value.trim().length > 0);
 }
 
-function themeTokenValue(theme: StudioTheme | null, matchers: string[], fallback: string, fallbackColorIndex?: number): string {
+export function themeTokenValue(theme: StudioTheme | null, matchers: string[], fallback: string, fallbackColorIndex?: number): string {
   if (!theme) {
     return fallback;
   }
@@ -54,40 +52,9 @@ function fontFamilyArray(theme: StudioTheme | null): string[] {
 }
 
 function buildTailwindRuntimeConfig(theme: StudioTheme | null): string {
-  const primary = themeTokenValue(theme, ["primary", "accent"], "#135bec", 0);
-  const backgroundLight = themeTokenValue(theme, ["background-light", "surface-light", "surface", "background", "bg"], "#f6f6f8", 1);
-  const backgroundDark = themeTokenValue(theme, ["background-dark", "surface-dark", "background", "bg"], "#101622", 2);
-  const textLight = themeTokenValue(theme, ["text", "foreground", "surface-text"], "#0f172a");
-  const textDark = themeTokenValue(theme, ["text-dark", "foreground-dark", "surface-text-dark", "text", "foreground"], "#e2e8f0");
-  const config = {
-    darkMode: "class",
-    theme: {
-      extend: {
-        colors: {
-          primary,
-          "background-light": backgroundLight,
-          "background-dark": backgroundDark,
-          "foreground-light": textLight,
-          "foreground-dark": textDark
-        },
-        fontFamily: {
-          display: fontFamilyArray(theme)
-        },
-        borderRadius: {
-          DEFAULT: themeTokenValue(theme, ["radius.default", "radius"], "0.25rem"),
-          lg: themeTokenValue(theme, ["radius.lg", "radius"], "0.5rem"),
-          xl: themeTokenValue(theme, ["radius.xl", "radius"], "0.75rem"),
-          full: themeTokenValue(theme, ["radius.full", "radius"], "9999px")
-        }
-      }
-    }
-  };
-
-  return [
-    "<script id=\"lmnas-preview-tailwind-config\">",
-    `window.tailwind = window.tailwind || {}; window.tailwind.config = ${JSON.stringify(config)};`,
-    "</script>"
-  ].join("");
+  // Runtime config is now handled via CSS Variables in globals.css @theme block
+  // We no longer inject window.tailwind.config to avoid CDN dependency
+  return "";
 }
 
 function buildThemeCssVars(theme: StudioTheme | null): string {
@@ -255,7 +222,15 @@ export function findBlockByReference(blocks: StudioBlockTemplate[], reference: s
 }
 
 export function canonicalizeBlockOrder(blockOrder: string[], blocks: StudioBlockTemplate[]): string[] {
-  return blockOrder.map((entry) => findBlockByReference(blocks, entry)?.key ?? entry);
+  let changed = false;
+  const result = blockOrder.map((entry) => {
+    const key = findBlockByReference(blocks, entry)?.key ?? entry;
+    if (key !== entry) {
+      changed = true;
+    }
+    return key;
+  });
+  return changed ? result : blockOrder;
 }
 
 export function buildPlatformTargetDocument(params: {
@@ -271,8 +246,8 @@ export function buildPlatformTargetDocument(params: {
   const runtimeSrc = params.hostAssets.tailwindRuntimeSrc ?? DEFAULT_TAILWIND_RUNTIME_SRC;
   const backgroundLight = themeTokenValue(params.theme, ["background-light", "surface-light", "surface", "background", "bg"], "#f6f6f8", 1);
   const backgroundDark = themeTokenValue(params.theme, ["background-dark", "surface-dark", "background", "bg"], "#101622", 2);
-  const textLight = themeTokenValue(params.theme, ["text-light", "foreground-light", "text", "foreground"], "#0f172a");
-  const textDark = themeTokenValue(params.theme, ["text-dark", "foreground-dark", "text", "foreground"], "#e2e8f0");
+  const textLight = themeTokenValue(params.theme, ["text", "foreground", "surface-text"], "#0f172a");
+  const textDark = themeTokenValue(params.theme, ["text-dark", "foreground-dark", "surface-text-dark", "text", "foreground"], "#e2e8f0");
   const cleanedBodyHtml = stripPreviewRuntime(params.bodyHtml);
   const cleanedBeforeBodyHtml = params.beforeBodyHtml ? toPreviewBodyHtml(params.beforeBodyHtml) : "";
   const cleanedAfterBodyHtml = params.afterBodyHtml ? toPreviewBodyHtml(params.afterBodyHtml) : "";
@@ -294,18 +269,20 @@ export function buildPlatformTargetDocument(params: {
     additionalStylesheets,
     "<style>",
     `:root{${cssVars}}`,
-    "html,body{margin:0;padding:0;min-height:100%}",
-    `body{font-family:var(--font-display,\"Manrope\"),\"Segoe UI\",sans-serif;background:${backgroundLight};color:${textLight}}`,
-    `html.dark body{background:${backgroundDark};color:${textDark}}`,
-    ".lmnas-preview-shell{display:block}",
-    ".lmnas-target-main{display:block}",
+    "html,body{margin:0;padding:0;overflow-x:hidden;}",
+    `body{font-family:var(--font-display,\"Manrope\"),\"Segoe UI\",sans-serif;background:${backgroundLight} !important;color:${textLight} !important;display:block;margin:0;padding:0;}`,
+    `html.dark body{background:${backgroundDark} !important;color:${textDark} !important;}`,
+    ".lmnas-preview-shell{display:block;margin:0;padding:0;}",
+    ".lmnas-target-main{display:block;width:100%;margin:0 !important;padding:0 !important;}",
+    ".lmnas-target-main > * { margin-top: 0 !important; margin-block-start: 0 !important; }",
+    "body * { box-sizing: border-box; }",
     "</style>",
     buildTailwindRuntimeConfig(params.theme),
-    `<script src="${runtimeSrc}"><\/script>`,
+    params.hostAssets.tailwindRuntimeSrc ? `<script src="${params.hostAssets.tailwindRuntimeSrc}"><\/script>` : "",
     "</head>",
-    `<body class="bg-background-light text-foreground-light dark:bg-background-dark dark:text-foreground-dark font-display antialiased">`,
+    `<body class="${htmlClass} bg-background-light text-foreground-light dark:bg-background-dark dark:text-foreground-dark font-display antialiased">`,
     cleanedBeforeBodyHtml ? `<div class="lmnas-preview-shell">${cleanedBeforeBodyHtml}</div>` : "",
-    cleanedBodyHtml,
+    cleanedBodyHtml.trim() ? cleanedBodyHtml : "<main class=\"lmnas-target-main\"></main>",
     cleanedAfterBodyHtml ? `<div class="lmnas-preview-shell">${cleanedAfterBodyHtml}</div>` : "",
     "</body></html>"
   ].join("");
@@ -326,6 +303,9 @@ export function buildPlatformBlockPreviewDocument(params: {
   });
 }
 
+// DEPRECATED: We are moving toward pure TSX runtime rendering.
+// These functions are being phased out in favor of returning pure data to the frontend renderer.
+
 export function buildPlatformPagePreviewDocument(params: {
   page: StudioPageDocument | null;
   blocks: StudioBlockTemplate[];
@@ -342,39 +322,48 @@ export function buildPlatformPagePreviewDocument(params: {
     return buildPreviewPlaceholderDocument(params.emptyTitle ?? "No preview available", params.emptyDescription);
   }
 
-  const composition = buildCanonicalPageComposition({
-    page: {
-      ...params.page,
-      blockOrder: canonicalizeBlockOrder(params.page.blockOrder, params.blocks)
-    },
-    blocks: params.blocks,
-    shells: params.shells,
-    sourceUrl: "studio-preview"
-  });
-  const fallbackBody = params.fallbackHtml ? toPreviewBodyHtml(params.fallbackHtml) : "";
+  // 1. Resolve theme
+  const activeTheme =
+    params.previewTheme ??
+    params.themes.find((t) => t.id === params.previewThemeId) ??
+    params.themes.find((t) => t.themeKey === params.page?.themeKey) ??
+    params.themes.find((t) => t.status === "active") ??
+    params.themes[0] ??
+    null;
+
+  // 2. Compose blocks
+  const stylesheets = new Set<string>();
+  const composedBlocksHtml = (params.page.blockOrder || [])
+    .map((blockKey) => {
+      const block = findBlockByReference(params.blocks, blockKey);
+      if (!block) return "";
+      if (block.stylesheetRef) {
+        stylesheets.add(block.stylesheetRef);
+      }
+      const markup = renderCanonicalBlockMarkup(block);
+      return markup.bodyHtml.trim();
+    })
+    .filter((html) => html.length > 0)
+    .join("\n");
+
   const bodyHtml =
-    composition.bodyHtml.trim().length > 0 && !composition.bodyHtml.includes("No blocks composed yet.")
-      ? composition.bodyHtml
-      : fallbackBody.length > 0
-        ? fallbackBody
-        : composition.bodyHtml;
-  const theme = resolvePlatformPreviewTheme({
-    themes: params.themes,
-    previewThemeId: params.previewThemeId,
-    previewTheme: params.previewTheme,
-    themeKey: params.page.themeKey ?? null
-  });
-  const shell = resolvePlatformShellPreview({
+    composedBlocksHtml.length > 0
+      ? `<main class="lmnas-target-main space-y-0">${composedBlocksHtml}</main>`
+      : buildPreviewPlaceholderDocument(params.emptyTitle ?? "Empty Composition", params.emptyDescription);
+
+  // 3. Resolve Shell
+  // Fallback to empty if no shellKey is resolved
+  const { headerHtml, footerHtml } = resolvePlatformShellPreview({
     shells: params.shells,
-    shellKey: params.page.shellKey ?? params.page.activeShellId ?? null
+    shellKey: params.page.shellKey
   });
 
+  // 4. Build final document
   return buildPlatformTargetDocument({
-    bodyHtml,
-    theme,
+    bodyHtml: `${headerHtml}${bodyHtml}${footerHtml}`,
+    theme: activeTheme,
     hostAssets: params.hostAssets,
-    beforeBodyHtml: composition.headerHtml || shell.headerHtml,
-    afterBodyHtml: composition.footerHtml || shell.footerHtml,
-    additionalStylesheetHrefs: composition.stylesheetRefs
+    additionalStylesheetHrefs: Array.from(stylesheets)
   });
 }
+

@@ -386,6 +386,7 @@ export const onboardingThemeNotesSchema = z.object({
   hasDarkModeTrigger: z.boolean().default(false),
   extractedFonts: z.array(z.string().min(1)).default([]),
   extractedColors: z.record(z.string(), z.string()).default({}),
+  extractedRadii: z.record(z.string(), z.string()).default({}),
   utilityClassUsages: z.array(z.string().min(1)).default([])
 });
 

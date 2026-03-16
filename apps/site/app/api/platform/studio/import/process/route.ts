@@ -1,5 +1,5 @@
 import { type OnboardingAnalysis, type OnboardingBlockProposal, type OnboardingSourceType } from "@lmnas/contracts";
-import { analyzeOnboardingSource } from "@lmnas/integrations";
+import { analyzeOnboardingSource, resolveArbitraryClasses } from "@lmnas/integrations";
 import { inflateRawSync } from "node:zlib";
 import {
   buildPlatformBlockPreviewDocument,
@@ -89,6 +89,7 @@ type CanonicalTheme = {
     key?: string;
     cssVariable?: string;
     value?: string;
+    category?: string;
   }>;
 };
 
@@ -535,9 +536,42 @@ function buildTargetComparisonPreview(params: {
   });
 }
 
+async function lookupActiveTheme(): Promise<CanonicalTheme | null> {
+  const response = await requestStrapi<StrapiCollectionResponse>(
+    `${CANONICAL_THEME_COLLECTION}?filters[status][$eq]=active&pagination[pageSize]=1`
+  );
+  const row = Array.isArray(response.data) ? unwrapStrapiEntity(response.data[0]) : undefined;
+  if (!row || Object.keys(row).length === 0) {
+    return null;
+  }
+
+  const tokens: CanonicalTheme["tokens"] = Array.isArray(row.tokens)
+    ? row.tokens.reduce<CanonicalTheme["tokens"]>((acc, token) => {
+        if (!token || typeof token !== "object" || Array.isArray(token)) {
+          return acc;
+        }
+        const record = token as Record<string, unknown>;
+        acc.push({
+          key: typeof record.key === "string" ? record.key : undefined,
+          cssVariable: typeof record.cssVariable === "string" ? record.cssVariable : undefined,
+          value: typeof record.value === "string" ? record.value : undefined
+        });
+        return acc;
+      }, [])
+    : [];
+
+  return {
+    id: String(row.documentId ?? row.id ?? ""),
+    themeKey: typeof row.themeKey === "string" ? row.themeKey : "active",
+    name: typeof row.name === "string" ? row.name : "Active Theme",
+    darkMode: Boolean(row.darkMode),
+    tokens
+  };
+}
+
 async function lookupCanonicalTheme(themeKey: string): Promise<CanonicalTheme | null> {
   const response = await requestStrapi<StrapiCollectionResponse>(
-    `${CANONICAL_THEME_COLLECTION}?filters[themeKey][$eq]=${encodeURIComponent(themeKey)}&pagination[pageSize]=1`
+    `${CANONICAL_THEME_COLLECTION}?filters[themeKey][$eq]=${encodeURIComponent(themeKey)}&pagination[pageSize]=1&status=draft`
   );
   const row = Array.isArray(response.data) ? unwrapStrapiEntity(response.data[0]) : undefined;
   if (!row || Object.keys(row).length === 0) {
@@ -574,7 +608,7 @@ async function lookupCanonicalShell(shellKey: string): Promise<CanonicalShell | 
   }
 
   const response = await requestStrapi<StrapiCollectionResponse>(
-    `${CANONICAL_SHELL_COLLECTION}?filters[shellKey][$eq]=${encodeURIComponent(shellKey)}&pagination[pageSize]=1`
+    `${CANONICAL_SHELL_COLLECTION}?filters[shellKey][$eq]=${encodeURIComponent(shellKey)}&pagination[pageSize]=1&status=draft`
   );
   const row = Array.isArray(response.data) ? unwrapStrapiEntity(response.data[0]) : undefined;
   if (!row || Object.keys(row).length === 0) {
@@ -603,7 +637,6 @@ async function createImportMasterInStrapi(params: {
     scripts: string[];
     media: string[];
   };
-  renderedTargetDocument: string;
   uploadSummary?: {
     fileName: string;
     htmlEntry: string;
@@ -624,8 +657,6 @@ async function createImportMasterInStrapi(params: {
     sourceStyleProfile: params.analysis.source.styleProfile,
     sourceThemeCharacteristics: params.analysis.theme,
     sourceShellCharacteristics: params.analysis.shellCandidates,
-    referencePreviewHtml: params.analysis.source.referencePreviewHtml,
-    renderedTargetDocument: params.renderedTargetDocument,
     selectedThemeKey: params.selectedThemeKey,
     selectedShellKey: params.selectedShellKey,
     importMode: params.importMode,
@@ -1039,10 +1070,96 @@ export async function POST(request: Request): Promise<Response> {
 
     if (isStrapiConfigured()) {
       try {
-        const [targetTheme, targetShell] = await Promise.all([
+        let [targetTheme, targetShell, activeTheme] = await Promise.all([
           lookupCanonicalTheme(selectedThemeKey),
-          lookupCanonicalShell(selectedShellKey)
+          lookupCanonicalShell(selectedShellKey),
+          lookupActiveTheme()
         ]);
+
+        if (!targetTheme && selectedThemeKey !== "default") {
+          console.log(`[Import] Theme not found for key: ${selectedThemeKey}. Constructing proposed theme in-memory with inheritance.`);
+          
+          // Inherit tokens from active theme if available, otherwise start empty (as per user request: "remove all defaults")
+          const tokens: CanonicalTheme["tokens"] = activeTheme ? [...activeTheme.tokens] : [];
+
+          // Merge AI-extracted colors
+          Object.entries(analysis.theme.extractedColors).forEach(([key, value]) => {
+            const tokenKey = `color.${key}`;
+            const existingIndex = tokens.findIndex((t) => t.key === tokenKey);
+            const newToken = {
+              key: tokenKey,
+              cssVariable: `--color-${key.replace(/[^a-z0-9-]+/gi, "-")}`,
+              value: String(value).trim(),
+              category: "color"
+            };
+            if (existingIndex >= 0) {
+              tokens[existingIndex] = newToken;
+            } else {
+              tokens.push(newToken);
+            }
+          });
+
+          // Merge AI-extracted fonts
+          analysis.theme.extractedFonts.forEach((font, index) => {
+            const tokenKey = `typography.font.${index + 1}`;
+            const existingIndex = tokens.findIndex((t) => t.key === tokenKey);
+            const newToken = {
+              key: tokenKey,
+              cssVariable: `--font-${index + 1}`,
+              value: font,
+              category: "typography"
+            };
+            if (existingIndex >= 0) {
+              tokens[existingIndex] = newToken;
+            } else {
+              tokens.push(newToken);
+            }
+          });
+
+          // Merge AI-extracted radii (shape tokens)
+          Object.entries(analysis.theme.extractedRadii).forEach(([key, value]) => {
+            const tokenKey = key === "DEFAULT" ? "radius.default" : `radius.${key}`;
+            const existingIndex = tokens.findIndex((t) => t.key === tokenKey);
+            const cssKey = key === "DEFAULT" ? "default" : key.replace(/[^a-z0-9-]+/gi, "-");
+            const newToken = {
+              key: tokenKey,
+              cssVariable: `--radius-${cssKey}`,
+              value: String(value).trim(),
+              category: "radius"
+            };
+            if (existingIndex >= 0) {
+              tokens[existingIndex] = newToken;
+            } else {
+              tokens.push(newToken);
+            }
+          });
+
+          // Proposed theme is purely in-memory for preview
+          targetTheme = {
+            id: `proposed-${Date.now()}`,
+            themeKey: selectedThemeKey,
+            name: `${selectedThemeKey.charAt(0).toUpperCase() + selectedThemeKey.slice(1)} (Proposed)`,
+            darkMode: analysis.theme.hasDarkModeTrigger,
+            tokens
+          };
+          
+          console.log(`[Import] In-memory proposed theme constructed with ${tokens.length} tokens.`);
+        }
+
+        // RESOLVE ARBITRARY CLASSES: map hardcoded styles to platform tokens (Global)
+        const resolutionTokens = (targetTheme?.tokens || []).filter((t) => t.key && t.value) as {
+          key: string;
+          value: string;
+        }[];
+        if (resolutionTokens.length > 0) {
+          analysis.blockProposals.forEach((block) => {
+            block.rawHtmlSnippet = resolveArbitraryClasses(block.rawHtmlSnippet || "", resolutionTokens);
+          });
+          // Update Theme Debt Summary if we resolved things
+          analysis.theme.arbitraryValueCount = 0;
+          analysis.theme.themeDebtSummary = "Token-first mapping is healthy. Arbitrary styles resolved to platform tokens.";
+        }
+
         const sourceAssetContext = extractSourceAssetContext({
           sourceHtml: resolvedSourceValue,
           sourceBaseUrl: analysis.source.baseUrl
@@ -1072,18 +1189,39 @@ export async function POST(request: Request): Promise<Response> {
           selectedShellKey,
           sourceAssetBases: sourceAssetContext.assetBases,
           sourceAssetManifest: sourceAssetContext.assetManifest,
-          renderedTargetDocument,
           uploadSummary
         });
 
-        const persisted = await persistDraftProposalsToStrapi({
-          analysis,
-          importMaster: persistedImportMaster,
-          sourceAssetManifest: sourceAssetContext.assetManifest,
-          targetTheme
+        // BLOCK ENFORCEMENT: We do NOT persist blocks during the "Process" phase anymore.
+        // They stay as in-memory proposals returned to the frontend.
+        // The frontend will call a separate "Commit Import" route to persist them.
+        proposalBlocks = analysis.blockProposals.map((block, index) => {
+          const slug = normalizeBlockKey(analysis.intake.slug);
+          const blockKey = normalizeBlockKey(`${slug}-${block.id}-${String(index + 1).padStart(2, "0")}`);
+          const schemaStatus = resolveSchemaStatus(block.confidence, block.rawHtmlSnippet);
+          
+          return {
+            proposalId: block.id,
+            blockKey,
+            schemaStatus,
+            status: "draft",
+            disposition: "created",
+            name: block.displayName ?? block.family.replaceAll("_", " "),
+            importMasterId: persistedImportMaster!.id,
+            importMasterKey: persistedImportMaster!.importKey,
+            renderedSourceDocument: buildSourceProposalPreview({
+              block,
+              analysis,
+              sourceBaseUrl: analysis.source.baseUrl
+            }),
+            renderedTargetDocument: buildTargetProposalPreview({
+              block,
+              theme: targetTheme
+            })
+          };
         });
-        proposalBlocks = persisted.proposalBlocks;
-        schemaSource = persisted.schemaSource;
+
+        schemaSource = "canonical";
       } catch (error) {
         if (!allowDebugFallback) {
           throw new Error(

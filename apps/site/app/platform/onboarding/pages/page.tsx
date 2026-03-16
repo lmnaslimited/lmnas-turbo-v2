@@ -195,6 +195,8 @@ export default function PagesWorkflowPage(): React.ReactElement {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const previewSyncTimerRef = useRef<number | null>(null);
+  const isInitialBlocksLoadAttemptedRef = useRef(false);
+  const lastRefreshTimeRef = useRef<number>(0);
 
   const selectedPage = pages.find((page) => page.id === selectedId) ?? null;
   const selectedPublishedPage = useMemo(
@@ -206,32 +208,57 @@ export default function PagesWorkflowPage(): React.ReactElement {
   );
   const selectedPageName = selectedPage?.name ?? "No page selected";
 
+  const isRefreshingDraftRef = useRef(false);
   const refreshDraftPageById = useCallback(async (pageId: string): Promise<void> => {
-    const payload = await requestClientJson<PagesGetResponse>(
-      `/api/platform/studio/pages?id=${encodeURIComponent(pageId)}&status=draft`,
-      {
-        method: "GET",
-        headers: { "content-type": "application/json" }
-      },
-      {
-        timeoutMessage: "Refreshing canonical draft page timed out. Please retry.",
-        fallbackErrorMessage: "Unable to refresh canonical draft page."
-      }
-    );
-
-    if (!payload.ok || payload.source !== "strapi" || !payload.data || Array.isArray(payload.data)) {
+    if (isRefreshingDraftRef.current) {
       return;
     }
 
-    const canonicalPage = {
-      ...payload.data,
-      blockOrder: canonicalizeBlockOrder(payload.data.blockOrder, blocks)
-    };
-    setPages((current) => {
-      const next = current.map((page) => (page.id === pageId || page.slug === canonicalPage.slug ? canonicalPage : page));
-      return next.some((page) => page.id === canonicalPage.id) ? next : [canonicalPage, ...next];
-    });
-    setSelectedId((current) => (current === pageId || current === canonicalPage.id ? canonicalPage.id : current));
+    const now = Date.now();
+    if (now - lastRefreshTimeRef.current < 2000) {
+      return;
+    }
+
+    isRefreshingDraftRef.current = true;
+    lastRefreshTimeRef.current = now;
+
+    try {
+      const payload = await requestClientJson<PagesGetResponse>(
+        `/api/platform/studio/pages?id=${encodeURIComponent(pageId)}&status=draft`,
+        {
+          method: "GET",
+          headers: { "content-type": "application/json" }
+        },
+        {
+          timeoutMessage: "Refreshing canonical draft page timed out. Please retry.",
+          fallbackErrorMessage: "Unable to refresh canonical draft page."
+        }
+      );
+
+      if (!payload.ok || payload.source !== "strapi" || !payload.data || Array.isArray(payload.data)) {
+        return;
+      }
+
+      const canonicalPage = {
+        ...payload.data,
+        blockOrder: canonicalizeBlockOrder(payload.data.blockOrder, blocks)
+      };
+      setPages((current) => {
+        const existing = current.find((p) => p.id === pageId || p.slug === canonicalPage.slug);
+        if (existing && JSON.stringify(existing) === JSON.stringify(canonicalPage)) {
+          return current;
+        }
+
+        const next = current.map((page) => (page.id === pageId || page.slug === canonicalPage.slug ? canonicalPage : page));
+        if (next.some((page) => page.id === canonicalPage.id)) {
+          return next;
+        }
+        return [canonicalPage, ...next];
+      });
+      setSelectedId((current) => (current === pageId || current === canonicalPage.id ? canonicalPage.id : current));
+    } finally {
+      isRefreshingDraftRef.current = false;
+    }
   }, [blocks]);
 
   useEffect(() => {
@@ -464,6 +491,10 @@ export default function PagesWorkflowPage(): React.ReactElement {
     }
 
     const syncSelectedDraft = () => {
+      // Frequency guard is inside refreshDraftPageById, but we can also guard here to be extra safe
+      if (Date.now() - lastRefreshTimeRef.current < 1500) {
+        return;
+      }
       void refreshDraftPageById(selectedId).catch(() => undefined);
     };
 
@@ -562,43 +593,54 @@ export default function PagesWorkflowPage(): React.ReactElement {
   }
 
   async function refreshBlocks(): Promise<void> {
-    const payload = await requestClientJson<BlocksGetResponse>(
-      "/api/platform/studio/blocks",
-      {
-        method: "GET",
-        headers: { "content-type": "application/json" }
-      },
-      {
-        timeoutMessage: "Refreshing block library timed out. Please retry.",
-        fallbackErrorMessage: "Unable to refresh block library."
+    setIsLoading(true);
+    try {
+      const payload = await requestClientJson<BlocksGetResponse>(
+        "/api/platform/studio/blocks",
+        {
+          method: "GET",
+          headers: { "content-type": "application/json" }
+        },
+        {
+          timeoutMessage: "Refreshing block library timed out. Please retry.",
+          fallbackErrorMessage: "Unable to refresh block library."
+        }
+      );
+
+      if (!payload.ok || !Array.isArray(payload.data)) {
+        throw new Error(payload.error ?? "Unable to refresh block library.");
       }
-    );
+      if (payload.source !== "strapi" || payload.schemaSource !== "canonical") {
+        throw new Error("Canonical studio-block refresh failed. Fallback/legacy source detected.");
+      }
 
-    if (!payload.ok || !Array.isArray(payload.data)) {
-      throw new Error(payload.error ?? "Unable to refresh block library.");
-    }
-    if (payload.source !== "strapi" || payload.schemaSource !== "canonical") {
-      throw new Error("Canonical studio-block refresh failed. Fallback/legacy source detected.");
-    }
-
-    const refreshedBlocks = payload.data;
-    setBlocks(refreshedBlocks);
+      const refreshedBlocks = payload.data;
+      setBlocks((current) => {
+        if (current.length === refreshedBlocks.length && current.every((b, i) => b.id === refreshedBlocks[i].id)) {
+          return current;
+        }
+        return refreshedBlocks;
+      });
     if (!candidateBlockId && refreshedBlocks[0]) {
       setCandidateBlockId(refreshedBlocks[0].key);
     }
-    setPages((current) =>
-      current.map((page) => ({
-        ...page,
-        blockOrder: canonicalizeBlockOrder(page.blockOrder, refreshedBlocks)
-      }))
-    );
+      setPages((current) =>
+        current.map((page) => ({
+          ...page,
+          blockOrder: canonicalizeBlockOrder(page.blockOrder, refreshedBlocks)
+        }))
+      );
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   useEffect(() => {
-    if (isLoading || !selectedPage || blocks.length > 0) {
+    if (isLoading || !selectedPage || blocks.length > 0 || isInitialBlocksLoadAttemptedRef.current) {
       return;
     }
 
+    isInitialBlocksLoadAttemptedRef.current = true;
     void refreshBlocks().catch((refreshError) => {
       setError(refreshError instanceof Error ? refreshError.message : String(refreshError));
     });

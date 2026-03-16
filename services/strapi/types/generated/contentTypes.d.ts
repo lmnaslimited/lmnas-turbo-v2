@@ -767,6 +767,10 @@ export interface ApiStudioImportMasterStudioImportMaster
     draftAndPublish: true;
   };
   attributes: {
+    blocks: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::studio-block.studio-block'
+    >;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

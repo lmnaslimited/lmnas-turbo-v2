@@ -82,6 +82,7 @@ function buildAnalysis(): OnboardingAnalysis {
       hasDarkModeTrigger: false,
       extractedFonts: [],
       extractedColors: {},
+      extractedRadii: {},
       utilityClassUsages: []
     },
     fidelityWarnings: []
