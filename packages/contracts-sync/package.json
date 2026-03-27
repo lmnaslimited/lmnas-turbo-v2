@@ -1,0 +1,19 @@
+{
+  "name": "@lmnas/contracts-sync",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/cli.js",
+  "types": "./dist/cli.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "pnpm run check",
+    "typecheck": "tsc --noEmit",
+    "gen": "pnpm --filter @lmnas/contracts run build && pnpm run build && node dist/cli.js gen",
+    "check": "pnpm --filter @lmnas/contracts run build && pnpm run build && node dist/cli.js check"
+  },
+  "dependencies": {
+    "@lmnas/contracts": "workspace:*"
+  }
+}

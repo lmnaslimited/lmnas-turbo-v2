@@ -1,0 +1,20 @@
+fragment ImporterPageBlocks on PageBlocksDynamicZone {
+  __typename
+  ... on ComponentBlocksHero {
+    id
+    heading
+    subheading
+    ctaLabel
+    ctaHref
+    conversionConfig { id intent eventName eventCategory campaignId utmDefaults destination benefitKey }
+  }
+  ... on ComponentBlocksFaq {
+    id
+    title
+    items
+  }
+  ... on Error {
+    code
+    message
+  }
+}

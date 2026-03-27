@@ -10,7 +10,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@lmnas/analytics": "workspace:*",
     "@lmnas/integrations": "workspace:*",
+    "@lmnas/layouts": "workspace:*",
     "@lmnas/renderer": "workspace:*",
     "@lmnas/seo-engine": "workspace:*",
     "next": "15.1.0",

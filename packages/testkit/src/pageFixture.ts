@@ -3,13 +3,19 @@ import type { Page } from "@lmnas/contracts";
 export const homePageFixture: Page = {
   id: 1,
   slug: "home",
+  pageType: "home",
+  layoutKey: "homeLayout",
   blocks: [
     {
       type: "hero",
       heading: "Welcome to LMNAs",
       subheading: "Composable healthcare web platform",
       ctaLabel: "Get Started",
-      ctaHref: "/start"
+      ctaHref: "/start",
+      conversionConfig: {
+        intent: "book",
+        eventName: "hero_primary_cta_click"
+      }
     },
     {
       type: "faq",

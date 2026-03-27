@@ -7,20 +7,21 @@
     "start": "strapi start"
   },
   "dependencies": {
-    "@strapi/plugin-users-permissions": "4.25.12",
-    "@strapi/strapi": "4.25.12",
-    "codemirror": "^6.0.1",
-    "pg": "^8.13.1",
+    "@strapi/plugin-graphql": "^5.36.1",
+    "@strapi/plugin-users-permissions": "^5.36.1",
+    "@strapi/strapi": "^5.36.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^5.3.4",
-    "styled-components": "5.3.3"
+    "react-router-dom": "^6.30.3",
+    "styled-components": "^6.1.15",
+    "zod": "^3.25.76",
+    "pg": "^8.13.1",
+    "lodash": "4.17.21"
   },
   "devDependencies": {
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1"
+    "typescript": "5.3.3"
   },
   "engines": {
-    "node": ">=20.0.0 <=22.x.x"
+    "node": ">=20 <=22"
   }
 }

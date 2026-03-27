@@ -3,14 +3,25 @@
   "private": true,
   "packageManager": "pnpm@9.12.3",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=20 <=22"
+  },
+  "volta": {
+    "node": "22.11.0"
   },
   "scripts": {
     "dev": "turbo run dev typecheck --filter=@lmnas/site --parallel",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "content:schema": "pnpm --filter @lmnas/content-importer run schema",
+    "content:schema:facts": "pnpm --filter @lmnas/content-importer run schema:facts",
+    "content:plan": "pnpm --filter @lmnas/content-importer run plan",
+    "content:validate-plan": "pnpm --filter @lmnas/content-importer run validate-plan",
+    "content:apply": "pnpm --filter @lmnas/content-importer run apply",
+    "content:onboard": "pnpm --filter @lmnas/content-importer run onboard",
+    "contracts:gen": "pnpm --filter @lmnas/contracts-sync run gen",
+    "contracts:check": "pnpm --filter @lmnas/contracts-sync run check"
   },
   "devDependencies": {
     "@typescript-eslint/parser": "^8.24.1",

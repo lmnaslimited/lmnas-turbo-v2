@@ -1,0 +1,25 @@
+{
+  "kind": "collectionType",
+  "collectionName": "navigations",
+  "info": {
+    "singularName": "navigation",
+    "pluralName": "navigations",
+    "displayName": "Navigation",
+    "description": "CMS-driven navigation groups"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "key": {
+      "type": "enumeration",
+      "enum": ["main", "footer"],
+      "required": true,
+      "unique": true
+    },
+    "items": {
+      "type": "json",
+      "required": true
+    }
+  }
+}

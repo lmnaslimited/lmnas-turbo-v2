@@ -20,6 +20,12 @@
     "ctaHref": {
       "type": "string",
       "required": true
+    },
+    "conversionConfig": {
+      "type": "component",
+      "repeatable": false,
+      "component": "shared.conversion-config",
+      "required": true
     }
   }
 }

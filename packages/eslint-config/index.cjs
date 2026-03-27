@@ -80,6 +80,19 @@ module.exports = {
               }
             ]
           }
+        ],
+        "no-restricted-syntax": [
+          "error",
+          {
+            selector:
+              "CallExpression[callee.name='fetch'] Literal[value=/\\/api\\/(pages|navigations|blog-posts?)/]",
+            message: "Use @lmnas/integrations GraphQL clients for pages/navigation/blog reads."
+          },
+          {
+            selector:
+              "CallExpression[callee.name='fetch'] TemplateLiteral > TemplateElement[value.raw=/\\/api\\/(pages|navigations|blog-posts?)/]",
+            message: "Use @lmnas/integrations GraphQL clients for pages/navigation/blog reads."
+          }
         ]
       }
     },

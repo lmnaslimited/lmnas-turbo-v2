@@ -4,7 +4,9 @@ const nextConfig = {
     "@lmnas/blocks",
     "@lmnas/block-registry",
     "@lmnas/contracts",
+    "@lmnas/analytics",
     "@lmnas/integrations",
+    "@lmnas/layouts",
     "@lmnas/renderer",
     "@lmnas/seo-engine",
     "@lmnas/testkit"

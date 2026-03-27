@@ -1,5 +1,5 @@
 import React from "react";
-import { blockRegistry } from "@lmnas/block-registry";
+import { assertKnownBlockType, blockRegistry } from "@lmnas/block-registry";
 import type { Block } from "@lmnas/contracts";
 import { pageSchema } from "@lmnas/contracts";
 
@@ -27,11 +27,8 @@ function InvalidBlockProduction({ type }: { type: string }) {
 
 export function renderValidatedBlock(block: unknown, preview = false): React.ReactElement | null {
   const type = typeof block === "object" && block && "type" in block ? String((block as { type: unknown }).type) : "unknown";
-  const registryEntry = blockRegistry[type as keyof typeof blockRegistry];
-
-  if (!registryEntry) {
-    return preview ? <InvalidBlockPreview type={type} message="Block type is not registered." /> : null;
-  }
+  assertKnownBlockType(type);
+  const registryEntry = blockRegistry[type];
 
   const parsed = registryEntry.schema.safeParse(block);
   if (!parsed.success) {

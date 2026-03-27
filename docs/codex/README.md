@@ -5,53 +5,62 @@ This folder stores reusable, versioned scaffold documents for `LMNAs Turbo v2`:
 - spec document: canonical platform requirements
 - prompt document: copy/paste instruction set for Codex runs
 
-Current baseline:
-- `Platform Spec v1`
-- `Codex Scaffold Prompt v1`
+Current baseline files:
+- `SCaffold_Spec_v1.md`
+- `SCaffold_Spec_v1.1.md`
+- `Scaffold_Prompt_v1.md`
+- `Scaffold_Prompt_v1.1.md`
 
 ## Files
-- `SCaffold_Spec_v1.md`: architecture and constraints source of truth
-- `Scaffold_Prompt_v1.md`: deterministic scaffold prompt
+- `SCaffold_Spec_v1.md`: legacy scaffold architecture/constraints
+- `SCaffold_Spec_v1.1.md`: Phase 0 stabilization requirements aligned to current implementation
+- `Scaffold_Prompt_v1.md`: legacy deterministic prompt
+- `Scaffold_Prompt_v1.1.md`: Phase 0 implementation prompt
 
-## When to Use Spec vs Prompt
-Use the spec when:
-- reviewing architecture boundaries
-- validating completeness
-- planning version updates
+## Phase 0 Stabilization (Constitution v2.1)
+Phase 0 is the mandatory baseline for production-safe scaffolding.
 
-Use the prompt when:
-- running a scaffold or regen task with Codex
-- requesting deterministic bootstrap outcomes
+Phase 0 includes:
+- Strapi v5 CMS + GraphQL plugin
+- page contract enforcement (`pageType`, `layoutKey`, required `conversionConfig`)
+- CMS-driven dynamic page routing (`/` + `/[...slug]`)
+- layout selection via `LayoutRegistry`
+- CMS-driven navigation (`main` and `footer`)
+- GraphQL integration layer for pages/navigation/blogs (no REST reads for these)
+- preview workflow with token validation and draft-mode session routing
+- live vs preview publication behavior (published-only live, draft preview)
+- dual-access blogs + canonical base (`BLOG_CANONICAL_BASE`)
+- Rudder shared module and cookie strategy (`RUDDER_COOKIE_DOMAIN=.lmnas.com`)
+- `/api/health` and test/lint/typecheck gate
+
+Phase 0 explicitly does not include:
+- Router engine
+- Identity model
+- Personalization
+
+Phase 0 must pass completely before Phase 1 work begins.
 
 ## How to Run Codex with the Prompt
-1. Open `docs/codex/Scaffold_Prompt_v1.md`.
+1. Open `docs/codex/Scaffold_Prompt_v1.1.md`.
 2. Copy the full prompt content.
 3. Run Codex in repo root and paste prompt.
-4. Require full boot validation:
-   - `pnpm install`
-   - `docker compose up -d`
-   - `pnpm dev`
-   - `pnpm test`
-   - `pnpm lint`
-   - `pnpm typecheck`
+4. Require full validation:
+- `pnpm install`
+- `docker compose up -d`
+- `pnpm dev`
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test`
 
 ## How to Update Spec/Prompt Safely
-1. Update spec first.
-2. Reflect same changes in prompt.
-3. Keep headings and acceptance checklist in sync.
-4. Add version notes under “What changed from previous version”.
-5. Re-run validation commands and confirm boot behavior.
+1. Verify current implementation first (paths, env vars, tests).
+2. Update spec first.
+3. Mirror changes in prompt.
+4. Keep acceptance checklist in sync with actual scripts and routes.
+5. Avoid introducing Phase 1+ architecture into v1.1 docs.
 
 ## Common Failure Modes
-- Docker services start but Strapi page API is not public.
-- Next.js boots but falls back to fixture due Strapi API mismatch.
-- tests pass partially because test file discovery patterns are wrong.
-- boundary lint rules are too weak and allow drift.
-
-## Reporting Errors Back to Codex
-When reporting failures, include:
-- exact command run
-- exact error output
-- file path(s) involved
-- expected vs actual behavior
-- whether issue blocks boot or is a non-blocking warning
+- Strapi is up but GraphQL queries use wrong publication arguments.
+- Preview token mismatch between site and Strapi admin config.
+- Admin preview opens a URL that does not set draft session state.
+- Guardrails drift and apps bypass `@lmnas/integrations`.

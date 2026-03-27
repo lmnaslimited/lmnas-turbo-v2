@@ -1,0 +1,44 @@
+{
+  "collectionName": "components_shared_conversion_configs",
+  "info": {
+    "displayName": "conversionConfig"
+  },
+  "options": {},
+  "attributes": {
+    "intent": {
+      "type": "enumeration",
+      "enum": [
+        "book",
+        "run_benefit",
+        "download",
+        "subscribe"
+      ],
+      "required": true
+    },
+    "eventName": {
+      "type": "string",
+      "required": true
+    },
+    "eventCategory": {
+      "type": "enumeration",
+      "enum": [
+        "conversion",
+        "engagement",
+        "navigation",
+        "experiment"
+      ]
+    },
+    "campaignId": {
+      "type": "string"
+    },
+    "utmDefaults": {
+      "type": "json"
+    },
+    "destination": {
+      "type": "json"
+    },
+    "benefitKey": {
+      "type": "string"
+    }
+  }
+}
