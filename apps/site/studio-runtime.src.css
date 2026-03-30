@@ -1,13 +1,22 @@
 /**
  * studio-runtime.src.css
  *
- * Source for public/studio-runtime.css — the CDN-free preview runtime.
- * Compiled via: npm run build:studio-runtime (in apps/site)
+ * Source for public/studio-runtime.css — CDN-free preview runtime.
+ * Build: npm run build:studio-runtime  (apps/site)
  *
- * Broad Tailwind v4 compilation so imported components render faithfully
- * in CDN-free target preview. Platform @theme tokens make imported utility
- * classes (bg-primary, text-background-dark, etc.) map to design system.
+ * Rules:
+ * - Only platform CSS governs the target preview (no source stylesheets).
+ * - @theme tokens define the canonical design system palette.
+ * - @source inline() safelists compile ALL utilities that imported
+ *   components may use, including common arbitrary values.
+ * - @layer base restores sensible defaults erased by Tailwind preflight.
  */
+
+/* Platform fonts loaded explicitly — source Google Fonts are blocked,
+   so we must load Manrope (platform font) and Material Symbols (icon font)
+   directly in this stylesheet. */
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap");
 
 @import "tailwindcss";
 
@@ -32,240 +41,384 @@
   --color-slate-800: #1e293b;
   --color-slate-900: #0f172a;
   --color-slate-950: #020617;
-  --radius: 0.25rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
+  --radius:      0.25rem;
+  --radius-sm:   0.125rem;
+  --radius-md:   0.375rem;
+  --radius-lg:   0.5rem;
+  --radius-xl:   0.75rem;
+  --radius-2xl:  1rem;
+  --radius-3xl:  1.5rem;
   --radius-full: 9999px;
 }
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* -----------------------------------------------------------------------
- * Safelist — one @source inline per logical group so Tailwind v4 compiles
- * them into the output even though there are no template files to scan.
+ * Safelist — @source inline() per logical group.
+ * Tailwind v4 compiles only utilities declared here (no template scanning).
  * ----------------------------------------------------------------------- */
 
-/* Layout & positioning */
+/* === Layout & positioning === */
 @source inline("{absolute,relative,fixed,sticky,static}");
-@source inline("{inset,inset-x,inset-y}-{0,px,0.5,1,2,4,full}");
-@source inline("{top,right,bottom,left}-{0,px,0.5,1,2,4,auto,full}");
-@source inline("-{top,right,bottom,left}-{1,2,4}");
-@source inline("z-{0,10,20,30,40,50}");
-@source inline("{block,inline,inline-block,flex,inline-flex,grid,inline-grid,hidden,contents,flow-root}");
+@source inline("{inset,inset-x,inset-y}-{0,px,0.5,1,2,4,6,8,full}");
+@source inline("{top,right,bottom,left}-{0,px,0.5,1,2,3,4,6,8,10,12,auto,full}");
+@source inline("-{top,right,bottom,left}-{0.5,1,2,3,4,6}");
+@source inline("z-{0,10,20,30,40,50,-10}");
+@source inline("{block,inline,inline-block,flex,inline-flex,grid,inline-grid,hidden,contents,flow-root,table,table-cell,table-row}");
 @source inline("{flex-row,flex-col,flex-row-reverse,flex-col-reverse}");
-@source inline("{flex-1,flex-auto,flex-none,flex-wrap,flex-nowrap}");
-@source inline("{flex-shrink,flex-shrink-0,flex-grow,flex-grow-0}");
-@source inline("{items,justify,self}-{start,center,end,stretch,baseline,between,around,evenly,auto}");
-@source inline("gap-{0,0.5,1,1.5,2,2.5,3,3.5,4,5,6,7,8,9,10,12,14,16,20,24}");
-@source inline("{gap-x,gap-y}-{0,1,2,3,4,5,6,7,8,9,10,12,16}");
-@source inline("grid-cols-{1,2,3,4,5,6,none}");
-@source inline("col-span-{1,2,3,4,5,6,full}");
-@source inline("space-{x,y}-{0,1,2,3,4,5,6,8,10}");
+@source inline("{flex-1,flex-auto,flex-none,flex-wrap,flex-nowrap,flex-wrap-reverse}");
+@source inline("{flex-shrink,flex-shrink-0,flex-grow,flex-grow-0,shrink,shrink-0,grow,grow-0}");
+@source inline("{items,justify,self,place-items,place-content,place-self}-{start,center,end,stretch,baseline,between,around,evenly,auto}");
+@source inline("gap-{0,0.5,1,1.5,2,2.5,3,3.5,4,5,6,7,8,9,10,11,12,14,16,20,24,28,32}");
+@source inline("{gap-x,gap-y}-{0,1,2,3,4,5,6,7,8,9,10,12,14,16,20}");
+@source inline("grid-cols-{1,2,3,4,5,6,7,8,9,10,11,12,none}");
+@source inline("grid-rows-{1,2,3,4,5,6,none}");
+@source inline("{col,row}-span-{1,2,3,4,5,6,full}");
+@source inline("{col,row}-start-{1,2,3,4,5,6,auto}");
+@source inline("{col,row}-end-{1,2,3,4,5,6,auto}");
+@source inline("space-{x,y}-{0,0.5,1,2,3,4,5,6,7,8,10,12,16}");
+@source inline("{isolate,isolation-auto}");
 
-/* Sizing */
-@source inline("w-{0,px,0.5,1,1.5,2,2.5,3,3.5,4,5,6,7,8,9,10,11,12,14,16,20,24,28,32,36,40,48,56,64,72,80,96}");
-@source inline("w-{auto,full,screen,min,max,fit}");
-@source inline("w-{1/2,1/3,2/3,1/4,3/4}");
-@source inline("h-{0,px,0.5,1,1.5,2,2.5,3,3.5,4,5,6,7,8,9,10,11,12,14,16,20,24,28,32,36,40,48,56,64,72,80,96}");
-@source inline("h-{auto,full,screen,min,max,fit}");
-@source inline("size-{0,1,2,3,4,5,6,7,8,9,10,11,12,14,16,20,24,full}");
-@source inline("{min,max}-{w,h}-{0,full,screen,none,min,max,fit}");
-@source inline("max-w-{none,xs,sm,md,lg,xl,2xl,3xl,4xl,5xl,6xl,7xl,full,prose}");
-@source inline("min-h-{0,full,screen,min,max,fit}");
+/* === Sizing === */
+@source inline("w-{0,px,0.5,1,1.5,2,2.5,3,3.5,4,5,6,7,8,9,10,11,12,14,16,20,24,28,32,36,40,44,48,52,56,60,64,72,80,96}");
+@source inline("w-{auto,full,screen,min,max,fit,svw,dvw}");
+@source inline("w-{1/2,1/3,2/3,1/4,3/4,1/5,2/5,3/5,4/5}");
+@source inline("w-[200px] w-[300px] w-[400px] w-[500px] w-[600px] w-[700px] w-[800px]");
+@source inline("h-{0,px,0.5,1,1.5,2,2.5,3,3.5,4,5,6,7,8,9,10,11,12,14,16,20,24,28,32,36,40,44,48,52,56,60,64,72,80,96}");
+@source inline("h-{auto,full,screen,min,max,fit,svh,dvh}");
+@source inline("size-{0,1,2,3,4,5,6,7,8,9,10,11,12,14,16,20,24,32,40,48,64,full}");
+@source inline("{min-w,max-w}-{0,full,screen,min,max,fit,none}");
+@source inline("{min-h,max-h}-{0,full,screen,min,max,fit,none}");
+@source inline("max-w-{none,xs,sm,md,lg,xl,2xl,3xl,4xl,5xl,6xl,7xl,full,prose,screen-sm,screen-md,screen-lg,screen-xl}");
+@source inline("max-w-[600px] max-w-[720px] max-w-[800px] max-w-[900px] max-w-[960px] max-w-[1000px] max-w-[1100px] max-w-[1200px] max-w-[1280px] max-w-[1400px]");
 
-/* Spacing */
-@source inline("p-{0,px,0.5,1,1.5,2,2.5,3,3.5,4,5,6,7,8,9,10,12,14,16,20,24}");
-@source inline("{px,py}-{0,px,0.5,1,1.5,2,2.5,3,3.5,4,5,6,7,8,9,10,12,14,16,20,24}");
-@source inline("{pt,pb,pl,pr}-{0,px,0.5,1,2,3,4,5,6,8,10,12,16,20,24}");
-@source inline("m-{0,px,auto,0.5,1,1.5,2,2.5,3,4,5,6,8,10,12,16,20,24}");
-@source inline("{mx,my}-{0,px,auto,1,2,3,4,5,6,8,10,12,16,20}");
-@source inline("{mt,mb,ml,mr}-{0,px,auto,1,2,3,4,5,6,8,10,12,16,20,24}");
-@source inline("-{mt,mb,ml,mr}-{1,2,4}");
+/* === Spacing === */
+@source inline("p-{0,px,0.5,1,1.5,2,2.5,3,3.5,4,5,6,7,8,9,10,11,12,14,16,18,20,24,28,32}");
+@source inline("{px,py}-{0,px,0.5,1,1.5,2,2.5,3,3.5,4,5,6,7,8,9,10,11,12,14,16,20,24,28,32}");
+@source inline("{pt,pb,pl,pr}-{0,px,0.5,1,1.5,2,2.5,3,3.5,4,5,6,7,8,9,10,12,14,16,20,24,28,32}");
+@source inline("m-{0,px,auto,0.5,1,1.5,2,2.5,3,4,5,6,7,8,9,10,12,14,16,20,24,28,32}");
+@source inline("{mx,my}-{0,px,auto,0.5,1,2,3,4,5,6,8,10,12,16,20,24,28,32}");
+@source inline("{mt,mb,ml,mr}-{0,px,auto,0.5,1,2,3,4,5,6,8,10,12,14,16,20,24,28,32}");
+@source inline("-{mt,mb,ml,mr,mx,my}-{px,0.5,1,2,3,4,6,8}");
 
-/* Typography */
+/* === Typography === */
 @source inline("text-{xs,sm,base,lg,xl,2xl,3xl,4xl,5xl,6xl,7xl,8xl,9xl}");
+@source inline("text-[8px] text-[10px] text-[11px] text-[12px] text-[13px] text-[14px] text-[15px] text-[16px] text-[18px] text-[20px] text-[24px] text-[28px] text-[32px] text-[36px] text-[40px] text-[48px] text-[56px] text-[64px]");
 @source inline("font-{thin,extralight,light,normal,medium,semibold,bold,extrabold,black}");
 @source inline("font-{display,mono,sans,serif}");
 @source inline("{italic,not-italic}");
-@source inline("leading-{3,4,5,6,7,8,9,10,none,tight,snug,normal,relaxed,loose}");
+@source inline("leading-{none,tight,snug,normal,relaxed,loose,3,4,5,6,7,8,9,10}");
+@source inline("leading-[1] leading-[1.1] leading-[1.15] leading-[1.2] leading-[1.25] leading-[1.3] leading-[1.35] leading-[1.4] leading-[1.5] leading-[1.6] leading-[1.75] leading-[2]");
 @source inline("tracking-{tighter,tight,normal,wide,wider,widest}");
+@source inline("tracking-[-0.1em] tracking-[-0.05em] tracking-[-0.04em] tracking-[-0.03em] tracking-[-0.025em] tracking-[-0.02em] tracking-[-0.015em] tracking-[-0.01em]");
+@source inline("tracking-[0.01em] tracking-[0.015em] tracking-[0.02em] tracking-[0.025em] tracking-[0.05em] tracking-[0.08em] tracking-[0.1em] tracking-[0.15em] tracking-[0.2em] tracking-[0.25em]");
 @source inline("text-{left,center,right,justify,start,end}");
 @source inline("{uppercase,lowercase,capitalize,normal-case}");
-@source inline("{underline,line-through,no-underline}");
+@source inline("{underline,overline,line-through,no-underline}");
 @source inline("{antialiased,subpixel-antialiased}");
-@source inline("{truncate,whitespace-nowrap,whitespace-normal,whitespace-pre,whitespace-pre-wrap}");
-@source inline("line-clamp-{1,2,3,4,5,6}");
+@source inline("whitespace-{normal,nowrap,pre,pre-line,pre-wrap,break-spaces}");
+@source inline("{truncate,text-ellipsis,text-clip}");
+@source inline("{break-normal,break-words,break-all,break-keep}");
+@source inline("overflow-wrap-{normal,break-word,anywhere}");
+@source inline("hyphens-{none,manual,auto}");
+@source inline("text-balance text-pretty text-wrap text-nowrap");
+@source inline("line-clamp-{1,2,3,4,5,6,7,8,none}");
+@source inline("indent-{0,1,2,4,8,px}");
+@source inline("list-{none,disc,decimal,inside,outside}");
+@source inline("align-{top,middle,bottom,baseline,text-top,text-bottom,sub,super}");
+@source inline("decoration-{auto,from-font,0,1,2,4,8,dashed,dotted,double,none,solid,wavy}");
 
-/* Colors — text */
-@source inline("text-{white,black,transparent,current}");
+/* === Colors: text === */
+@source inline("text-{white,black,transparent,current,inherit}");
 @source inline("text-{primary,background-light,background-dark,foreground-light,foreground-dark}");
 @source inline("text-slate-{50,100,200,300,400,500,600,700,800,900,950}");
+@source inline("text-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose}-{50,100,200,300,400,500,600,700,800,900,950}");
+@source inline("text-primary/10 text-primary/20 text-primary/30 text-primary/50 text-primary/70 text-primary/80 text-primary/90");
 
-/* Colors — background */
-@source inline("bg-{transparent,current,white,black}");
-@source inline("bg-{primary,background-light,background-dark}");
+/* === Colors: background === */
+@source inline("bg-{transparent,current,white,black,inherit}");
+@source inline("bg-{primary,background-light,background-dark,foreground-light,foreground-dark}");
 @source inline("bg-slate-{50,100,200,300,400,500,600,700,800,900,950}");
-@source inline("bg-{cover,contain,center,top,bottom,left,right,no-repeat,repeat}");
+@source inline("bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose}-{50,100,200,300,400,500,600,700,800,900,950}");
+@source inline("bg-primary/10 bg-primary/20 bg-primary/30 bg-primary/50 bg-primary/70 bg-primary/80 bg-primary/90");
+@source inline("bg-{cover,contain,auto,center,top,right,bottom,left,no-repeat,repeat,repeat-x,repeat-y,fixed,local,scroll}");
 
-/* Borders */
-@source inline("border-{0,2,4,8,DEFAULT}");
-@source inline("border-{t,b,l,r,x,y}");
+/* === Colors: border === */
+@source inline("border-{0,2,4,8}");
+@source inline("{border-t,border-b,border-l,border-r,border-x,border-y}");
 @source inline("{border-t,border-b,border-l,border-r}-{0,2,4}");
-@source inline("border-{solid,dashed,dotted,none}");
+@source inline("border-{solid,dashed,dotted,double,hidden,none}");
 @source inline("border-{transparent,white,black,current,primary,background-light,background-dark}");
 @source inline("border-slate-{50,100,200,300,400,500,600,700,800,900,950}");
-@source inline("divide-{x,y,x-2,y-2}");
-@source inline("divide-slate-{200,700,800}");
+@source inline("border-{red,orange,amber,green,emerald,blue,indigo,violet,purple,pink,rose}-{200,300,400,500,600,700,800}");
+@source inline("divide-{x,y,x-2,y-2,x-4,y-4}");
+@source inline("divide-slate-{100,200,300,700,800,900}");
+@source inline("outline-{none,0,1,2,4,8,dashed,dotted,solid,double}");
+@source inline("outline-offset-{0,1,2,4,8}");
+@source inline("ring-{0,1,2,4,8,inset}");
+@source inline("ring-offset-{0,1,2,4}");
+@source inline("ring-{white,black,primary,transparent}");
+@source inline("ring-slate-{200,300,500,700}");
 
-/* Border radius */
+/* === Border radius === */
 @source inline("rounded-{none,sm,DEFAULT,md,lg,xl,2xl,3xl,full}");
-@source inline("rounded-{t,b,l,r,tl,tr,bl,br}-{none,sm,DEFAULT,md,lg,xl,2xl,3xl,full}");
+@source inline("rounded-{t,b,l,r,tl,tr,bl,br,ss,se,es,ee}-{none,sm,DEFAULT,md,lg,xl,2xl,3xl,full}");
 
-/* Shadows */
+/* === Shadows === */
 @source inline("shadow-{none,sm,DEFAULT,md,lg,xl,2xl,inner}");
+@source inline("shadow-primary/10 shadow-primary/20 shadow-primary/30 shadow-primary/50");
+@source inline("drop-shadow-{none,sm,DEFAULT,md,lg,xl,2xl}");
 
-/* Opacity */
-@source inline("opacity-{0,5,10,20,25,30,40,50,60,70,75,80,90,95,100}");
+/* === Opacity === */
+@source inline("opacity-{0,5,10,15,20,25,30,40,50,60,70,75,80,90,95,100}");
 
-/* Overflow */
+/* === Overflow & scroll === */
 @source inline("overflow-{auto,hidden,clip,visible,scroll}");
-@source inline("{overflow-x,overflow-y}-{auto,hidden,scroll,visible}");
+@source inline("{overflow-x,overflow-y}-{auto,hidden,scroll,visible,clip}");
+@source inline("overscroll-{auto,contain,none}");
+@source inline("scroll-{auto,smooth}");
+@source inline("scroll-{p,px,py,pt,pb,pl,pr}-{0,1,2,4,6,8}");
 
-/* Transitions & animation */
+/* === Transitions & animation === */
 @source inline("transition-{all,colors,opacity,shadow,transform,DEFAULT,none}");
-@source inline("duration-{75,100,150,200,300,500,700,1000}");
+@source inline("duration-{0,75,100,150,200,300,500,700,1000}");
 @source inline("ease-{linear,in,out,in-out}");
-@source inline("delay-{75,100,150,200,300,500}");
+@source inline("delay-{0,75,100,150,200,300,500,700,1000}");
 @source inline("animate-{none,spin,ping,pulse,bounce}");
+@source inline("will-change-{auto,scroll,contents,transform,opacity}");
 
-/* Transforms */
+/* === Transforms === */
 @source inline("scale-{0,50,75,90,95,100,105,110,125,150}");
+@source inline("{scale-x,scale-y}-{0,50,75,90,100,105,110,125,150}");
 @source inline("rotate-{0,1,2,3,6,12,45,90,180}");
 @source inline("-rotate-{1,2,3,6,12,45,90,180}");
-@source inline("{translate-x,translate-y}-{0,1,2,4,full,px}");
-@source inline("-{translate-x,translate-y}-{1,2,4,full}");
+@source inline("{translate-x,translate-y}-{0,px,0.5,1,2,3,4,6,8,12,16,full}");
+@source inline("-{translate-x,translate-y}-{px,0.5,1,2,3,4,6,8,12,full}");
+@source inline("{skew-x,skew-y}-{0,1,2,3,6,12}");
+@source inline("{origin}-{center,top,top-right,right,bottom-right,bottom,bottom-left,left,top-left}");
 
-/* Filters */
-@source inline("{grayscale,grayscale-0,blur,blur-none,blur-sm,blur-md,blur-lg,blur-xl,blur-2xl}");
+/* === Filters === */
+@source inline("{grayscale,grayscale-0}");
+@source inline("blur-{none,sm,DEFAULT,md,lg,xl,2xl,3xl}");
 @source inline("brightness-{0,50,75,90,95,100,105,110,125,150,200}");
-@source inline("{invert,invert-0,sepia,sepia-0}");
-@source inline("backdrop-blur-{none,sm,DEFAULT,md,lg,xl}");
+@source inline("contrast-{0,50,75,100,125,150,200}");
+@source inline("saturate-{0,50,100,150,200}");
+@source inline("{invert,invert-0}");
+@source inline("{sepia,sepia-0}");
+@source inline("hue-rotate-{0,15,30,60,90,180}");
+@source inline("backdrop-blur-{none,sm,DEFAULT,md,lg,xl,2xl}");
+@source inline("backdrop-brightness-{0,50,75,90,95,100,105,110,125,150,200}");
+@source inline("backdrop-saturate-{0,50,100,150,200}");
+@source inline("{backdrop-grayscale,backdrop-invert,backdrop-sepia}");
 
-/* Interactions */
-@source inline("cursor-{auto,default,pointer,wait,text,move,not-allowed}");
+/* === Interactions === */
+@source inline("cursor-{auto,default,pointer,wait,text,move,help,not-allowed,none,cell,crosshair,vertical-text,alias,copy,no-drop,grab,grabbing,zoom-in,zoom-out,progress,col-resize,row-resize,ew-resize,ns-resize,nesw-resize,nwse-resize,n-resize,e-resize,s-resize,w-resize,ne-resize,nw-resize,se-resize,sw-resize}");
 @source inline("{pointer-events-none,pointer-events-auto}");
 @source inline("select-{none,text,all,auto}");
+@source inline("touch-{auto,none,pan-x,pan-y,pan-left,pan-right,pan-up,pan-down,manipulation}");
+@source inline("{resize,resize-none,resize-x,resize-y}");
+@source inline("{appearance-none,appearance-auto}");
+@source inline("{caret-transparent,caret-white,caret-black}");
 
-/* Misc */
+/* === Layout misc === */
 @source inline("aspect-{auto,square,video}");
+@source inline("aspect-[4/3] aspect-[16/9] aspect-[3/4] aspect-[1/1] aspect-[2/1]");
 @source inline("object-{contain,cover,fill,none,scale-down}");
-@source inline("object-{center,top,bottom,left,right}");
+@source inline("object-{center,top,bottom,left,right,left-top,left-bottom,right-top,right-bottom}");
 @source inline("{visible,invisible}");
 @source inline("{sr-only,not-sr-only}");
-@source inline("outline-{none,0,2,4,8}");
-@source inline("ring-{0,1,2,4,8,inset}");
-@source inline("ring-slate-{200,700}");
-@source inline("{appearance-none}");
-@source inline("list-{none,disc,decimal}");
-@source inline("align-{top,middle,bottom,baseline,text-top,text-bottom}");
-@source inline("{resize,resize-none,resize-x,resize-y}");
+@source inline("{float-left,float-right,float-none,clearfix,clear-left,clear-right,clear-both,clear-none}");
+@source inline("table-{auto,fixed}");
+@source inline("{border-collapse,border-separate}");
+@source inline("{caption-top,caption-bottom}");
+@source inline("{columns-1,columns-2,columns-3,columns-4}");
 
-/* Responsive prefixes */
-@source inline("md:{flex,hidden,block,grid,flex-row,flex-col}");
-@source inline("md:text-{xl,2xl,3xl,4xl}");
-@source inline("md:py-{12,16,20,24}");
-@source inline("md:px-{6,10,20}");
-@source inline("md:gap-{8,10,12,16}");
-@source inline("lg:{flex,hidden,block,grid}");
-@source inline("lg:px-{20,40}");
-@source inline("sm:{flex,hidden,block,grid}");
-
-/* Hover / focus / active states */
-@source inline("hover:brightness-{90,95,100,105,110}");
-@source inline("hover:{grayscale-0,underline,shadow-lg,shadow-xl,shadow-2xl}");
-@source inline("hover:text-primary");
-@source inline("hover:translate-x-1");
-@source inline("hover:scale-105");
-@source inline("hover:opacity-100");
-@source inline("focus:{outline-none,ring-2}");
-@source inline("focus:ring-primary");
-@source inline("active:{scale-95,brightness-95}");
-@source inline("group-hover:{translate-x-1,opacity-100,grayscale-0}");
-
-/* Dark mode variants of colors (most critical) */
-@source inline("dark:text-{white,black}");
+/* === Dark-mode color variants === */
+@source inline("dark:text-{white,black,current,transparent}");
 @source inline("dark:text-slate-{50,100,200,300,400,500,600,700,800,900,950}");
-@source inline("dark:text-{foreground-dark,background-dark,background-light}");
-@source inline("dark:bg-{background-dark,background-light,primary}");
+@source inline("dark:text-{primary,foreground-dark,foreground-light,background-dark,background-light}");
+@source inline("dark:bg-{transparent,white,black,primary,background-dark,background-light}");
 @source inline("dark:bg-slate-{50,100,200,300,400,500,600,700,800,900,950}");
-@source inline("dark:border-slate-{200,700,800,900}");
+@source inline("dark:border-{transparent,white,black,primary}");
+@source inline("dark:border-slate-{100,200,300,600,700,800,900}");
+@source inline("dark:{opacity-0,opacity-10,opacity-20,opacity-50,opacity-70,opacity-80,opacity-90,opacity-100}");
+@source inline("dark:{hidden,block,flex,grid,inline,inline-flex,inline-block}");
+
+/* === Responsive variants — sm, md, lg, xl === */
+@source inline("sm:{block,hidden,flex,grid,inline,inline-flex,inline-block,flex-col,flex-row}");
+@source inline("sm:text-{sm,base,lg,xl,2xl,3xl,4xl}");
+@source inline("sm:{p,px,py,pt,pb,pl,pr}-{2,3,4,6,8,10,12,16,20}");
+@source inline("sm:{w,h}-{auto,full,screen}");
+@source inline("md:{block,hidden,flex,grid,inline,inline-flex,inline-block,flex-col,flex-row}");
+@source inline("md:text-{sm,base,lg,xl,2xl,3xl,4xl,5xl}");
+@source inline("md:{p,px,py,pt,pb,pl,pr}-{2,3,4,5,6,8,10,12,16,20,24}");
+@source inline("md:px-{6,10,16,20,24,32,40}");
+@source inline("md:py-{6,8,10,12,16,20,24,32}");
+@source inline("md:{mt,mb,ml,mr,mx,my}-{0,2,4,6,8,10,12,16,20}");
+@source inline("md:gap-{2,4,6,8,10,12,16,20}");
+@source inline("md:{w,h}-{auto,full,screen,1/2,1/3,2/3}");
+@source inline("md:max-w-{sm,md,lg,xl,2xl,3xl,4xl,5xl,6xl,7xl,full}");
+@source inline("md:grid-cols-{1,2,3,4,5,6}");
+@source inline("md:{rounded,rounded-lg,rounded-xl,rounded-2xl,rounded-full}");
+@source inline("md:font-{normal,medium,semibold,bold,extrabold}");
+@source inline("lg:{block,hidden,flex,grid,inline,inline-flex,inline-block,flex-col,flex-row}");
+@source inline("lg:text-{base,lg,xl,2xl,3xl,4xl,5xl,6xl}");
+@source inline("lg:px-{8,10,12,16,20,24,32,40,48}");
+@source inline("lg:py-{6,8,10,12,16,20,24,32}");
+@source inline("lg:gap-{4,6,8,10,12,16,20,24}");
+@source inline("lg:grid-cols-{1,2,3,4,5,6}");
+@source inline("lg:max-w-{xl,2xl,3xl,4xl,5xl,6xl,7xl,full}");
+@source inline("xl:{block,hidden,flex,grid,flex-col,flex-row}");
+@source inline("xl:text-{xl,2xl,3xl,4xl,5xl,6xl}");
+@source inline("xl:px-{8,12,16,20,24,32,40,48}");
+@source inline("xl:grid-cols-{2,3,4,5,6}");
+@source inline("2xl:{block,hidden,flex,grid}");
+@source inline("2xl:max-w-{6xl,7xl,full}");
+
+/* === Hover / focus / active / group / peer === */
+@source inline("hover:text-{primary,white,black,current}");
+@source inline("hover:text-slate-{50,100,200,300,400,500,600,700,800,900}");
+@source inline("hover:bg-{primary,transparent,white,black}");
+@source inline("hover:bg-slate-{50,100,200,700,800,900}");
+@source inline("hover:bg-primary/10 hover:bg-primary/20 hover:bg-primary/30");
+@source inline("hover:border-{primary,white,transparent}");
+@source inline("hover:border-slate-{300,400,500,700,800}");
+@source inline("hover:brightness-{90,95,100,105,110,125}");
+@source inline("hover:{grayscale-0,grayscale,underline,no-underline,line-through}");
+@source inline("hover:{shadow-none,shadow-sm,shadow,shadow-md,shadow-lg,shadow-xl,shadow-2xl}");
+@source inline("hover:shadow-primary/10 hover:shadow-primary/20 hover:shadow-primary/30");
+@source inline("hover:{opacity-0,opacity-50,opacity-75,opacity-80,opacity-90,opacity-100}");
+@source inline("hover:{scale-95,scale-100,scale-105,scale-110}");
+@source inline("hover:{translate-x-0,translate-x-px,translate-x-1,translate-x-2,-translate-x-1}");
+@source inline("hover:{translate-y-0,translate-y-px,translate-y-1,-translate-y-1,-translate-y-0.5}");
+@source inline("hover:{rotate-0,rotate-3,rotate-6,-rotate-3,-rotate-6}");
+@source inline("hover:{transition-all,transition-colors,transition-transform,transition-shadow}");
+@source inline("focus:{outline-none,ring,ring-2,ring-4}");
+@source inline("focus:ring-{primary,white,black}");
+@source inline("focus:ring-slate-{300,500,700}");
+@source inline("focus:ring-offset-{0,1,2,4}");
+@source inline("focus:{border-primary,border-slate-500}");
+@source inline("focus-visible:{outline-none,ring,ring-2,ring-primary}");
+@source inline("active:{scale-95,scale-100,brightness-90,brightness-95,opacity-80,opacity-90}");
+@source inline("disabled:{opacity-50,cursor-not-allowed,pointer-events-none}");
+@source inline("group-hover:{opacity-0,opacity-50,opacity-75,opacity-100,visible,invisible,block,hidden,flex,translate-x-0,translate-x-1,-translate-x-1,translate-y-0,-translate-y-1,scale-100,scale-105,grayscale-0}");
+@source inline("group-focus:{ring,ring-2,ring-primary}");
+@source inline("peer-focus:{ring,ring-2,block,hidden}");
+@source inline("peer-checked:{bg-primary,border-primary,text-white}");
+@source inline("peer-disabled:{opacity-50,cursor-not-allowed}");
+
+/* === Hover: dark + responsive combos === */
+@source inline("dark:hover:text-{white,primary}");
+@source inline("dark:hover:bg-{slate-700,slate-800,slate-900,primary}");
+@source inline("dark:hover:border-{slate-600,slate-700,primary}");
+@source inline("md:hover:{scale-105,shadow-lg}");
 
 /* -----------------------------------------------------------------------
- * Base resets for the preview iframe context
+ * Base layer — resets + heading hierarchy restoration
  * ----------------------------------------------------------------------- */
 @layer base {
   *, *::before, *::after {
     box-sizing: border-box;
   }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    tab-size: 4;
+    scroll-behavior: smooth;
+  }
+
   html, body {
     margin: 0;
     padding: 0;
     min-height: 100%;
   }
+
+  /* Prevent long unbreakable strings from blowing out layout */
   body {
     font-family: var(--font-display, "Manrope", system-ui, sans-serif);
+    font-size: 1rem;
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-wrap: break-word;
+    word-break: normal;
   }
-  img, video {
+
+  img, video, canvas, svg {
+    display: block;
     max-width: 100%;
     height: auto;
   }
 
+  /* Inline images / icons should stay inline */
+  img.inline,
+  span > img,
+  p > img {
+    display: inline;
+    vertical-align: middle;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: inherit;
+  }
+
+  button, input, optgroup, select, textarea {
+    font-family: inherit;
+    font-size: 100%;
+    line-height: inherit;
+    color: inherit;
+  }
+
+  table {
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+
   /*
    * Heading hierarchy restoration.
-   * Tailwind's preflight resets h1-h6 to font-size: inherit; font-weight: inherit.
-   * Imported components that use native heading elements (not explicit text-4xl classes)
-   * lose their visual hierarchy without this. These match browser defaults scaled to
-   * the platform's type scale, and are overridden by explicit Tailwind classes on elements.
+   * Tailwind preflight resets h1-h6 to font-size:inherit / font-weight:inherit.
+   * Components using native heading elements (not explicit text-4xl classes)
+   * lose visual hierarchy without these. Explicit Tailwind classes on elements
+   * override these via the utilities layer (higher specificity).
    */
   h1 {
-    font-size: 2.25rem;   /* ~text-4xl */
+    font-size: 2.25rem;
     font-weight: 800;
     line-height: 1.15;
     margin-top: 0;
     margin-bottom: 0.5em;
   }
   h2 {
-    font-size: 1.875rem;  /* ~text-3xl */
+    font-size: 1.875rem;
     font-weight: 700;
     line-height: 1.2;
     margin-top: 0;
     margin-bottom: 0.5em;
   }
   h3 {
-    font-size: 1.5rem;    /* ~text-2xl */
+    font-size: 1.5rem;
     font-weight: 600;
     line-height: 1.25;
     margin-top: 0;
     margin-bottom: 0.4em;
   }
   h4 {
-    font-size: 1.25rem;   /* ~text-xl */
+    font-size: 1.25rem;
     font-weight: 600;
     line-height: 1.3;
     margin-top: 0;
     margin-bottom: 0.4em;
   }
   h5 {
-    font-size: 1.125rem;  /* ~text-lg */
+    font-size: 1.125rem;
     font-weight: 600;
     line-height: 1.35;
     margin-top: 0;
     margin-bottom: 0.3em;
   }
   h6 {
-    font-size: 1rem;      /* ~text-base */
+    font-size: 1rem;
     font-weight: 600;
     line-height: 1.4;
     margin-top: 0;
@@ -283,12 +436,73 @@
     padding-left: 1.5em;
   }
 
+  li {
+    margin-bottom: 0.25em;
+  }
+
   blockquote {
     margin: 0 0 1em;
     padding-left: 1em;
-    border-left: 4px solid currentColor;
+    border-left: 3px solid currentColor;
     opacity: 0.8;
     font-style: italic;
   }
-}
 
+  hr {
+    border: 0;
+    border-top: 1px solid currentColor;
+    opacity: 0.2;
+    margin: 1.5em 0;
+  }
+
+  pre, code, kbd, samp {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.875em;
+  }
+
+  pre {
+    overflow-x: auto;
+    line-height: 1.6;
+    margin: 0 0 1em;
+  }
+
+  /* Material Symbols icon font passthrough — ensure icon rendering */
+  .material-symbols-outlined,
+  .material-symbols-rounded,
+  .material-symbols-sharp {
+    font-family: "Material Symbols Outlined", sans-serif;
+    font-weight: normal;
+    font-style: normal;
+    display: inline-block;
+    line-height: 1;
+    text-transform: none;
+    letter-spacing: normal;
+    word-wrap: normal;
+    white-space: nowrap;
+    direction: ltr;
+    -webkit-font-feature-settings: "liga";
+    font-feature-settings: "liga";
+    vertical-align: middle;
+  }
+
+  /* Material Icons (older library) */
+  .material-icons,
+  .material-icons-outlined,
+  .material-icons-round,
+  .material-icons-sharp,
+  .material-icons-two-tone {
+    font-family: "Material Icons", sans-serif;
+    font-weight: normal;
+    font-style: normal;
+    display: inline-block;
+    line-height: 1;
+    text-transform: none;
+    letter-spacing: normal;
+    word-wrap: normal;
+    white-space: nowrap;
+    direction: ltr;
+    -webkit-font-feature-settings: "liga";
+    font-feature-settings: "liga";
+    vertical-align: middle;
+  }
+}
