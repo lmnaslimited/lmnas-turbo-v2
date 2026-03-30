@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start -p 3000",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:studio-runtime": "tailwindcss -i ./studio-runtime.src.css -o ./public/studio-runtime.css --minify"
   },
   "dependencies": {
     "@lmnas/analytics": "workspace:*",
@@ -20,6 +21,7 @@
     "react-dom": "19.0.0"
   },
   "devDependencies": {
+    "@tailwindcss/cli": "^4.2.2",
     "@tailwindcss/postcss": "^4.2.1",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",

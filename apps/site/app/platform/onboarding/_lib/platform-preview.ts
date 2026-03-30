@@ -2,19 +2,24 @@
 
 import { useEffect, useState } from "react";
 import {
+  buildCanonicalCssVarsBlock,
   buildPlatformBlockPreviewDocument,
   buildPlatformPagePreviewDocument,
   buildPlatformTargetDocument,
   buildPreviewPlaceholderDocument,
   buildPreviewThumbnailDocument,
   canonicalizeBlockOrder,
+  classifyStylesheetHref,
   createStaticPlatformPreviewAssets,
   ensureHtmlDocument,
   extractBodyHtml,
+  extractSourceTailwindConfig,
   findBlockByReference,
+  KNOWN_TAILWIND_PLUGINS,
   resolvePlatformPreviewTheme,
   resolvePlatformShellPreview,
   sanitizeTargetHtml,
+  TAILWIND_CDN_BLOCKLIST_PATTERNS,
   type PlatformPreviewAssets
 } from "./platform-preview-shared";
 
@@ -71,7 +76,8 @@ function buildHeadMarkup(): PlatformPreviewAssets {
 
   return {
     headMarkup: parts.join("\n"),
-    tailwindRuntimeSrc: runtimeSrc
+    tailwindRuntimeSrc: runtimeSrc,
+    platformCssSrc: `${origin}/studio-runtime.css`
   };
 }
 
@@ -86,18 +92,23 @@ export function usePlatformPreviewAssets(): PlatformPreviewAssets {
 }
 
 export {
+  buildCanonicalCssVarsBlock,
   buildPlatformBlockPreviewDocument,
   buildPlatformPagePreviewDocument,
   buildPlatformTargetDocument,
   buildPreviewPlaceholderDocument,
   buildPreviewThumbnailDocument,
   canonicalizeBlockOrder,
+  classifyStylesheetHref,
   createStaticPlatformPreviewAssets,
   ensureHtmlDocument,
   extractBodyHtml,
+  extractSourceTailwindConfig,
   findBlockByReference,
+  KNOWN_TAILWIND_PLUGINS,
   resolvePlatformPreviewTheme,
   resolvePlatformShellPreview,
-  sanitizeTargetHtml
+  sanitizeTargetHtml,
+  TAILWIND_CDN_BLOCKLIST_PATTERNS
 };
 export type { PlatformPreviewAssets };

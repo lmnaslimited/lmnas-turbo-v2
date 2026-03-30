@@ -13,6 +13,11 @@ import {
   usePlatformPreviewAssets
 } from "../_lib/platform-preview";
 import {
+  readManifestAssetList,
+  resolveAssetUrl,
+  resolveProposalTargetPreviewHtml
+} from "../_lib/import-page-helpers";
+import {
   readPreviewSwatchThemeId,
   setPreviewSwatchThemeId as setGlobalPreviewSwatchThemeId,
   subscribePreviewSwatchThemeId
@@ -153,56 +158,7 @@ function sanitizePreviewHtml(input: string): string {
     .replace(/\s(?:src|href)=["']https?:\/\/[^"']+["']/gi, "");
 }
 
-function readManifestAssetUrl(entry: unknown): string | null {
-  if (typeof entry === "string" && entry.trim().length > 0) {
-    return entry.trim();
-  }
-  if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-    return null;
-  }
-  const record = entry as Record<string, unknown>;
-  const candidates = [record.href, record.src, record.url, record.value];
-  for (const candidate of candidates) {
-    if (typeof candidate === "string" && candidate.trim().length > 0) {
-      return candidate.trim();
-    }
-  }
-  return null;
-}
 
-function resolveAssetUrl(asset: string, baseUrl?: string): string {
-  const value = asset.trim();
-  if (value.length === 0) {
-    return "";
-  }
-  if (/^https?:\/\//i.test(value)) {
-    return value;
-  }
-  try {
-    return new URL(value, baseUrl).toString();
-  } catch {
-    return value;
-  }
-}
-
-function readManifestAssetList(manifest: unknown, key: "stylesheets" | "scripts", baseUrl?: string): string[] {
-  if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) {
-    return [];
-  }
-  const raw = (manifest as Record<string, unknown>)[key];
-  if (!Array.isArray(raw)) {
-    return [];
-  }
-  return Array.from(
-    new Set(
-      raw
-        .map((entry) => readManifestAssetUrl(entry))
-        .filter((entry): entry is string => typeof entry === "string" && entry.length > 0)
-        .map((entry) => resolveAssetUrl(entry, baseUrl))
-        .filter((entry) => entry.length > 0)
-    )
-  );
-}
 
 function buildSourcePreviewWithImportContext(params: {
   previewHtml: string;
@@ -307,18 +263,7 @@ function buildExtractedThemeTokens(analysis: OnboardingAnalysis): StudioTheme["t
   return tokens;
 }
 
-function resolveProposalTargetPreviewHtml(params: {
-  proposalHtml: string;
-  persistedMeta: PersistedProposalMeta | null;
-  theme: StudioTheme | null;
-  hostAssets: ReturnType<typeof usePlatformPreviewAssets>;
-}): string {
-  return buildPlatformBlockPreviewDocument({
-    proposalHtml: params.proposalHtml || params.persistedMeta?.targetPreviewHtml || "<section></section>",
-    theme: params.theme,
-    hostAssets: params.hostAssets
-  });
-}
+
 
 export default function ImportWorkflowPage(): React.ReactElement {
   const platformPreviewAssets = usePlatformPreviewAssets();
@@ -396,9 +341,10 @@ export default function ImportWorkflowPage(): React.ReactElement {
 
     return resolveProposalTargetPreviewHtml({
       proposalHtml: focusedProposal.previewHtml ?? focusedProposal.rawHtmlSnippet ?? "<section></section>",
-      persistedMeta: focusedProposalMeta,
+      persistedTargetPreviewHtml: focusedProposalMeta?.targetPreviewHtml ?? null,
       theme: compareTheme,
-      hostAssets: platformPreviewAssets
+      hostAssets: platformPreviewAssets,
+      importMaster
     });
   }, [compareTheme, focusedProposal, focusedProposalMeta, platformPreviewAssets]);
 
@@ -1562,9 +1508,10 @@ export default function ImportWorkflowPage(): React.ReactElement {
                   const sourcePreviewHtml = persistedMeta?.sourcePreviewHtml ?? proposalHtml;
                   const targetPreviewHtml = resolveProposalTargetPreviewHtml({
                     proposalHtml,
-                    persistedMeta,
+                    persistedTargetPreviewHtml: persistedMeta?.targetPreviewHtml ?? null,
                     theme: compareTheme,
-                    hostAssets: platformPreviewAssets
+                    hostAssets: platformPreviewAssets,
+                    importMaster
                   });
                   const schemaStatus =
                     persistedMeta?.schemaStatus ?? deriveSchemaStatus(block.confidence, proposalHtml.trim().length > 0);
