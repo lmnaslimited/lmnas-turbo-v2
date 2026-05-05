@@ -1,0 +1,103 @@
+{
+  "name": "integration_lens_in",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "LENSIPS to M3 Simulation",
+        "formDescription": "Choose a doctype to simulate against M3 using built-in mock data.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Mock Doctype",
+              "fieldName": "mock_doctype",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  { "option": "Sales Order" },
+                  { "option": "Purchase Order" },
+                  { "option": "Delivery Note" },
+                  { "option": "Work Order" },
+                  { "option": "Stock Entry" },
+                  { "option": "Pick List" },
+                  { "option": "Material Request" },
+                  { "option": "Job Card" }
+                ]
+              },
+              "defaultValue": "Sales Order",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "formPath": "integration-lens-in-simulate",
+          "buttonLabel": "Run Simulation",
+          "appendAttribution": false
+        }
+      },
+      "id": "lin-form-1",
+      "name": "Simulation Picker",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [-1420, 20],
+      "webhookId": "integration-lens-in-simulate"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "integration-lens-in",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "lin-webhook-1",
+      "name": "Live Integration Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-1420, 260],
+      "webhookId": "integration-lens-in"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json || {};\nconst supported = ['Sales Order','Purchase Order','Delivery Note','Work Order','Stock Entry','Pick List','Material Request','Job Card'];\nconst simulation = body.mock_doctype !== undefined;\nconst direction = 'LENSIPS_TO_M3';\nconst doctype = simulation ? (body.mock_doctype || 'Sales Order') : body.doctype;\nconst data = simulation ? ({\n  'Sales Order': { order_id: 'SO-10042', customer_id: 'CUST-0007', customer_name: 'Eurogrid GmbH', items: [{ item_code: 'TR-1001', qty: 12, price: 1840 }, { item_code: 'TR-2004', qty: 12, price: 210 }] },\n  'Purchase Order': { po_number: 'PO-55021', supplier_id: 'SUP-023', supplier_name: 'Volt-Ind Components', items: [{ item_code: 'COP-WIRE-12', qty: 40, rate: 125 }, { item_code: 'INS-900', qty: 22, rate: 44 }] },\n  'Delivery Note': { delivery_number: 'DN-77102', warehouse: 'FG-WH', items: [{ item_code: 'TR-1001', qty: 4 }, { item_code: 'TR-2004', qty: 4 }] },\n  'Work Order': { work_order_number: 'WO-90088', item_code: 'TR-1001', item_name: 'Core Transformer Unit', qty: 20, bom_no: 'BOM-TRANS-01', operations: [{ sequence: 10, operation_code: 'CUT' }, { sequence: 20, operation_code: 'ASSEMBLE' }] },\n  'Stock Entry': { stock_entry_number: 'SE-41011', stock_entry_type: 'Material Transfer', items: [{ item_code: 'COP-WIRE-12', qty: 18 }, { item_code: 'INS-900', qty: 9 }] },\n  'Pick List': { pick_list_number: 'PL-30301', warehouse: 'MAIN-WH', items: [{ item_code: 'TR-1001', picked_qty: 3 }, { item_code: 'TR-2004', picked_qty: 3 }] },\n  'Material Request': { material_request_number: 'MR-12030', material_request_type: 'Purchase', items: [{ item_code: 'COP-WIRE-12', required_qty: 55 }, { item_code: 'INS-900', required_qty: 28 }] },\n  'Job Card': { job_card_number: 'JC-88010', work_order_number: 'WO-90088', operation: 'ASSEMBLE', items: [{ item_code: 'COP-WIRE-12', consumed_qty: 4 }, { item_code: 'INS-900', consumed_qty: 2 }] }\n})[doctype] || null : (body.data || null);\nconst executionId = (globalThis.crypto && globalThis.crypto.randomUUID) ? globalThis.crypto.randomUUID() : 'exec-' + Date.now() + '-' + Math.random().toString(36).slice(2,10);\nconst requestErrors = [];\nif (!doctype) requestErrors.push('Missing doctype');\nif (doctype && !supported.includes(doctype)) requestErrors.push(`Unsupported doctype: ${doctype}`);\nif (!data || typeof data !== 'object') requestErrors.push('Missing or invalid data object');\nconst log = { execution_id: executionId, doctype: doctype || 'UNKNOWN', mode: simulation ? 'SIMULATION' : 'LIVE', direction, status: 'IN_PROGRESS', start_time: new Date().toISOString(), end_time: null, steps: [{ step: 'context_init', status: 'SUCCESS', time: new Date().toISOString() }], error: null, failed_step: null, payload_snapshot: { original_request: { doctype, simulation, direction, source_system: 'LENSIPS', data } } };\nreturn [{ json: { execution_id: executionId, timestamp: new Date().toISOString(), mode: simulation ? 'SIMULATION' : 'LIVE', simulation, direction, selected_mock_doctype: simulation ? doctype : null, source_system: 'LENSIPS', doctype, data, request_valid: requestErrors.length === 0, request_errors: requestErrors, transformed_payload: null, validation: [], has_validation_errors: false, log } }];"
+      },
+      "id": "lin-process-1",
+      "name": "Process LENSIPS Inbound",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1080, 160]
+    }
+  ],
+  "connections": {
+    "Simulation Picker": {
+      "main": [
+        [
+          {
+            "node": "Process LENSIPS Inbound",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Live Integration Webhook": {
+      "main": [
+        [
+          {
+            "node": "Process LENSIPS Inbound",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "integration_lens_in_v1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "integration_lens_in",
+  "tags": []
+}

@@ -1,0 +1,182 @@
+{
+  "name": "Integration Cockpit - Dashboard and Log Store",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cockpit-log",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "2a735c54-5eb2-4869-89c0-c9760ce92a93",
+      "name": "Cockpit Log Ingest Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -1080,
+        -80
+      ],
+      "webhookId": "cockpit-log"
+    },
+    {
+      "parameters": {
+        "functionCode": "const store = this.getWorkflowStaticData('global');\nif (!Array.isArray(store.transactions)) store.transactions = [];\nif (!store.failedById || typeof store.failedById !== 'object') store.failedById = {};\nif (!store.replayById || typeof store.replayById !== 'object') store.replayById = {};\n\nconst tx = $json || {};\nif (!tx.execution_id) {\n  return [{ json: { status: 'IGNORED', reason: 'missing execution_id' } }];\n}\n\nconst existingIndex = store.transactions.findIndex((row) => row.execution_id === tx.execution_id);\nif (existingIndex >= 0) {\n  store.transactions[existingIndex] = tx;\n} else {\n  store.transactions.push(tx);\n}\n\nif (store.transactions.length > 10000) {\n  store.transactions = store.transactions.slice(-10000);\n}\n\nif (tx.status === 'FAILED') {\n  store.failedById[tx.execution_id] = tx;\n  store.replayById[tx.execution_id] = {\n    execution_id: tx.execution_id,\n    source: 'cockpit-log',\n    original_request: tx.payload_snapshot?.original_request || null,\n    transaction: tx\n  };\n}\n\nif (tx.status === 'SUCCESS' && store.failedById[tx.execution_id]) {\n  delete store.failedById[tx.execution_id];\n}\n\nreturn [{\n  json: {\n    status: 'LOGGED',\n    execution_id: tx.execution_id,\n    total_transactions: store.transactions.length\n  }\n}];"
+      },
+      "id": "8b0d80d6-ff14-4ca8-ad6b-6e6b6328acf8",
+      "name": "Persist Transaction Log",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -840,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cockpit-failed-store",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "1f634394-b9d8-4243-a79b-c7ea4a2578d4",
+      "name": "Failed Store Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -1080,
+        160
+      ],
+      "webhookId": "cockpit-failed-store"
+    },
+    {
+      "parameters": {
+        "functionCode": "const store = this.getWorkflowStaticData('global');\nif (!store.failedById || typeof store.failedById !== 'object') store.failedById = {};\nif (!store.replayById || typeof store.replayById !== 'object') store.replayById = {};\nif (!Array.isArray(store.transactions)) store.transactions = [];\n\nconst incoming = $json || {};\nconst executionId = incoming.execution_id || incoming.log?.execution_id || incoming.response?.execution_id;\n\nif (!executionId) {\n  return [{ json: { status: 'IGNORED', reason: 'missing execution_id' } }];\n}\n\nconst failedRecord = {\n  execution_id: executionId,\n  status: 'FAILED',\n  mode: incoming.mode || incoming.log?.mode || incoming.response?.mode || null,\n  doctype: incoming.doctype || incoming.log?.doctype || incoming.response?.doctype || null,\n  error: incoming.error || incoming.log?.error || incoming.response?.error || 'Unknown failure',\n  failed_step: incoming.failed_step || incoming.log?.failed_step || incoming.response?.failed_step || null,\n  payload_snapshot: incoming.log?.payload_snapshot || incoming.payload_snapshot || {},\n  original_request: incoming.original_request || incoming.log?.payload_snapshot?.original_request || incoming.payload_snapshot?.original_request || null,\n  raw: incoming\n};\n\nstore.failedById[executionId] = failedRecord;\nstore.replayById[executionId] = failedRecord;\n\nconst existingIndex = store.transactions.findIndex((row) => row.execution_id === executionId);\nif (existingIndex >= 0) {\n  store.transactions[existingIndex] = incoming.log || failedRecord;\n} else {\n  store.transactions.push(incoming.log || failedRecord);\n}\n\nif (store.transactions.length > 10000) {\n  store.transactions = store.transactions.slice(-10000);\n}\n\nreturn [{\n  json: {\n    status: 'FAILED_TX_STORED',\n    execution_id: executionId,\n    failed_count: Object.keys(store.failedById).length\n  }\n}];"
+      },
+      "id": "9d8bb8a9-ab25-4e8e-87a5-a769e6d2f5fb",
+      "name": "Persist Failed Transaction",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -840,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cockpit-lookup",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "ba17c9f3-4a80-40d6-ad4f-6d00680d37dd",
+      "name": "Lookup Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -1080,
+        400
+      ],
+      "webhookId": "cockpit-lookup"
+    },
+    {
+      "parameters": {
+        "functionCode": "const store = this.getWorkflowStaticData('global');\nconst executionId = $json.execution_id;\n\nif (!executionId) {\n  return [{\n    json: {\n      found: false,\n      error: 'execution_id is required'\n    }\n  }];\n}\n\nconst replayById = store.replayById || {};\nconst failedById = store.failedById || {};\nconst transactions = Array.isArray(store.transactions) ? store.transactions : [];\n\nlet tx = replayById[executionId] || failedById[executionId] || null;\nif (!tx) {\n  tx = transactions.find((row) => row.execution_id === executionId) || null;\n}\n\nreturn [{\n  json: {\n    found: Boolean(tx),\n    execution_id: executionId,\n    transaction: tx\n  }\n}];"
+      },
+      "id": "dcf0cb90-b584-49f8-b8a4-16f1cbebb564",
+      "name": "Lookup Transaction",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -840,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "dashboard",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "07e7afb2-2fe5-4d2d-a42c-d4c0240b6bf8",
+      "name": "Dashboard Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -1080,
+        640
+      ],
+      "webhookId": "dashboard"
+    },
+    {
+      "parameters": {
+        "functionCode": "const store = this.getWorkflowStaticData('global');\nconst transactions = Array.isArray(store.transactions) ? store.transactions : [];\n\nlet successCount = 0;\nlet failureCount = 0;\nlet inProgressCount = 0;\nlet totalDurationMs = 0;\nlet durationCount = 0;\n\nfor (const tx of transactions) {\n  if (tx.status === 'SUCCESS') successCount += 1;\n  else if (tx.status === 'FAILED') failureCount += 1;\n  else if (tx.status === 'IN_PROGRESS') inProgressCount += 1;\n\n  if (tx.start_time && tx.end_time) {\n    const start = Date.parse(tx.start_time);\n    const end = Date.parse(tx.end_time);\n    if (!Number.isNaN(start) && !Number.isNaN(end) && end >= start) {\n      totalDurationMs += (end - start);\n      durationCount += 1;\n    }\n  }\n}\n\nconst avgProcessingTimeMs = durationCount > 0 ? Math.round(totalDurationMs / durationCount) : 0;\nconst last10 = transactions.slice(-10).reverse();\n\nreturn [{\n  json: {\n    generated_at: new Date().toISOString(),\n    total_transactions: transactions.length,\n    success_count: successCount,\n    failure_count: failureCount,\n    in_progress_count: inProgressCount,\n    avg_processing_time_ms: avgProcessingTimeMs,\n    last_10_transactions: last10\n  }\n}];"
+      },
+      "id": "09d98bfc-d141-4f2f-9248-3ff7c88cb654",
+      "name": "Build Dashboard Metrics",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -840,
+        640
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Cockpit Log Ingest Webhook": {
+      "main": [
+        [
+          {
+            "node": "Persist Transaction Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Failed Store Webhook": {
+      "main": [
+        [
+          {
+            "node": "Persist Failed Transaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Webhook": {
+      "main": [
+        [
+          {
+            "node": "Lookup Transaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dashboard Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build Dashboard Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "570c7cb9-a755-4a90-a4b8-a7e2d1ef665d",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "integration-cockpit-dashboard",
+  "tags": []
+}

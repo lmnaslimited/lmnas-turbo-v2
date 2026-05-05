@@ -25,6 +25,7 @@
 
 ## Next actions
 
+- Use `docs/phase0_1/tasks/DEVELOPER-HANDOFF-MILESTONES.md` as the external developer todo list and milestone acceptance checklist.
 - Implement first-class canonical studio settings so fidelity mode/threshold no longer persist through `themeDebt`.
 - Add real-stack parity coverage for theme / shell / widget action menus and reopen/edit flows.
 - Hand the updated proof set to ChatGPT for architecture review and Arun for functional/UX review before Gemini validation.

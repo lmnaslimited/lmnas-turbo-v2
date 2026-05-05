@@ -1,0 +1,318 @@
+{
+  "name": "Integration Cockpit - Replay",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "replay",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "9f88a312-f2a9-4c06-ba13-4234329932ea",
+      "name": "Replay Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -1400,
+        200
+      ],
+      "webhookId": "replay"
+    },
+    {
+      "parameters": {
+        "functionCode": "const executionId = $json.execution_id;\nconst forceLive = $json.force_live === true;\nconst simulationOverride = typeof $json.simulation === 'boolean' ? $json.simulation : null;\n\nconst response = {\n  request_valid: Boolean(executionId),\n  execution_id: executionId || null,\n  force_live: forceLive,\n  simulation_override: simulationOverride\n};\n\nif (!response.request_valid) {\n  response.error = 'execution_id is required';\n}\n\nreturn [{ json: response }];"
+      },
+      "id": "3b17f85b-5f33-4721-ba87-d6c25af8ed93",
+      "name": "Validate Replay Request",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -1180,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.request_valid}}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      },
+      "id": "95dd6deb-f66f-4f54-84a9-1736d9698d0f",
+      "name": "Replay Request Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -960,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "return [{\n  json: {\n    status: 'FAILED',\n    error: 'execution_id is required for replay',\n    failed_step: 'replay_request_validation'\n  }\n}];"
+      },
+      "id": "3468fd8f-ec89-494f-8f70-52d6274ef712",
+      "name": "Invalid Replay Request Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -740,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "http://127.0.0.1:5678/webhook/cockpit-lookup",
+        "jsonParameters": true,
+        "bodyParametersJson": "={{ { \"execution_id\": $node[\"Validate Replay Request\"].json.execution_id } }}",
+        "options": {}
+      },
+      "id": "ce5b7932-8cf3-41eb-beb3-95b8f8c7702b",
+      "name": "Fetch Transaction for Replay",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -740,
+        120
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.found}}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      },
+      "id": "8d65e5e6-ef9e-42bc-923b-fa7ea7722ab7",
+      "name": "Transaction Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -520,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const lookup = $json || {};\nconst request = $node['Validate Replay Request'].json;\nconst tx = lookup.transaction || {};\n\nconst originalRequest = tx.original_request\n  || tx.payload_snapshot?.original_request\n  || tx.transaction?.payload_snapshot?.original_request\n  || tx.raw?.original_request\n  || tx.raw?.payload_snapshot?.original_request\n  || null;\n\nif (!originalRequest) {\n  return [{\n    json: {\n      payload_ready: false,\n      status: 'FAILED',\n      error: 'No original request payload found for execution_id',\n      failed_step: 'build_replay_payload',\n      source_execution_id: request.execution_id\n    }\n  }];\n}\n\nconst replayPayload = { ...originalRequest };\n\nif (request.force_live) {\n  replayPayload.simulation = false;\n}\n\nif (request.simulation_override !== null) {\n  replayPayload.simulation = request.simulation_override;\n}\n\nreturn [{\n  json: {\n    payload_ready: true,\n    source_execution_id: request.execution_id,\n    replay_payload: replayPayload\n  }\n}];"
+      },
+      "id": "5f08e831-d0cb-4f5f-954f-d3db61f625f8",
+      "name": "Build Replay Payload",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -300,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.payload_ready}}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      },
+      "id": "76a03e9d-ec68-43e9-a143-36b96bdbf2c7",
+      "name": "Replay Payload Ready?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "return [{ json: $node['Build Replay Payload'].json }];"
+      },
+      "id": "a259d143-c25b-4ec5-8a96-824f4e15ff1d",
+      "name": "Replay Payload Error Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        140,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "http://127.0.0.1:5678/webhook/integration-cockpit",
+        "jsonParameters": true,
+        "bodyParametersJson": "={{$node[\"Build Replay Payload\"].json.replay_payload}}",
+        "options": {}
+      },
+      "id": "c1c9a7fd-514c-4d77-8389-b0feb11fec7a",
+      "name": "Re-run Integration Cockpit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        140,
+        -80
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "functionCode": "const sourceExecutionId = $node['Build Replay Payload'].json.source_execution_id;\nconst replayResult = $json;\n\nreturn [{\n  json: {\n    status: replayResult.error ? 'FAILED' : 'REPLAY_TRIGGERED',\n    source_execution_id: sourceExecutionId,\n    replay_result: replayResult\n  }\n}];"
+      },
+      "id": "9f4ab7e7-c27d-462f-b090-ec66a816a629",
+      "name": "Build Replay Success Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        360,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "return [{\n  json: {\n    status: 'FAILED',\n    error: 'execution_id not found in failed transaction store',\n    failed_step: 'lookup_transaction'\n  }\n}];"
+      },
+      "id": "d648fd0b-4ab9-4f04-a48e-e9393d6ae31b",
+      "name": "Transaction Not Found Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -300,
+        260
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Replay Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Replay Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Replay Request": {
+      "main": [
+        [
+          {
+            "node": "Replay Request Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replay Request Valid?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Transaction for Replay",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Invalid Replay Request Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Transaction for Replay": {
+      "main": [
+        [
+          {
+            "node": "Transaction Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transaction Found?": {
+      "main": [
+        [
+          {
+            "node": "Build Replay Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Transaction Not Found Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Replay Payload": {
+      "main": [
+        [
+          {
+            "node": "Replay Payload Ready?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replay Payload Ready?": {
+      "main": [
+        [
+          {
+            "node": "Re-run Integration Cockpit",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Replay Payload Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Re-run Integration Cockpit": {
+      "main": [
+        [
+          {
+            "node": "Build Replay Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "81fdcb0f-5bb7-49d8-b9e9-4196a716b59b",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "integration-cockpit-replay",
+  "tags": []
+}

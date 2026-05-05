@@ -1,0 +1,1113 @@
+{
+  "name": "Integration Cockpit - Main",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Integration Cockpit Simulation",
+        "formDescription": "Choose the doctype you want to simulate and submit to run the cockpit using built-in mock data.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Mock Doctype",
+              "fieldName": "mock_doctype",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  { "option": "Sales Order" },
+                  { "option": "Purchase Order" },
+                  { "option": "Delivery Note" },
+                  { "option": "Work Order" },
+                  { "option": "Stock Entry" },
+                  { "option": "Pick List" },
+                  { "option": "Material Request" },
+                  { "option": "Job Card" }
+                ]
+              },
+              "defaultValue": "Sales Order",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Simulation",
+              "fieldName": "simulation",
+              "fieldType": "hiddenField",
+              "fieldValue": true
+            },
+            {
+              "fieldLabel": "Direction",
+              "fieldName": "direction",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  { "option": "LENSIPS_TO_M3" },
+                  { "option": "M3_TO_LENSIPS" }
+                ]
+              },
+              "defaultValue": "LENSIPS_TO_M3",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "formPath": "integration-cockpit-simulate",
+          "buttonLabel": "Run Simulation",
+          "appendAttribution": false
+        }
+      },
+      "id": "d49b2a7a-7b7b-41e7-a7cb-5b8d3b1a4f74",
+      "name": "Simulation Picker",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -3040,
+        20
+      ],
+      "webhookId": "integration-cockpit-simulate"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "integration-cockpit",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "9a6d6a9a-9df1-4c0f-84e0-5b98e8abde01",
+      "name": "Live Integration Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -2840,
+        260
+      ],
+      "webhookId": "integration-cockpit"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json || {};\nconst supportedDocTypes = [\n  'Sales Order',\n  'Purchase Order',\n  'Delivery Note',\n  'Work Order',\n  'Stock Entry',\n  'Pick List',\n  'Material Request',\n  'Job Card'\n];\n\nconst mockProfiles = {\n  'Sales Order': {\n    order_id: 'SO-10042',\n    order_date: '2026-04-18',\n    customer_id: 'CUST-0007',\n    customer_name: 'Eurogrid GmbH',\n    currency: 'EUR',\n    delivery_date: '2026-04-23',\n    items: [\n      { item_code: 'TR-1001', description: 'Core Transformer Unit', qty: 12, price: 1840, uom: 'EA', warehouse: 'MAIN-WH' },\n      { item_code: 'TR-2004', description: 'Control Module', qty: 12, price: 210, uom: 'EA', warehouse: 'MAIN-WH' }\n    ]\n  },\n  'Purchase Order': {\n    po_number: 'PO-55021',\n    order_date: '2026-04-18',\n    supplier_id: 'SUP-023',\n    supplier_name: 'Volt-Ind Components',\n    currency: 'EUR',\n    buyer: 'Procurement Desk',\n    items: [\n      { item_code: 'COP-WIRE-12', description: 'Copper Wire Roll', qty: 40, rate: 125, uom: 'KG' },\n      { item_code: 'INS-900', description: 'Insulation Sheet', qty: 22, rate: 44, uom: 'EA' }\n    ]\n  },\n  'Delivery Note': {\n    delivery_number: 'DN-77102',\n    posting_date: '2026-04-18T08:45:00.000Z',\n    warehouse: 'FG-WH',\n    sales_order: 'SO-10042',\n    carrier: 'DHL Freight',\n    items: [\n      { item_code: 'TR-1001', description: 'Core Transformer Unit', qty: 4, uom: 'EA', batch_no: 'B-44' },\n      { item_code: 'TR-2004', description: 'Control Module', qty: 4, uom: 'EA', batch_no: 'B-44' }\n    ]\n  },\n  'Work Order': {\n    work_order_number: 'WO-90088',\n    item_code: 'TR-1001',\n    item_name: 'Core Transformer Unit',\n    qty: 20,\n    uom: 'EA',\n    bom_no: 'BOM-TRANS-01',\n    operations: [\n      { sequence: 10, operation_code: 'CUT', work_center: 'CUTTING', planned_hours: 3.5 },\n      { sequence: 20, operation_code: 'ASSEMBLE', work_center: 'ASSEMBLY', planned_hours: 6.5 }\n    ]\n  },\n  'Stock Entry': {\n    stock_entry_number: 'SE-41011',\n    stock_entry_type: 'Material Transfer',\n    posting_date: '2026-04-18',\n    remarks: 'Move coils to WIP',\n    items: [\n      { item_code: 'COP-WIRE-12', qty: 18, s_warehouse: 'MAIN-WH', t_warehouse: 'WIP-WH', valuation_rate: 125 },\n      { item_code: 'INS-900', qty: 9, s_warehouse: 'MAIN-WH', t_warehouse: 'WIP-WH', valuation_rate: 44 }\n    ]\n  },\n  'Pick List': {\n    pick_list_number: 'PL-30301',\n    sales_order: 'SO-10042',\n    warehouse: 'MAIN-WH',\n    picker: 'Line-02',\n    items: [\n      { item_code: 'TR-1001', picked_qty: 3, from_warehouse: 'MAIN-WH', bin: 'A-12' },\n      { item_code: 'TR-2004', picked_qty: 3, from_warehouse: 'MAIN-WH', bin: 'B-08' }\n    ]\n  },\n  'Material Request': {\n    material_request_number: 'MR-12030',\n    material_request_type: 'Purchase',\n    schedule_date: '2026-04-22',\n    requested_by: 'Production Planning',\n    items: [\n      { item_code: 'COP-WIRE-12', required_qty: 55, warehouse: 'MAIN-WH' },\n      { item_code: 'INS-900', required_qty: 28, warehouse: 'MAIN-WH' }\n    ]\n  },\n  'Job Card': {\n    job_card_number: 'JC-88010',\n    work_order_number: 'WO-90088',\n    operation: 'ASSEMBLE',\n    workstation: 'ASSEMBLY',\n    completed_qty: 5,\n    total_time_in_mins: 390,\n    items: [\n      { item_code: 'COP-WIRE-12', consumed_qty: 4, source_warehouse: 'WIP-WH' },\n      { item_code: 'INS-900', consumed_qty: 2, source_warehouse: 'WIP-WH' }\n    ]\n  }\n};\n\nconst simulation = true;\nconst mode = 'SIMULATION';\nconst timestamp = new Date().toISOString();\nconst direction = body.direction === 'M3_TO_LENSIPS' ? 'M3_TO_LENSIPS' : 'LENSIPS_TO_M3';\nconst sourceSystem = body.source_system || (direction === 'M3_TO_LENSIPS' ? 'M3' : 'LENSIPS');\nconst doctype = body.mock_doctype || 'Sales Order';\nconst data = mockProfiles[doctype] || mockProfiles['Sales Order'];\n\nconst executionId = (globalThis.crypto && globalThis.crypto.randomUUID)\n  ? globalThis.crypto.randomUUID()\n  : 'exec-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);\n\nconst requestErrors = [];\nif (!doctype) requestErrors.push('Missing doctype');\nif (doctype && !supportedDocTypes.includes(doctype)) requestErrors.push(`Unsupported doctype: ${doctype}`);\nif (!data || typeof data !== 'object') requestErrors.push('Missing or invalid data object');\n\nconst result = {\n  execution_id: executionId,\n  timestamp,\n  mode,\n  simulation,\n  selected_mock_doctype: doctype,\n  direction,\n  source_system: sourceSystem,\n  doctype,\n  data,\n  request_valid: requestErrors.length === 0,\n  request_errors: requestErrors,\n  validation: [],\n  has_validation_errors: false,\n  transformed_payload: null,\n  primary_endpoint: null,\n  primary_system: direction === 'M3_TO_LENSIPS' ? 'LENSIPS' : 'M3',\n  original_request: {\n    doctype,\n    simulation,\n    selected_mock_doctype: doctype,\n    direction,\n    source_system: sourceSystem,\n    data\n  },\n  log: {\n    execution_id: executionId,\n    doctype,\n    mode,\n    direction,\n    status: 'IN_PROGRESS',\n    start_time: timestamp,\n    end_time: null,\n    steps: [\n      { step: 'context_init', status: 'SUCCESS', time: timestamp }\n    ],\n    error: null,\n    failed_step: null,\n    payload_snapshot: {\n      original_request: {\n        doctype,\n        simulation,\n        selected_mock_doctype: doctype,\n        direction,\n        source_system: sourceSystem,\n        data\n      }\n    }\n  }\n};\n\nif (!result.request_valid) {\n  result.log.status = 'FAILED';\n  result.log.failed_step = 'request_validation';\n  result.log.error = requestErrors.join('; ');\n  result.log.steps.push({\n    step: 'request_validation',\n    status: 'FAILED',\n    details: requestErrors,\n    time: new Date().toISOString()\n  });\n}\n\nreturn [{ json: result }];"
+      },
+      "id": "25c291b7-6be5-4f89-a845-906f68534d30",
+      "name": "Initialize Simulation Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2620,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json || {};\nconst supportedDocTypes = [\n  'Sales Order',\n  'Purchase Order',\n  'Delivery Note',\n  'Work Order',\n  'Stock Entry',\n  'Pick List',\n  'Material Request',\n  'Job Card'\n];\n\nconst simulation = false;\nconst mode = 'LIVE';\nconst timestamp = new Date().toISOString();\nconst direction = body.direction === 'M3_TO_LENSIPS' ? 'M3_TO_LENSIPS' : 'LENSIPS_TO_M3';\nconst sourceSystem = body.source_system || (direction === 'M3_TO_LENSIPS' ? 'M3' : 'LENSIPS');\nconst doctype = body.doctype;\nconst data = body.data || {};\n\nconst executionId = (globalThis.crypto && globalThis.crypto.randomUUID)\n  ? globalThis.crypto.randomUUID()\n  : 'exec-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);\n\nconst requestErrors = [];\nif (!doctype) requestErrors.push('Missing doctype');\nif (doctype && !supportedDocTypes.includes(doctype)) requestErrors.push(`Unsupported doctype: ${doctype}`);\nif (!data || typeof data !== 'object') requestErrors.push('Missing or invalid data object');\n\nconst result = {\n  execution_id: executionId,\n  timestamp,\n  mode,\n  simulation,\n  selected_mock_doctype: null,\n  direction,\n  source_system: sourceSystem,\n  doctype,\n  data,\n  request_valid: requestErrors.length === 0,\n  request_errors: requestErrors,\n  validation: [],\n  has_validation_errors: false,\n  transformed_payload: null,\n  primary_endpoint: null,\n  primary_system: direction === 'M3_TO_LENSIPS' ? 'LENSIPS' : 'M3',\n  original_request: {\n    doctype,\n    simulation,\n    selected_mock_doctype: null,\n    direction,\n    source_system: sourceSystem,\n    data\n  },\n  log: {\n    execution_id: executionId,\n    doctype: doctype || 'UNKNOWN',\n    mode,\n    direction,\n    status: 'IN_PROGRESS',\n    start_time: timestamp,\n    end_time: null,\n    steps: [\n      { step: 'context_init', status: 'SUCCESS', time: timestamp }\n    ],\n    error: null,\n    failed_step: null,\n    payload_snapshot: {\n      original_request: {\n        doctype,\n        simulation,\n        selected_mock_doctype: null,\n        direction,\n        source_system: sourceSystem,\n        data\n      }\n    }\n  }\n};\n\nif (!result.request_valid) {\n  result.log.status = 'FAILED';\n  result.log.failed_step = 'request_validation';\n  result.log.error = requestErrors.join('; ');\n  result.log.steps.push({\n    step: 'request_validation',\n    status: 'FAILED',\n    details: requestErrors,\n    time: new Date().toISOString()\n  });\n}\n\nreturn [{ json: result }];"
+      },
+      "id": "c1c7f0d3-7a65-4dd7-bf1f-1c2d3acbbbbb",
+      "name": "Initialize Live Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2620,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "http://127.0.0.1:5678/webhook/cockpit-log",
+        "jsonParameters": true,
+        "bodyParametersJson": "={{$json.log}}",
+        "options": {}
+      },
+      "id": "4d0f5b8a-bf86-4d3f-9ece-985d6a671455",
+      "name": "Log In Progress",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        -2410,
+        60
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.request_valid}}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      },
+      "id": "de8b0f3d-9cf4-473f-85ce-55a11ceef2df",
+      "name": "Envelope Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -2380,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date().toISOString();\nconst log = { ...$json.log };\nlog.end_time = now;\n\nconst response = {\n  execution_id: $json.execution_id,\n  status: 'FAILED',\n  error: log.error || 'Invalid request envelope',\n  failed_step: log.failed_step || 'request_validation',\n  validation: $json.request_errors || []\n};\n\nreturn [{\n  json: {\n    ...$json,\n    response,\n    log\n  }\n}];"
+      },
+      "id": "05f56446-db13-4eb6-883d-0dbbfd18158f",
+      "name": "Build Envelope Failure Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2160,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "http://127.0.0.1:5678/webhook/cockpit-log",
+        "jsonParameters": true,
+        "bodyParametersJson": "={{$json.log}}",
+        "options": {}
+      },
+      "id": "6f7539f4-6f6c-4d95-a136-bc28f87303eb",
+      "name": "Log Envelope Failure",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        -1940,
+        560
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "http://127.0.0.1:5678/webhook/cockpit-failed-store",
+        "jsonParameters": true,
+        "bodyParametersJson": "={{$node[\"Build Envelope Failure Response\"].json}}",
+        "options": {}
+      },
+      "id": "9ea479fd-c6de-43d9-8c68-ab46cfbd5c0e",
+      "name": "Store Failed Envelope",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        -1720,
+        560
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $node['Build Envelope Failure Response'].json.response }];"
+      },
+      "id": "70727e8d-cf51-4064-bf61-615ea6bf8bc8",
+      "name": "Return Envelope Failure",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1500,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "rules": [
+            {
+              "value1": "={{$json.doctype}}",
+              "operation": "equal",
+              "value2": "Sales Order"
+            },
+            {
+              "value1": "={{$json.doctype}}",
+              "operation": "equal",
+              "value2": "Purchase Order"
+            },
+            {
+              "value1": "={{$json.doctype}}",
+              "operation": "equal",
+              "value2": "Delivery Note"
+            },
+            {
+              "value1": "={{$json.doctype}}",
+              "operation": "equal",
+              "value2": "Work Order"
+            },
+            {
+              "value1": "={{$json.doctype}}",
+              "operation": "equal",
+              "value2": "Stock Entry"
+            },
+            {
+              "value1": "={{$json.doctype}}",
+              "operation": "equal",
+              "value2": "Pick List"
+            },
+            {
+              "value1": "={{$json.doctype}}",
+              "operation": "equal",
+              "value2": "Material Request"
+            },
+            {
+              "value1": "={{$json.doctype}}",
+              "operation": "equal",
+              "value2": "Job Card"
+            }
+          ]
+        }
+      },
+      "id": "3fdd5fd4-8a97-421d-a5ba-f51d76887bf9",
+      "name": "Route by DocType",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 2,
+      "position": [
+        -2150,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $json.data || {};\nconst items = Array.isArray(d.items) ? d.items : [];\n\nconst mappedItems = items.map((item, idx) => {\n  const qty = Number(item.qty ?? item.quantity ?? 0);\n  const unitPrice = Number(item.price ?? item.rate ?? 0);\n  return {\n    lineNumber: idx + 1,\n    itemCode: item.item_code || item.item || item.sku || `ITEM-${idx + 1}` ,\n    description: item.description || item.item_name || '',\n    quantity: qty,\n    uom: item.uom || 'EA',\n    unitPrice,\n    lineAmount: Number((qty * unitPrice).toFixed(2)),\n    warehouse: item.warehouse || d.warehouse || null\n  };\n});\n\nconst netAmount = mappedItems.reduce((sum, row) => sum + Number(row.lineAmount || 0), 0);\n\n$json.transformed_payload = {\n  target_system: $json.direction === 'M3_TO_LENSIPS' ? 'LENSIPS' : 'M3',\n  document_type: 'Sales Order',\n  payload: {\n    orderNumber: d.order_id || d.name || d.sales_order_id || '',\n    orderDate: d.order_date || d.transaction_date || new Date().toISOString().slice(0, 10),\n    customer: {\n      id: d.customer_id || d.customer || '',\n      name: d.customer_name || d.customer || ''\n    },\n    currency: d.currency || 'EUR',\n    requestedDeliveryDate: d.delivery_date || null,\n    items: mappedItems,\n    totals: {\n      netAmount: Number(netAmount.toFixed(2)),\n      lineCount: mappedItems.length\n    }\n  }\n};\n\n$json.log.steps.push({\n  step: 'transform_sales_order',\n  status: 'SUCCESS',\n  time: new Date().toISOString()\n});\n$json.log.payload_snapshot.transformed_payload = $json.transformed_payload;\n\nreturn [{ json: $json }];"
+      },
+      "id": "43c0485b-fcfa-4137-8f9f-98962f8f05da",
+      "name": "Transform Sales Order",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1910,
+        -560
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $json.data || {};\nconst items = Array.isArray(d.items) ? d.items : [];\n\nconst mappedItems = items.map((item, idx) => ({\n  lineNumber: idx + 1,\n  itemCode: item.item_code || item.item || item.sku || `ITEM-${idx + 1}`,\n  description: item.description || item.item_name || '',\n  quantity: Number(item.qty ?? item.quantity ?? 0),\n  uom: item.uom || 'EA',\n  expectedDate: item.schedule_date || d.schedule_date || null\n}));\n\n$json.transformed_payload = {\n  target_system: $json.direction === 'M3_TO_LENSIPS' ? 'LENSIPS' : 'M3',\n  document_type: 'Purchase Order',\n  payload: {\n    poNumber: d.po_number || d.name || '',\n    orderDate: d.order_date || d.transaction_date || new Date().toISOString().slice(0, 10),\n    supplier: {\n      id: d.supplier_id || d.supplier || '',\n      name: d.supplier_name || d.supplier || ''\n    },\n    currency: d.currency || 'EUR',\n    buyer: d.buyer || d.owner || null,\n    items: mappedItems\n  }\n};\n\n$json.log.steps.push({\n  step: 'transform_purchase_order',\n  status: 'SUCCESS',\n  time: new Date().toISOString()\n});\n$json.log.payload_snapshot.transformed_payload = $json.transformed_payload;\n\nreturn [{ json: $json }];"
+      },
+      "id": "8b8ff929-74cd-4928-8916-5b7b2f8ad0dc",
+      "name": "Transform Purchase Order",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1910,
+        -360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $json.data || {};\nconst items = Array.isArray(d.items) ? d.items : [];\n\nconst mappedItems = items.map((item, idx) => ({\n  lineNumber: idx + 1,\n  itemCode: item.item_code || item.item || item.sku || `ITEM-${idx + 1}`,\n  description: item.description || item.item_name || '',\n  quantity: Number(item.qty ?? item.quantity ?? 0),\n  uom: item.uom || 'EA',\n  batch: item.batch_no || null,\n  serialNumbers: item.serial_nos || []\n}));\n\n$json.transformed_payload = {\n  target_system: $json.direction === 'M3_TO_LENSIPS' ? 'LENSIPS' : 'M3',\n  document_type: 'Delivery Note',\n  payload: {\n    deliveryNumber: d.delivery_number || d.name || '',\n    postingDate: d.posting_date || d.posting_datetime || new Date().toISOString(),\n    warehouse: d.warehouse || d.set_warehouse || '',\n    customerOrderRef: d.sales_order || null,\n    carrier: d.carrier || null,\n    items: mappedItems\n  }\n};\n\n$json.log.steps.push({\n  step: 'transform_delivery_note',\n  status: 'SUCCESS',\n  time: new Date().toISOString()\n});\n$json.log.payload_snapshot.transformed_payload = $json.transformed_payload;\n\nreturn [{ json: $json }];"
+      },
+      "id": "6b966a40-bca2-4f5e-8830-47307f7803c1",
+      "name": "Transform Delivery Note",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1910,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $json.data || {};\nconst operations = Array.isArray(d.operations) ? d.operations : [];\n\nconst mappedOps = operations.map((op, idx) => ({\n  sequence: Number(op.sequence ?? op.operation_no ?? idx + 1),\n  operationCode: op.operation_code || op.operation || `OP-${idx + 1}`,\n  workCenter: op.work_center || op.workstation || null,\n  plannedHours: Number(op.planned_hours ?? op.hours ?? 0),\n  status: op.status || 'PLANNED'\n}));\n\n$json.transformed_payload = {\n  target_system: $json.direction === 'M3_TO_LENSIPS' ? 'LENSIPS' : 'M3',\n  document_type: 'Work Order',\n  payload: {\n    workOrderNumber: d.work_order_number || d.name || '',\n    item: {\n      code: d.item_code || d.production_item || d.item || '',\n      description: d.item_name || null\n    },\n    quantity: Number(d.qty ?? d.quantity ?? 0),\n    uom: d.uom || 'EA',\n    bomReference: d.bom_no || d.bom || null,\n    operations: mappedOps\n  }\n};\n\n$json.log.steps.push({\n  step: 'transform_work_order',\n  status: 'SUCCESS',\n  time: new Date().toISOString()\n});\n$json.log.payload_snapshot.transformed_payload = $json.transformed_payload;\n\nreturn [{ json: $json }];"
+      },
+      "id": "429f4042-55bf-473d-9d8f-18dc0798699f",
+      "name": "Transform Work Order",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1910,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $json.data || {};\nconst items = Array.isArray(d.items) ? d.items : [];\n\nconst mappedItems = items.map((item, idx) => ({\n  lineNumber: idx + 1,\n  itemCode: item.item_code || item.item || '',\n  quantity: Number(item.qty ?? item.quantity ?? 0),\n  sourceWarehouse: item.s_warehouse || d.source_warehouse || null,\n  targetWarehouse: item.t_warehouse || d.target_warehouse || null,\n  valuationRate: Number(item.valuation_rate ?? item.rate ?? 0)\n}));\n\n$json.transformed_payload = {\n  target_system: $json.direction === 'M3_TO_LENSIPS' ? 'LENSIPS' : 'M3',\n  document_type: 'Stock Entry',\n  payload: {\n    stockEntryNumber: d.stock_entry_number || d.name || '',\n    entryType: d.stock_entry_type || d.entry_type || 'Material Transfer',\n    postingDate: d.posting_date || new Date().toISOString().slice(0, 10),\n    remarks: d.remarks || null,\n    items: mappedItems\n  }\n};\n\n$json.log.steps.push({\n  step: 'transform_stock_entry',\n  status: 'SUCCESS',\n  time: new Date().toISOString()\n});\n$json.log.payload_snapshot.transformed_payload = $json.transformed_payload;\n\nreturn [{ json: $json }];"
+      },
+      "id": "8d9f52b0-364f-4e9e-8f57-c3d837f1ee89",
+      "name": "Transform Stock Entry",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1910,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $json.data || {};\nconst items = Array.isArray(d.items) ? d.items : [];\n\nconst mappedPicks = items.map((item, idx) => ({\n  lineNumber: idx + 1,\n  itemCode: item.item_code || item.item || '',\n  pickedQty: Number(item.picked_qty ?? item.qty ?? item.quantity ?? 0),\n  fromWarehouse: item.from_warehouse || d.parent_warehouse || null,\n  bin: item.bin || null,\n  batch: item.batch_no || null\n}));\n\n$json.transformed_payload = {\n  target_system: $json.direction === 'M3_TO_LENSIPS' ? 'LENSIPS' : 'M3',\n  document_type: 'Pick List',\n  payload: {\n    pickListNumber: d.pick_list_number || d.name || '',\n    salesOrderRef: d.sales_order || null,\n    warehouse: d.parent_warehouse || d.warehouse || '',\n    picker: d.picker || d.owner || null,\n    picks: mappedPicks\n  }\n};\n\n$json.log.steps.push({\n  step: 'transform_pick_list',\n  status: 'SUCCESS',\n  time: new Date().toISOString()\n});\n$json.log.payload_snapshot.transformed_payload = $json.transformed_payload;\n\nreturn [{ json: $json }];"
+      },
+      "id": "ab99f8ae-a53c-46c2-9fc2-3c8ec6f44580",
+      "name": "Transform Pick List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1910,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $json.data || {};\nconst items = Array.isArray(d.items) ? d.items : [];\n\nconst mappedItems = items.map((item, idx) => ({\n  lineNumber: idx + 1,\n  itemCode: item.item_code || item.item || '',\n  requiredQty: Number(item.required_qty ?? item.qty ?? item.quantity ?? 0),\n  uom: item.uom || 'EA',\n  warehouse: item.warehouse || d.set_warehouse || null\n}));\n\n$json.transformed_payload = {\n  target_system: $json.direction === 'M3_TO_LENSIPS' ? 'LENSIPS' : 'M3',\n  document_type: 'Material Request',\n  payload: {\n    materialRequestNumber: d.material_request_number || d.name || '',\n    requestType: d.material_request_type || d.request_type || 'Purchase',\n    requiredByDate: d.schedule_date || d.required_by || null,\n    requester: d.requested_by || d.owner || '',\n    items: mappedItems\n  }\n};\n\n$json.log.steps.push({\n  step: 'transform_material_request',\n  status: 'SUCCESS',\n  time: new Date().toISOString()\n});\n$json.log.payload_snapshot.transformed_payload = $json.transformed_payload;\n\nreturn [{ json: $json }];"
+      },
+      "id": "d5d5a6a4-2cd4-47f2-921b-c9f968f1649c",
+      "name": "Transform Material Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1910,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $json.data || {};\nconst materials = Array.isArray(d.items) ? d.items : [];\n\nconst mappedMaterials = materials.map((item, idx) => ({\n  lineNumber: idx + 1,\n  itemCode: item.item_code || item.item || '',\n  consumedQty: Number(item.consumed_qty ?? item.qty ?? item.quantity ?? 0),\n  uom: item.uom || 'EA',\n  sourceWarehouse: item.source_warehouse || d.wip_warehouse || null\n}));\n\n$json.transformed_payload = {\n  target_system: $json.direction === 'M3_TO_LENSIPS' ? 'LENSIPS' : 'M3',\n  document_type: 'Job Card',\n  payload: {\n    jobCardNumber: d.job_card_number || d.name || '',\n    workOrderRef: d.work_order || d.work_order_number || '',\n    operation: d.operation || d.operation_code || '',\n    workstation: d.workstation || d.work_center || null,\n    completedQty: Number(d.completed_qty ?? d.for_quantity ?? 0),\n    laborHours: Number(d.total_time_in_mins ? d.total_time_in_mins / 60 : d.labor_hours ?? 0),\n    materials: mappedMaterials\n  }\n};\n\n$json.log.steps.push({\n  step: 'transform_job_card',\n  status: 'SUCCESS',\n  time: new Date().toISOString()\n});\n$json.log.payload_snapshot.transformed_payload = $json.transformed_payload;\n\nreturn [{ json: $json }];"
+      },
+      "id": "8f6b2f2a-e917-4a69-b914-fa4f53d8f2ce",
+      "name": "Transform Job Card",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1910,
+        840
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const requiredByDocType = {\n  'Sales Order': ['orderNumber', 'customer.id', 'items'],\n  'Purchase Order': ['poNumber', 'supplier.id', 'items'],\n  'Delivery Note': ['deliveryNumber', 'warehouse', 'items'],\n  'Work Order': ['workOrderNumber', 'item.code', 'quantity', 'operations'],\n  'Stock Entry': ['stockEntryNumber', 'entryType', 'items'],\n  'Pick List': ['pickListNumber', 'warehouse', 'picks'],\n  'Material Request': ['materialRequestNumber', 'requestType', 'items'],\n  'Job Card': ['jobCardNumber', 'workOrderRef', 'operation', 'materials']\n};\n\nconst itemFieldByDocType = {\n  'Sales Order': 'items',\n  'Purchase Order': 'items',\n  'Delivery Note': 'items',\n  'Work Order': 'operations',\n  'Stock Entry': 'items',\n  'Pick List': 'picks',\n  'Material Request': 'items',\n  'Job Card': 'materials'\n};\n\nfunction getPath(obj, path) {\n  return path.split('.').reduce((acc, key) => (acc && acc[key] !== undefined ? acc[key] : undefined), obj);\n}\n\nfunction isEmpty(val) {\n  if (val === null || val === undefined) return true;\n  if (typeof val === 'string') return val.trim() === '';\n  if (Array.isArray(val)) return val.length === 0;\n  return false;\n}\n\nconst payload = $json.transformed_payload?.payload || {};\nconst docType = $json.doctype;\nconst requiredPaths = requiredByDocType[docType] || [];\nconst validations = [];\n\nfor (const path of requiredPaths) {\n  const value = getPath(payload, path);\n  if (isEmpty(value)) {\n    validations.push({\n      rule: 'required_field',\n      field: path,\n      status: 'FAIL',\n      message: `${path} is required`\n    });\n  }\n}\n\nconst itemField = itemFieldByDocType[docType];\nconst rows = itemField ? (payload[itemField] || []) : [];\nif (itemField && (!Array.isArray(rows) || rows.length === 0)) {\n  validations.push({\n    rule: 'empty_items',\n    field: itemField,\n    status: 'FAIL',\n    message: `${itemField} cannot be empty`\n  });\n}\n\nconst qtyKeys = ['quantity', 'qty', 'requiredQty', 'plannedQty', 'pickedQty', 'consumedQty', 'completedQty'];\nif (Array.isArray(rows)) {\n  rows.forEach((row, idx) => {\n    qtyKeys.forEach((key) => {\n      if (row[key] !== undefined && Number(row[key]) < 0) {\n        validations.push({\n          rule: 'negative_quantity',\n          field: `${itemField}[${idx}].${key}`,\n          status: 'FAIL',\n          message: `${itemField}[${idx}].${key} must be >= 0`\n        });\n      }\n    });\n  });\n}\n\nif (validations.length === 0) {\n  validations.push({\n    rule: 'validation',\n    field: 'all',\n    status: 'PASS',\n    message: 'All validation checks passed'\n  });\n}\n\n$json.validation = validations;\n$json.has_validation_errors = validations.some((v) => v.status === 'FAIL');\n\n$json.log.steps.push({\n  step: 'validation',\n  status: $json.has_validation_errors ? 'FAILED' : 'SUCCESS',\n  details: validations,\n  time: new Date().toISOString()\n});\n\n$json.log.payload_snapshot.validation = validations;\n\nif ($json.has_validation_errors && !$json.simulation) {\n  $json.log.status = 'FAILED';\n  $json.log.failed_step = 'validation';\n  $json.log.error = 'Validation failed';\n}\n\nreturn [{ json: $json }];"
+      },
+      "id": "c0a80fc9-53d9-419a-8b48-f38f6d0d8fab",
+      "name": "Validate Transformed Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1600,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.simulation}}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      },
+      "id": "852bf0ee-3953-4e73-89db-4d00f9a91629",
+      "name": "Is Simulation Mode?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1380,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date().toISOString();\nconst log = { ...$json.log };\n\nlog.status = 'SUCCESS';\nlog.end_time = now;\nlog.steps.push({\n  step: 'simulation_preview',\n  status: 'SUCCESS',\n  time: now\n});\n\nconst response = {\n  execution_id: $json.execution_id,\n  mode: 'SIMULATION',\n  input: $json.original_request,\n  transformed_payload: $json.transformed_payload,\n  validation: $json.validation,\n  status: 'READY'\n};\n\nlog.payload_snapshot.response = response;\n\nreturn [{ json: { ...$json, response, log } }];"
+      },
+      "id": "731874b8-629f-4680-b5b2-54b95161ad07",
+      "name": "Build Simulation Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1150,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "http://127.0.0.1:5678/webhook/cockpit-log",
+        "jsonParameters": true,
+        "bodyParametersJson": "={{$json.log}}",
+        "options": {}
+      },
+      "id": "1c0d147f-e1c2-49e7-96f9-7003e5873f8a",
+      "name": "Log Simulation Result",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        -930,
+        -60
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $node['Build Simulation Response'].json.response }];"
+      },
+      "id": "5f516f29-0068-4b2f-8945-c6254b0f14f7",
+      "name": "Return Simulation Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -710,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.has_validation_errors}}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      },
+      "id": "40e5c709-5538-4cc9-9cdf-f4ff6dc75b6d",
+      "name": "Has Validation Errors?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1140,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date().toISOString();\nconst log = { ...$json.log };\nlog.status = 'FAILED';\nlog.end_time = now;\nlog.failed_step = 'validation';\nlog.error = 'Validation failed in LIVE mode';\n\nconst response = {\n  execution_id: $json.execution_id,\n  mode: 'LIVE',\n  status: 'FAILED',\n  error: 'Validation failed',\n  failed_step: 'validation',\n  validation: $json.validation,\n  transformed_payload: $json.transformed_payload\n};\n\nlog.payload_snapshot.response = response;\n\nreturn [{ json: { ...$json, response, log, is_failed: true } }];"
+      },
+      "id": "53e88f5a-26ad-4692-ab95-a09917c6e2e1",
+      "name": "Build Live Validation Failure",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -920,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "http://127.0.0.1:5678/webhook/cockpit-log",
+        "jsonParameters": true,
+        "bodyParametersJson": "={{$json.log}}",
+        "options": {}
+      },
+      "id": "4e5bd2be-95f0-4bbf-9482-6d8b3d6ceab1",
+      "name": "Log Live Validation Failure",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        -700,
+        560
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "http://127.0.0.1:5678/webhook/cockpit-failed-store",
+        "jsonParameters": true,
+        "bodyParametersJson": "={{$node[\"Build Live Validation Failure\"].json}}",
+        "options": {}
+      },
+      "id": "3019d84c-c0d7-4c52-bf5d-f1552499b5a4",
+      "name": "Store Failed Live Validation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        560
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $node['Build Live Validation Failure'].json.response }];"
+      },
+      "id": "e5f18d3d-c5fe-4176-ab3b-34d6cf3d57f7",
+      "name": "Return Live Validation Failure",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -260,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date().toISOString();\nconst direction = $json.direction;\nconst targetSystem = direction === 'M3_TO_LENSIPS' ? 'LENSIPS' : 'M3';\nconst primaryEndpoint = direction === 'M3_TO_LENSIPS'\n  ? 'https://example-lensips-api.com'\n  : 'https://example-m3-api.com';\n\n$json.primary_system = targetSystem;\n$json.primary_endpoint = primaryEndpoint;\n\n$json.log.steps.push({\n  step: 'transform',\n  status: 'SUCCESS',\n  time: now\n});\n$json.log.steps.push({\n  step: 'live_dispatch',\n  status: 'IN_PROGRESS',\n  target: targetSystem,\n  time: now\n});\n\nreturn [{ json: $json }];"
+      },
+      "id": "00380a77-9f4e-496c-9d4d-8eefbf1574ff",
+      "name": "Prepare Live Dispatch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -920,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "={{$json.primary_endpoint}}",
+        "jsonParameters": true,
+        "bodyParametersJson": "={{$json.transformed_payload}}",
+        "options": {}
+      },
+      "id": "1ab72336-5647-4f6c-82cd-ad04e71d94ea",
+      "name": "Send to Primary ERP",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        -700,
+        220
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "https://example-datalake.com",
+        "jsonParameters": true,
+        "bodyParametersJson": "={{$node[\"Prepare Live Dispatch\"].json.transformed_payload}}",
+        "options": {}
+      },
+      "id": "fbf2b950-f5fd-4f0f-924a-9eb66db5f04e",
+      "name": "Send to Data Lake",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        220
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const context = $node['Prepare Live Dispatch'].json;\nconst primaryRaw = $node['Send to Primary ERP'].json || {};\nconst dataLakeRaw = $json || {};\n\nconst primaryStep = context.primary_system === 'M3' ? 'm3_call' : 'lensips_call';\nconst primaryFailed = !!primaryRaw.error;\nconst dataLakeFailed = !!dataLakeRaw.error;\n\nconst log = { ...context.log };\nlog.steps = Array.isArray(log.steps) ? log.steps : [];\nlog.steps.push({\n  step: primaryStep,\n  status: primaryFailed ? 'FAILED' : 'SUCCESS',\n  detail: primaryFailed ? (primaryRaw.error.message || JSON.stringify(primaryRaw.error)) : 'Posted to primary ERP endpoint',\n  time: new Date().toISOString()\n});\nlog.steps.push({\n  step: 'datalake_call',\n  status: dataLakeFailed ? 'FAILED' : 'SUCCESS',\n  detail: dataLakeFailed ? (dataLakeRaw.error.message || JSON.stringify(dataLakeRaw.error)) : 'Posted to data lake endpoint',\n  time: new Date().toISOString()\n});\n\nconst hasFailure = primaryFailed || dataLakeFailed;\nlog.status = hasFailure ? 'FAILED' : 'SUCCESS';\nlog.end_time = new Date().toISOString();\nlog.failed_step = primaryFailed ? primaryStep : (dataLakeFailed ? 'datalake_call' : null);\nlog.error = hasFailure ? [\n  primaryFailed ? `${primaryStep} failed` : null,\n  dataLakeFailed ? 'datalake_call failed' : null\n].filter(Boolean).join('; ') : null;\n\nconst response = {\n  execution_id: context.execution_id,\n  doctype: context.doctype,\n  mode: context.mode,\n  direction: context.direction,\n  status: hasFailure ? 'FAILED' : 'SUCCESS',\n  target_system: context.primary_system,\n  transformed_payload: context.transformed_payload,\n  primary_response: primaryRaw,\n  datalake_response: dataLakeRaw\n};\n\nif (hasFailure) {\n  response.error = log.error;\n  response.failed_step = log.failed_step;\n}\n\nlog.payload_snapshot.primary_response = primaryRaw;\nlog.payload_snapshot.datalake_response = dataLakeRaw;\nlog.payload_snapshot.response = response;\n\nreturn [{\n  json: {\n    ...context,\n    response,\n    log,\n    is_failed: hasFailure\n  }\n}];"
+      },
+      "id": "994a7901-ce61-47c8-b7d9-76afeb183f20",
+      "name": "Build Live Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -260,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "http://127.0.0.1:5678/webhook/cockpit-log",
+        "jsonParameters": true,
+        "bodyParametersJson": "={{$json.log}}",
+        "options": {}
+      },
+      "id": "50a7244c-c8f0-4ece-bc01-16ce762f2b56",
+      "name": "Log Live Result",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        220
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$node[\"Build Live Result\"].json.is_failed}}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      },
+      "id": "07196d30-a5a4-4817-8f9c-2929c6f44ad3",
+      "name": "Live Failed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        180,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "http://127.0.0.1:5678/webhook/cockpit-failed-store",
+        "jsonParameters": true,
+        "bodyParametersJson": "={{$node[\"Build Live Result\"].json}}",
+        "options": {}
+      },
+      "id": "d1e4617f-ac27-481a-89f4-02dad58e8f2c",
+      "name": "Store Failed Live",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        400,
+        320
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $node['Build Live Result'].json.response }];"
+      },
+      "id": "6d5f769c-d15e-4f6c-9ac2-d2674e540a29",
+      "name": "Return Live Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        620,
+        220
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Live Integration Webhook": {
+      "main": [
+        [
+          {
+            "node": "Initialize Live Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simulation Picker": {
+      "main": [
+        [
+          {
+            "node": "Initialize Simulation Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize Simulation Context": {
+      "main": [
+        [
+          {
+            "node": "Log In Progress",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Envelope Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize Live Context": {
+      "main": [
+        [
+          {
+            "node": "Log In Progress",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Envelope Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envelope Valid?": {
+      "main": [
+        [
+          {
+            "node": "Route by DocType",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Envelope Failure Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Envelope Failure Response": {
+      "main": [
+        [
+          {
+            "node": "Log Envelope Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Envelope Failure": {
+      "main": [
+        [
+          {
+            "node": "Store Failed Envelope",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Failed Envelope": {
+      "main": [
+        [
+          {
+            "node": "Return Envelope Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by DocType": {
+      "main": [
+        [
+          {
+            "node": "Transform Sales Order",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Transform Purchase Order",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Transform Delivery Note",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Transform Work Order",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Transform Stock Entry",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Transform Pick List",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Transform Material Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Transform Job Card",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transform Sales Order": {
+      "main": [
+        [
+          {
+            "node": "Validate Transformed Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transform Purchase Order": {
+      "main": [
+        [
+          {
+            "node": "Validate Transformed Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transform Delivery Note": {
+      "main": [
+        [
+          {
+            "node": "Validate Transformed Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transform Work Order": {
+      "main": [
+        [
+          {
+            "node": "Validate Transformed Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transform Stock Entry": {
+      "main": [
+        [
+          {
+            "node": "Validate Transformed Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transform Pick List": {
+      "main": [
+        [
+          {
+            "node": "Validate Transformed Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transform Material Request": {
+      "main": [
+        [
+          {
+            "node": "Validate Transformed Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transform Job Card": {
+      "main": [
+        [
+          {
+            "node": "Validate Transformed Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Transformed Payload": {
+      "main": [
+        [
+          {
+            "node": "Is Simulation Mode?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Simulation Mode?": {
+      "main": [
+        [
+          {
+            "node": "Build Simulation Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Has Validation Errors?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Simulation Response": {
+      "main": [
+        [
+          {
+            "node": "Log Simulation Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Simulation Result": {
+      "main": [
+        [
+          {
+            "node": "Return Simulation Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Validation Errors?": {
+      "main": [
+        [
+          {
+            "node": "Build Live Validation Failure",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Live Dispatch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Live Validation Failure": {
+      "main": [
+        [
+          {
+            "node": "Log Live Validation Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Live Validation Failure": {
+      "main": [
+        [
+          {
+            "node": "Store Failed Live Validation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Failed Live Validation": {
+      "main": [
+        [
+          {
+            "node": "Return Live Validation Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Live Dispatch": {
+      "main": [
+        [
+          {
+            "node": "Send to Primary ERP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Primary ERP": {
+      "main": [
+        [
+          {
+            "node": "Send to Data Lake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Data Lake": {
+      "main": [
+        [
+          {
+            "node": "Build Live Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Live Result": {
+      "main": [
+        [
+          {
+            "node": "Log Live Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Live Result": {
+      "main": [
+        [
+          {
+            "node": "Live Failed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Live Failed?": {
+      "main": [
+        [
+          {
+            "node": "Store Failed Live",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Live Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Failed Live": {
+      "main": [
+        [
+          {
+            "node": "Return Live Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "integration-cockpit-error"
+  },
+  "versionId": "29dd568e-cf84-4d58-98ec-70f56688d5cc",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "integration-cockpit-main",
+  "tags": []
+}

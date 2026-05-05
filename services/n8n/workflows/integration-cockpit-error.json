@@ -1,0 +1,140 @@
+{
+  "name": "Integration Cockpit - Error Workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "8c21a4d7-f478-4ec8-a8ab-ab6f519efb8d",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1020,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const payload = $json || {};\nconst execution = payload.execution || {};\nconst workflow = payload.workflow || {};\nconst err = payload.error || {};\n\nconst executionId = execution.id\n  ? `n8n-${execution.id}`\n  : ((globalThis.crypto && globalThis.crypto.randomUUID)\n    ? globalThis.crypto.randomUUID()\n    : 'err-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10));\n\nconst startedAt = execution.startedAt || new Date().toISOString();\nconst endedAt = new Date().toISOString();\nconst failedStep = execution.lastNodeExecuted || err.node?.name || 'unknown';\nconst errorMessage = err.message || 'Unhandled n8n workflow error';\n\nconst log = {\n  execution_id: executionId,\n  doctype: 'UNKNOWN',\n  mode: 'LIVE',\n  status: 'FAILED',\n  start_time: startedAt,\n  end_time: endedAt,\n  steps: [\n    { step: 'error_trigger', status: 'FAILED', time: endedAt },\n    { step: failedStep, status: 'FAILED', time: endedAt }\n  ],\n  error: errorMessage,\n  failed_step: failedStep,\n  payload_snapshot: {\n    workflow: {\n      id: workflow.id || null,\n      name: workflow.name || null\n    },\n    execution,\n    error: err\n  }\n};\n\nconst response = {\n  execution_id: executionId,\n  status: 'FAILED',\n  error: errorMessage,\n  failed_step: failedStep\n};\n\nreturn [{ json: { ...payload, execution_id: executionId, log, response } }];"
+      },
+      "id": "88f52ea6-ff8a-40a7-b5c5-b7569f300f0e",
+      "name": "Build Error Transaction",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -780,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "http://127.0.0.1:5678/webhook/cockpit-log",
+        "jsonParameters": true,
+        "bodyParametersJson": "={{$json.log}}",
+        "options": {}
+      },
+      "id": "958c5bca-4682-4d98-a18d-fd2d6f2305a9",
+      "name": "Log Error Transaction",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -540,
+        160
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "http://127.0.0.1:5678/webhook/cockpit-failed-store",
+        "jsonParameters": true,
+        "bodyParametersJson": "={{$node[\"Build Error Transaction\"].json}}",
+        "options": {}
+      },
+      "id": "ddb66f92-52f6-44f5-a1dd-28933a0b1cc7",
+      "name": "Store Failed Error Transaction",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        -540,
+        320
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "functionCode": "return [{ json: $node['Build Error Transaction'].json.response }];"
+      },
+      "id": "e7f1026e-03df-4d4b-bd70-1d4af8be658d",
+      "name": "Return Error Payload",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -300,
+        240
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Build Error Transaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Error Transaction": {
+      "main": [
+        [
+          {
+            "node": "Log Error Transaction",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Store Failed Error Transaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Error Transaction": {
+      "main": [
+        [
+          {
+            "node": "Return Error Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Failed Error Transaction": {
+      "main": [
+        [
+          {
+            "node": "Return Error Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d8df2545-f212-4681-9b0a-e3063ee25b09",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "integration-cockpit-error",
+  "tags": []
+}
